@@ -503,11 +503,17 @@ function startMyGame() {
   initGame(myGameConfig(gm), [seasonSchool(gm.h), seasonSchool(gm.a)]);
   S.season = { seed: SEASON.seed, week: SEASON.week, my: SEASON.myId };
   const me = S.teams.findIndex(t => t.id === SEASON.myId), P = SEASON.practice;
-  if (P && P.film && P.opp === S.teams[1 - me].id) S.teams[me].prep = prepFrom(P.film, P.prep, mySchool().coach.sct);
+  if (P && P.film && P.opp === S.teams[1 - me].id) {
+    const pr = prepFrom(P.film, P.prep, mySchool().coach.sct);
+    if (pr && coachHas(mySchool().coach, "film")) pr.k *= FILM_JUNKIE;
+    S.teams[me].prep = pr;
+  }
   seedFilm(me, S.teams[1 - me].coach);
   SEASON.nextDepth = null; SEASON.depthMode = "always";
   return true;
 }
+// The Film junkie perk: a quarter more edge on the calls you studied
+const FILM_JUNKIE = 1.25;
 // Stats that keep the best game instead of adding up
 const LONG_STATS = new Set(["rl", "rcl", "fgl", "pul"]);
 // Your game is over: its score goes in the schedule, and your players' stats into their season totals
@@ -530,6 +536,7 @@ function recordMyGame() {
     tot.g++;
     for (const k in st) tot[k] = LONG_STATS.has(k) ? Math.max(tot[k] || 0, st[k]) : (tot[k] || 0) + st[k];
   });
+  gameXP(gm, me);
   return true;
 }
 // Sims your game this week (your coach calls it). The finished game stays in S for its box score.
@@ -549,11 +556,11 @@ function finishWeek() {
   playOthers(n);
   endOfWeek();
   SEASON.week = n + 1;
-  if (n === REGULAR_WEEKS) makeBracket();
+  if (n === REGULAR_WEEKS) { makeBracket(); bracketXP(n); }
   else if (n > REGULAR_WEEKS) nextRound();
   writeNews(n);
   // A finished season goes into your career (career.js)
-  if (SEASON.phase === "over") recordCareerSeason();
+  if (SEASON.phase === "over") { seasonEndXP(n); recordCareerSeason(); }
   return n;
 }
 // Sims everything up to the week before stopAt (the end of the season by default), your games too,

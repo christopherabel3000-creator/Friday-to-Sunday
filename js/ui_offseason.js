@@ -33,6 +33,11 @@ function vOffseason() {
       <p>${plural(back.length, "player")}, ${returning} of them starters. About ${plural(expected, "freshman", "freshmen")} should come out for football.</p>
       <button class="btn ghost" data-a="sroster" data-t="${s.id}">Roster and depth chart</button>
     </section>
+    <section class="panel">
+      <h3>Your coach</h3>
+      <p>${CAREER.xp || 0} XP to spend on ratings and perks.</p>
+      <button class="btn ghost" data-a="coach">Spend XP</button>
+    </section>
     ${champ ? `<p class="muted">${SEASON.year} Class 1A state champions: the ${esc(nameOf(champ))}.</p>` : ""}
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>
     <button class="btn ghost" data-a="summary">${SEASON.year} season summary</button>`;

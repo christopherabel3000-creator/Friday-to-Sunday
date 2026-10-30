@@ -200,7 +200,7 @@ function rollPlay(off, def, opk, dpk, side) {
   const T = x.T = talentEdges(off, def, x);
   // Execution: disguises, the coaches, how well each side knows its call, and the week's film study
   const mo = masteryOf(o, off), md = masteryOf(1 - o, def), pr = prepEdge(o, off, def);
-  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + specEdge(o, off) + masteryEdge(mo) - masteryEdge(md) + pr;
+  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + specEdge(o, off) + masteryEdge(mo) - masteryEdge(md) + pr + perkEdge(o, off, def);
   const pe = pkgEdge(off, opk, dpk), se = styleEdge(off, def, o), m = clamp(M[off][def] + pe + se + dc + (side ? SIDE_EDGE[off][def] || 0 : 0), -3, 3);
   const OP = OFF_PKGS[opk] || {}, compMul = (OP.comp || {})[off] || 1, fumMul = masteryMul(mo, .008);
   // Missed tackles: weak tackling means more big plays
@@ -804,7 +804,7 @@ function doFake(kind) {
   const o = S.poss, d = 1 - o, st = S.teams[o].st, from = S.spot, def = S.defCall, isPunt = kind === "fp";
   st.plays++; tick(ri(5, 8));
   const who = isPunt ? punterOf(o) : (onField(o, "fgu").QB || [])[0] || punterOf(o);
-  const pOK = def === "blk" ? .72 : def === "ret" ? .5 : .18;
+  const pOK = (def === "blk" ? .72 : def === "ret" ? .5 : .18) + (hasPerk(o, "trick") ? .1 : 0);
   const ok = rand() < pOK, pass = rand() < .5;
   let y = ok ? S.toGo + ri(0, 7) + (rand() < .15 ? ri(10, 40) : 0) : ri(-4, Math.max(-1, S.toGo - 1));
   const r = { fromX: fx(o, from), tone: "", s: ok ? 2 : -2 };

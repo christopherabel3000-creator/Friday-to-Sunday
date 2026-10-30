@@ -79,7 +79,7 @@ Booster fundraisers move to Milestone 3, with budgets.
 Build steps, each one playable and tested before the next:
 
 1. **Done:** more seasons: the offseason with graduation, growth and freshmen, the next season with its preseason camp, and the rest of the state moving on with you.
-2. Coach XP and perks.
+2. **Done:** coach XP and perks.
 3. The offseason program: hallway recruiting, the summer, Program building, and grades and eligibility.
 
 How it's built (step 1):
@@ -93,6 +93,21 @@ How it's built (step 1):
 - Tradition: 90 percent of last year's plus 10 percent of the season's showing: winning percentage, 8 for each playoff win and 15 for a state title, kept between 5 and 95.
 - Over five to eight simulated years, starters average about 42 in your district and in the rest of the state alike, against about 43.5 in a brand-new state.
 - Each season has its own seed and year. Your players keep career totals of their stats, the state keeps its champions by year, and the new season keeps a report of how your team changed.
+
+How it's built (step 2):
+
+- XP: 10 for a win, 20 for a playoff win, 15 for an upset (beating a team favored by 7 or more on paper), 15 for making the playoffs, 40 for the district title, 60 for the state title, a point for every 4 snaps your calls win while you're calling them (Gridiron Duel's verdict on each snap; simmed snaps don't count), and at the end of the season a point for every point your players' overall ratings went up. A simmed season earns about 125 to 140; playing the snaps adds about 60 to 80, and a playoff run more.
+- Spending: a rating point costs the rating minus 20 (26 XP to go from 46 to 47), up to 99. Spend it any time on your coach's page.
+- Perks (your coach's only; computer coaches don't get them):
+  - Quarterback whisperer, Line whisperer (linemen and linebackers), Skill position coach (backs, receivers, tight ends) and Secondary coach: that unit grows 25 percent faster in practice and over the summer, on top of a background's 30 percent. 180 XP each.
+  - Offensive guru and Defensive mastermind: +0.04 on the plays or calls the style is built around (a style weight of 0.4 or more). 250 XP each.
+  - Blitz specialist: +0.05 for the defense on Run Blitz, All-Out Blitz and Zone Blitz. 200 XP.
+  - Film junkie: the scouting report one level fuller (on top of Scouting 45), and the film-study edge a quarter bigger. 200 XP.
+  - Disguise detector: your staff flags a disguised look 33 percent of the time, plus what Scouting 60 and up adds. 150 XP.
+  - Trick play artist: fake punts and fake field goals 10 points likelier to work, and +0.15 on Tackle Eligible. 150 XP.
+  - Motivator: +0.04 more late in close games and comebacks. 200 XP.
+  - Install expert: install time teaches 30 percent faster. 200 XP.
+- The week's XP shows on its results, the season's on the summary, and what's left to spend on the offseason screen and your coach's page.
 
 ## The world
 
@@ -230,7 +245,7 @@ Then pick your scheme: one of Gridiron Duel's offensive styles and one of its de
 - When the season is over, Coach another season keeps your coach and schemes and starts a new season in a new district, until Milestone 2 brings the next season at the same school. Each finished season goes on your coach's page.
 - The season summary: your record and district finish against where your starters ranked in the district before the season, how it ended, points for and against, the best win (over the opponent with the best record), the biggest win and the closest loss, your leaders in passing, rushing, receiving, tackles, sacks and interceptions, and the three players whose overall rating at their position went up the most.
 
-### XP and perks (Milestone 2)
+### XP and perks (Milestone 2, see step 2 there)
 
 You earn XP for good things: winning snaps (Gridiron Duel already judges who won each snap), wins, upsets, players improving, players earning college offers, and titles. Spend it on ratings or perks. Perk ideas:
 

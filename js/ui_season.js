@@ -244,6 +244,7 @@ function vWeek() {
       ${status ? `<p class="muted">${esc(status)}</p>` : ""}
     </div>
     ${box ? `<button class="btn ghost" data-a="boxscore">Box score and play-by-play</button>` : ""}
+    ${xpLine(n) ? `<p class="banner">${esc(xpLine(n))}</p>` : ""}
     ${news.length ? `<section class="panel"><h3>News</h3>${list(news)}</section>` : ""}
     ${injuryPanel(n)}
     <section class="panel"><h3>${playoffs ? weekName(n) : `District ${SEASON.district}`}</h3>${list(nearby.map(scoreText))}</section>

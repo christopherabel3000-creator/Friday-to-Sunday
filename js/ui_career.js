@@ -67,19 +67,30 @@ function makeCoachNow() {
 
 /* ---------- Your coach ---------- */
 function vCoach() {
-  const c = CAREER.coach, bg = BACKGROUNDS[c.bg], me = SEASON && SEASON.myId ? mySchool() : null, perks = bgPerks(c);
+  const c = CAREER.coach, bg = BACKGROUNDS[c.bg], me = SEASON && SEASON.myId ? mySchool() : null, perks = bgPerks(c), xp = CAREER.xp || 0;
   const schemes = OFF_STYLES[c.off_style] && DEF_STYLES[c.def_style] ? `${OFF_STYLES[c.off_style].name} offense, ${DEF_STYLES[c.def_style].name} defense.` : "";
+  // Each rating with its button: raising it a point costs the rating minus 20 in XP
+  const rate = ([k, nm]) => `<li class="xprow"><span><b>${nm} ${c[k]}.</b> ${esc(RATING_EFFECTS[k])}</span>
+      ${c[k] < RATING_MAX ? `<button class="btn ghost slim" data-a="xprate" data-v="${k}">Raise ${nm} to ${c[k] + 1}: ${rateCost(c[k])} XP</button>` : ""}</li>`;
+  // Each perk: learn it, or (once learned) hear what it does
+  const perk = k => `<li class="xprow"><span><b>${PERKS[k].name}.</b> ${esc(PERKS[k].desc)}</span>
+      <button class="btn ghost slim" data-a="perk" data-v="${k}"${coachHas(c, k) ? ' aria-pressed="true"' : ""}>${coachHas(c, k) ? `${PERKS[k].name}: learned` : `Learn ${PERKS[k].name}: ${PERKS[k].cost} XP`}</button></li>`;
   return `
     <div class="masthead"${me ? ` style="--team:${me.color}"` : ""}>
       <p class="eyebrow">Your coach${me ? ` · ${esc(nameOf(me.id))}` : ""}</p>
       <h2 data-focus tabindex="-1">${esc(coachFullName(c))}</h2>
-      <p class="muted">${bg ? `${esc(bg.name)}. ` : ""}${esc(schemes)}</p>
+      <p class="muted">${bg ? `${esc(bg.name)}. ` : ""}${esc(schemes)} ${xp} XP to spend${CAREER.xpAll ? `, of ${CAREER.xpAll} earned` : ""}.</p>
     </div>
     <section class="panel">
       <h3>Ratings</h3>
-      <ul class="hlist">${COACH_RATINGS.map(([k, nm]) => `<li><b>${nm} ${c[k]}.</b> ${esc(RATING_EFFECTS[k])}</li>`).join("")}</ul>
+      <ul class="hlist xplist">${COACH_RATINGS.map(rate).join("")}</ul>
       ${perks.length ? `<p>${esc(perks.join(" "))}</p>` : ""}
-      <p class="muted">When you sim a game, your ratings also decide how well your coach calls the plays.</p>
+      <p class="muted">When you sim a game, your ratings also decide how well your coach calls the plays. Raising a rating a point costs the rating minus 20 in XP.</p>
+    </section>
+    <section class="panel">
+      <h3>Perks</h3>
+      <ul class="hlist xplist">${PERK_IDS.map(perk).join("")}</ul>
+      <p class="muted">XP comes from wins, upsets, playoff runs and titles, the snaps your calls win when you call the plays, and your players getting better.</p>
     </section>
     <section class="panel">
       <h3>Name</h3>
@@ -99,6 +110,19 @@ function typed(k, v) {
     save();
   } else if (k === "importtext") importText = String(v);
   else if (k === "cloudkey") cloudKeyText = String(v);
+}
+
+/* ---------- XP ---------- */
+// "XP this season: 285" with each reason: "100 for wins"
+function xpPanel(entries, title) {
+  const list = xpBreakdown(entries), tot = list.reduce((t, [, n]) => t + n, 0);
+  if (!tot) return "";
+  return `<section class="panel"><h3>${title}: ${tot}</h3><ul class="hlist">${list.map(([k, n]) => `<li>${n} for ${esc(XP_WHY[k] || k)}</li>`).join("")}</ul></section>`;
+}
+// The week's XP in a line: "XP: 10 for a win, 6 for snaps your calls won."
+function xpLine(n) {
+  const list = xpBreakdown((SEASON.xp || []).filter(e => e.w === n));
+  return list.length ? `XP: ${list.map(([k, v]) => `${v} for ${XP_WHY[k] || k}`).join(", ")}.` : "";
 }
 
 /* ---------- The season summary ---------- */
@@ -136,7 +160,8 @@ function vSummary() {
     ${memorable.length ? `<section class="panel"><h3>Games to remember</h3>${list(memorable)}</section>` : ""}
     ${ld.length ? `<section class="panel"><h3>Leaders</h3>${list(ld)}</section>` : ""}
     <section class="panel"><h3>Most improved</h3>${better.length ? list(better) : `<p>Nobody's overall rating went up this season.</p>`}</section>
-    <section class="panel"><h3>Your coach</h3><p>${esc(coachFullName(c))}${BACKGROUNDS[c.bg] ? `, ${esc(BACKGROUNDS[c.bg].name.toLowerCase())}` : ""}. ${esc(ratingsLine(c))}.</p>
+    ${xpPanel(SEASON.xp, `XP this season`)}
+    <section class="panel"><h3>Your coach</h3><p>${esc(coachFullName(c))}${BACKGROUNDS[c.bg] ? `, ${esc(BACKGROUNDS[c.bg].name.toLowerCase())}` : ""}. ${esc(ratingsLine(c))}. ${CAREER ? `${CAREER.xp || 0} XP to spend.` : ""}</p>
       ${CAREER && CAREER.seasons.length > 1 ? list(CAREER.seasons.map(careerLine)) : ""}
       <button class="btn ghost" data-a="coach">Your coach</button></section>
     <section class="panel">

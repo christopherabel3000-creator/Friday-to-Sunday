@@ -68,3 +68,33 @@ const RATING_EFFECTS = {
   sct: "Scouting reports and the edge from film study. At 45 and up, a fuller report from the same film time. At 60 and up, your staff sometimes spots a disguised look at the line."
 };
 
+/* ---------- XP and perks ---------- */
+// Your coach earns XP during the season (career.js) and spends it on ratings and perks. A rating point
+// costs the rating minus 20 (21 XP to go from 41 to 42, 41 from 61 to 62), so each one costs more.
+const rateCost = r => Math.max(10, r - 20);
+const RATING_MAX = 99;
+// Perks: what each one does is wired in where it happens (practice, the snap, scouting)
+const PERKS = {
+  qbw: { name: "Quarterback whisperer", cost: 180, desc: "Your quarterbacks grow 25 percent faster, in practice and over the summer." },
+  linew: { name: "Line whisperer", cost: 180, desc: "Your offensive linemen, defensive linemen and linebackers grow 25 percent faster." },
+  skill: { name: "Skill position coach", cost: 180, desc: "Your running backs, receivers and tight ends grow 25 percent faster." },
+  dbs: { name: "Secondary coach", cost: 180, desc: "Your cornerbacks and safeties grow 25 percent faster." },
+  offg: { name: "Offensive guru", cost: 250, desc: "A bigger edge on the plays your offensive style is built around." },
+  defm: { name: "Defensive mastermind", cost: 250, desc: "A bigger edge on the calls your defensive style is built around." },
+  blitz: { name: "Blitz specialist", cost: 200, desc: "Your blitzes get home a little more often: Run Blitz, All-Out Blitz and Zone Blitz." },
+  film: { name: "Film junkie", cost: 200, desc: "A fuller scouting report from the same film time, and a bigger edge on the calls you studied." },
+  disg: { name: "Disguise detector", cost: 150, desc: "Your staff spots a disguised look at the line about a third of the time, whatever your Scouting." },
+  trick: { name: "Trick play artist", cost: 150, desc: "Fake punts, fake field goals and Tackle Eligible work more often." },
+  motv: { name: "Motivator", cost: 200, desc: "A bigger edge late in close games and comebacks." },
+  inst: { name: "Install expert", cost: 200, desc: "Install time teaches plays 30 percent faster." }
+};
+const PERK_IDS = ["qbw", "linew", "skill", "dbs", "offg", "defm", "blitz", "film", "disg", "trick", "motv", "inst"];
+const coachHas = (c, k) => !!(c && c.perks && c.perks.includes(k));
+// Growth for one practice unit: the background's (1.3 for a former quarterback's quarterbacks, say),
+// times 1.25 for a perk that covers it
+const PERK_UNITS = { qbw: ["qb"], linew: ["ol", "front"], skill: ["skill"], dbs: ["secondary"] };
+function unitGrowMul(c, unit) {
+  let m = (c && c.grow && c.grow[unit]) || 1;
+  ((c && c.perks) || []).forEach(k => { if ((PERK_UNITS[k] || []).includes(unit)) m *= 1.25; });
+  return m;
+}

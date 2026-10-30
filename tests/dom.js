@@ -291,6 +291,14 @@ function checkScreen(page, label) {
   checkScreen(p4, "your coach's page");
   typeIn("plast", "Abell");
   ok(ev("CAREER.coach.last") === "Abell" && ev("mySchool().coach.last") === "Abell", "rename your coach as you type");
+  // Spending XP
+  ok(btn(d4, "xprate", "off") && /Raise Offense to 47: 26 XP/.test(btn(d4, "xprate", "off").textContent) && btn(d4, "perk", "disg"), "every rating and perk has its button, with its cost");
+  ev("CAREER.xp = 30");
+  tap(p4, "xprate", "off");
+  ok(ev("CAREER.coach.off") === 47 && ev("CAREER.xp") === 4 && focused(d4) === btn(d4, "xprate", "off") && /Raise Offense to 48: 27 XP/.test(btn(d4, "xprate", "off").textContent), "spend XP on a rating: focus stays on its button");
+  ok(/^Offense is 47\. 4 XP left\.$/.test(await said4()), "and it says what happened");
+  tap(p4, "perk", "disg");
+  ok(!ev("coachHas(CAREER.coach, 'disg')") && /takes 150 XP\. You have 4\./.test(await said4()) && focused(d4) === btn(d4, "perk", "disg"), "not enough XP for a perk: it says so");
   tap(p4, "back");
   ok(ev("APP.screen") === "season", "back to the season screen");
   ok(heading() === ev("nameOf(SEASON.myId)"), "the season screen opens on your school's name");

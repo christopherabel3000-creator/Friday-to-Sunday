@@ -59,8 +59,9 @@ function summerAttrs(p) {
 // About 2 points at his position for a rising sophomore or junior, a little less for a rising senior,
 // with work ethic and the coach's Development (opts.mul: anything extra). Nobody grows past potential.
 const SUMMER_GROW = { 9: 1.9, 10: 2.1, 11: 1.7, 12: 0 };
+const unitOfPos = pos => Object.keys(UNITS).find(u => UNITS[u][pos]);
 function summerGrow(p, coach, rng, mul) {
-  const amt = (SUMMER_GROW[p.yr] || 0) * ethMul(p) * devMul(coach) * (mul || 1);
+  const amt = (SUMMER_GROW[p.yr] || 0) * ethMul(p) * devMul(coach) * unitGrowMul(coach, unitOfPos(p.pos)) * (mul || 1);
   if (amt <= 0) return;
   // In two steps, so growth near potential slows the way it does in practice
   for (let i = 0; i < 2; i++) growPlayer(p, summerAttrs(p), p.pos, amt / 2, rng, null);
@@ -72,7 +73,7 @@ const PAPER_WEEKS = 14;
 function seasonOnPaper(p, coach, rng) {
   const b = blocksOf(CPU_PLAN), dev = devMul(coach), steps = 5;
   [p.pos, p.pos2].forEach(pos => {
-    const unit = Object.keys(UNITS).find(u => UNITS[u][pos]);
+    const unit = unitOfPos(pos);
     if (!unit) return;
     const amt = GROW_RATE * effBlocks(b[unit]) * ethMul(p) * dev * (YEAR_GROW[p.yr] || 1) * PAPER_WEEKS / steps;
     for (let i = 0; i < steps; i++) growPlayer(p, UNITS[unit][pos], pos, amt, rng, null);

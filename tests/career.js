@@ -147,6 +147,77 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     ok(g("mySchool().off") === "gnp" && g("mySchool().coach === CAREER.coach"), "with the same coach and schemes");
   }
 
+  // ---- XP and perks ----
+  {
+    const { g } = fresh();
+    g(`newCareer("Pat", "Ruiz", "teach", "bal", "bal"); newSeason(2024, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[0]); simCamp();`);
+    ok(g("CAREER.xp || 0") === 0, "a new coach has no XP");
+    // A game: a win, an upset, and the snaps your calls won while you called them
+    g("startMyGame(); simToEnd();");
+    const me = g("S.teams.findIndex(t => t.id === SEASON.myId)");
+    g(`S.chart = [{ o: ${me}, s: 2, hu: ${1 << me} }, { o: ${me}, s: 1, hu: ${1 << me} }, { o: ${1 - me}, s: -1, hu: ${1 << me} }, { o: ${1 - me}, s: -2, hu: 3 },
+      { o: ${me}, s: -1, hu: ${1 << me} }, { o: ${me}, s: 2, hu: 0 }, { o: ${1 - me}, s: 1, hu: ${1 << me} }, { o: ${me}, s: 1, hu: ${1 << me} }, { o: ${me}, s: 1, hu: ${1 << me} }];`);
+    g(`(() => { const [h, a] = [S.teams[0], S.teams[1]]; h.score = h.id === SEASON.myId ? 21 : 7; a.score = a.id === SEASON.myId ? 21 : 7; })()`);
+    const opp = g("opponentIn(myGameIn(1), SEASON.myId)"), gm = g("myGameIn(1)");
+    const favored = g(`(() => { const [eh, ea] = expectedPoints("${gm.h}", "${gm.a}", false); return "${gm.h}" === "${opp}" ? eh - ea : ea - eh; })()`);
+    g("recordMyGame()");
+    const want = 10 + (favored >= 7 ? 15 : 0) + Math.floor(6 / 4);
+    ok(g("CAREER.xp") === want && g("CAREER.xpAll") === want, `a win, and a point for every 4 snaps your calls won (${g("CAREER.xp")} XP${favored >= 7 ? ", with an upset" : ""})`);
+    ok(g("xpLine(1)").startsWith("XP: 10 for a win") && /snaps your calls won/.test(g("xpLine(1)")), `the week's XP in a line: ${g("xpLine(1)")}`);
+    // A snap is charted with who was calling the plays
+    g(`S.teams[0].cpu = false; S.teams[1].cpu = true; S.offCall = "ir"; S.defCall = "c3"; S.snap = Object.assign({}, S.snap || {}, { poss: 0, toGo: 10, q: 1 }); chartSnap({ s: 1 });`);
+    ok(g("S.chart[S.chart.length - 1].hu") === 1, "the chart knows which team a person was coaching");
+    // The bracket and the end of the season
+    g("CAREER.xp = 0; CAREER.xpAll = 0; SEASON.xp = []; SEASON.weeks.forEach(w => w.games.forEach(gm => { if (gm.hs == null) quickGame(gm); })); SEASON.week = 11;");
+    g(`SEASON.weeks.forEach(w => w.games.forEach(gm => { if (gameHas(gm, SEASON.myId)) { const h = gm.h === SEASON.myId; gm.hs = h ? 35 : 0; gm.as = h ? 0 : 35; } }));`);
+    g("makeBracket(); bracketXP(10);");
+    ok(g("CAREER.xp") === 15 + 40, "making the playoffs and winning the district: 55 XP");
+    g(`mySchool().players.forEach(p => { p.o0 = ovr(p, p.pos) - 1; }); SEASON.champion = SEASON.myId; seasonEndXP(14);`);
+    ok(g("CAREER.xp") === 55 + 60 + g("mySchool().players.length"), "the state title, and a point for every point your players went up");
+    ok(!g("seasonEndXP(14)") && g("CAREER.xp") === 55 + 60 + g("mySchool().players.length"), "only once");
+    ok(g("xpBreakdown(SEASON.xp)")[0][0] === "growth" || g("xpBreakdown(SEASON.xp)")[0][1] >= 60, "XP by reason, most first");
+    // Spending it: a rating point costs the rating minus 20
+    g("CAREER.xp = 30; CAREER.coach.off = 40;");
+    let r = g(`raiseRating("off")`);
+    ok(r.ok && g("CAREER.coach.off") === 41 && g("CAREER.xp") === 10 && r.say === "Offense is 41. 10 XP left.", "raise a rating: 20 XP for 40 to 41");
+    r = g(`raiseRating("off")`);
+    ok(!r.ok && g("CAREER.coach.off") === 41 && r.say === "Raising Offense takes 21 XP. You have 10.", "not enough XP: it says how much it takes");
+    g("CAREER.xp = 500; CAREER.coach.def = 99;");
+    ok(!g(`raiseRating("def")`).ok && g("CAREER.xp") === 500, "99 is as high as it goes");
+    r = g(`learnPerk("disg")`);
+    ok(r.ok && g("coachHas(CAREER.coach, 'disg')") && g("CAREER.xp") === 350 && g("mySchool().coach.perks.includes('disg')"), "learn a perk: 150 XP");
+    ok(!g(`learnPerk("disg")`).ok && g("CAREER.xp") === 350, "only once");
+    g("CAREER.xp = 10;");
+    ok(/takes 250 XP\. You have 10\./.test(g(`learnPerk("offg")`).say), "not enough XP for a perk");
+  }
+
+  // ---- What the perks do ----
+  {
+    const { g } = fresh();
+    ok(g(`unitGrowMul({ grow: { qb: 1.3 }, perks: ["qbw"] }, "qb")`) === 1.3 * 1.25 && g(`unitGrowMul({ perks: ["linew"] }, "front")`) === 1.25 && g(`unitGrowMul({ perks: ["linew"] }, "qb")`) === 1, "growth perks: 25 percent faster for their units, on top of the background");
+    ok(g(`prepLevelFor(1, { sct: 40, perks: ["film"] })`) === 2 && g(`prepLevelFor(1, { sct: 50, perks: ["film"] })`) === 3 && g(`prepLevelFor(0, { perks: ["film"] })`) === 0, "Film junkie: a fuller report from the same film");
+    g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); APP.ex.you = "watch"; startExhibition();`);
+    g(`S.teams.forEach(t => { t.coach = Object.assign({}, t.coach, { perks: [] }); }); S.teams[0].off = "air"; S.teams[1].def = "blz";`);
+    const strength = g(`Object.keys(OFF_STYLES.air.plays).find(id => OFF_STYLES.air.plays[id] >= .4)`), blitzCall = g(`Object.keys(DEF_STYLES.blz.calls).find(id => DEF_STYLES.blz.calls[id] >= .4)`);
+    ok(g(`perkEdge(0, "${strength}", "c3")`) === 0, "no perks, no edge");
+    g(`S.teams[0].coach.perks = ["offg", "trick"]; S.teams[1].coach.perks = ["defm", "blitz"];`);
+    ok(Math.abs(g(`perkEdge(0, "${strength}", "c3")`) - .04) < 1e-9 && g(`perkEdge(0, "or", "c3")`) === 0 || g(`OFF_STYLES.air.plays.or || 0`) >= .4, "Offensive guru: an edge on the style's best plays");
+    ok(Math.abs(g(`perkEdge(0, "te", "c3")`) - .15) < 1e-9, "Trick play artist: Tackle Eligible");
+    ok(Math.abs(g(`perkEdge(0, "ir", "ab")`) - (-.05 - (g(`DEF_STYLES.blz.calls.ab || 0`) >= .4 ? .04 : 0))) < 1e-9, "Blitz specialist: blitzes get home a little more");
+    ok(g(`perkEdge(0, "ir", "${blitzCall}")`) < 0, "Defensive mastermind: an edge on the style's best calls");
+    g(`S.quarter = 4; S.teams[0].score = 10; S.teams[1].score = 14; S.teams[0].coach.mot = 42; S.teams[0].coach.perks.push("motv");`);
+    ok(Math.abs(g("motEdge(0)") - .04) < 1e-9, "Motivator: an extra edge late in close games");
+    // Disguise detector: at any Scouting
+    g(`S.teams[0].cpu = false; S.teams[1].cpu = true; S.poss = 0; S.offCall = "ir"; S.offPkg = "p11"; S.defCall = "c3"; S.defPkg = "base"; S.cfg.aud = true; S.teams[0].coach.sct = 40; S.teams[0].coach.perks = ["disg"];`);
+    g(`makeLook = () => ({ d: "zo", fake: true });`);
+    let flags = 0;
+    for (let i = 0; i < 400; i++) { g(`S.phase = "call"; afterDef();`); if (g("S.look.flag")) flags++; }
+    ok(flags > 90 && flags < 180, `Disguise detector: about a third of disguises spotted at Scouting 40 (${flags} of 400)`);
+    // Install expert
+    const inst = perk => g(`(() => { const s = { mastery: { ir: 30, or: 30 }, coach: { perks: ${perk ? '["inst"]' : "[]"} }, players: [], depth: {} }; installPlays(s, 2, ["ir"], null); return s.mastery.ir - 30; })()`);
+    ok(Math.abs(inst(true) / inst(false) - 1.3) < .02, `Install expert: plays learned 30 percent faster (${inst(false).toFixed(2)} to ${inst(true).toFixed(2)})`);
+  }
+
   // ---- Save codes ----
   {
     const { g } = fresh();

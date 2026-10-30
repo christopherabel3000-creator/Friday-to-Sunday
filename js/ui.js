@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 6;
+const BUILD = 7;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -228,6 +228,13 @@ function vHelp() {
       "A former quarterback's quarterbacks grow faster. A former lineman's linemen grow faster, and that coach's teams run the ball, and stop the run, a little better. A special teams ace's kickers and punters grow faster.",
       "When you sim a game, your ratings also decide how well your coach calls the plays.",
       "You bring your schemes to your new school. The team still knows its last coach's playbook, and learns yours in practice."
+    ]))}
+    ${sec("XP and perks", ul([
+      "Your coach earns XP: 10 for a win and 20 for a playoff win, 15 for an upset (beating a team favored by 7 or more), 15 for making the playoffs, 40 for a district title and 60 for a state title.",
+      "When you call the plays yourself, every 4 snaps your calls win are worth a point. Simmed snaps don't count.",
+      "At the end of the season, every point your players' overall ratings went up is worth a point too.",
+      "Spend XP on your coach's page. Raising a rating a point costs the rating minus 20, so 46 to 47 costs 26.",
+      "Perks cost 150 to 250 XP. Some speed up a unit's growth, some give an edge on certain plays, and some help scouting, motivation or installs. Each perk's page entry says what it does."
     ]))}
     ${sec("The season", ul([
       "Pick your school from the eight in your district. You take over as head coach. Each school's card says what its last coach ran, and how much of your playbook it already knows.",
@@ -464,6 +471,9 @@ function act(a, ds) {
     case "cbg": if (BACKGROUNDS[ds.v] && APP.coachDraft) { APP.coachDraft.bg = ds.v; announce(`${BACKGROUNDS[ds.v].name}: ${raisedLine(makeCoach("", "", ds.v))}.`); } break;
     case "makecoach": if (makeCoachNow()) { APP.screen = "pick"; scrollTop(); } break;
     case "coach": if (CAREER) { if (APP.screen !== "coach") APP.coachBack = APP.screen; APP.screen = "coach"; scrollTop(); } break;
+    // Spending XP: a rating point, or a perk. Focus stays on the button; the result is read out.
+    case "xprate": if (CAREER) announce(raiseRating(ds.v).say); break;
+    case "perk": if (CAREER) announce(learnPerk(ds.v).say); break;
     case "summary": if (SEASON && ["over", "offseason"].includes(SEASON.phase) && SEASON.myId) { recordCareerSeason(); APP.screen = "summary"; scrollTop(); } break;
     // Preseason camp: on to the next week, or the rest of camp at once (with a report on all of it)
     case "campnext":

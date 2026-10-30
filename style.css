@@ -278,3 +278,8 @@ tr.me th, tr.me td, li.me { font-weight: 700; }
 .form input[type=file] { font: 15px var(--body); color: var(--ink); }
 .form input[aria-invalid="true"] { border-color: var(--bad); }
 .err { color: var(--bad); font-weight: 600; }
+
+/* Coach XP: a rating or perk with its button below */
+.xplist { gap: 12px; }
+.xprow { display: grid; gap: 6px; }
+.xprow .btn.slim { justify-self: start; margin-top: 0; }

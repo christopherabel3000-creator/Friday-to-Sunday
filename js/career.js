@@ -91,3 +91,71 @@ function recordCareerSeason() {
 }
 // "Season 1: Pine Hollow Pirates, 9-3, first in the district. Lost in the semifinals."
 const careerLine = (x, i) => `${x.year || `Season ${i + 1}`}: ${x.school}, ${x.w}-${x.l}, ${ordWord(x.place - 1)} in the district. ${x.finish}.`;
+
+/* ---------- XP ---------- */
+// Your coach earns XP for winning games, upsets, the snaps your calls win, the playoffs and titles,
+// and players getting better. CAREER.xp is what's left to spend, CAREER.xpAll everything ever earned,
+// and SEASON.xp this season's: [{ w: week, n, why }].
+const XP = { win: 10, pwin: 20, upset: 15, snaps: 4, playoffs: 15, district: 40, state: 60 };
+const XP_WHY = { win: "a win", pwin: "a playoff win", upset: "an upset", snaps: "snaps your calls won", playoffs: "making the playoffs",
+  district: "the district title", state: "the state title", growth: "your players getting better" };
+function giveXP(n, why, week) {
+  n = Math.round(n);
+  if (!CAREER || !SEASON || n <= 0) return 0;
+  CAREER.xp = (CAREER.xp || 0) + n; CAREER.xpAll = (CAREER.xpAll || 0) + n;
+  (SEASON.xp = SEASON.xp || []).push({ w: week, n, why });
+  return n;
+}
+// After your game: a win, an upset (beating a team favored by 7 or more on paper), and a point for
+// every 4 snaps your calls won while you were calling them (Gridiron Duel's verdict on each snap)
+function gameXP(gm, me) {
+  const n = SEASON.week, mine = SEASON.myId, opp = opponentIn(gm, mine), win = winnerOf(gm) === mine;
+  if (win) {
+    giveXP(isPlayoffWeek(n) ? XP.pwin : XP.win, isPlayoffWeek(n) ? "pwin" : "win", n);
+    const [eh, ea] = expectedPoints(gm.h, gm.a, gm.neutral), favored = gm.h === opp ? eh - ea : ea - eh;
+    if (favored >= 7) giveXP(XP.upset, "upset", n);
+  }
+  const won = (S.chart || []).filter(e => (e.hu & (1 << me)) && (e.o === me ? e.s > 0 : e.s < 0)).length;
+  giveXP(Math.floor(won / XP.snaps), "snaps", n);
+}
+// The end of the regular season: making the playoffs, and the district title
+function bracketXP(n) {
+  const me = SEASON.myId;
+  if (!inPlayoffs(me)) return;
+  giveXP(XP.playoffs, "playoffs", n);
+  if (SEASON.bracket.place[me] === 1) giveXP(XP.district, "district", n);
+}
+// The end of the season: the state title, and a point for every point your players' overall
+// ratings went up since the season began
+function seasonEndXP(n) {
+  if (SEASON.xpDone) return;
+  SEASON.xpDone = true;
+  if (SEASON.champion === SEASON.myId) giveXP(XP.state, "state", n);
+  giveXP(mySchool().players.reduce((t, p) => t + Math.max(0, ovr(p, p.pos) - (p.o0 != null ? p.o0 : ovr(p, p.pos))), 0), "growth", n);
+}
+// XP by reason, most first: [[why, n]]
+function xpBreakdown(entries) {
+  const by = {};
+  (entries || []).forEach(e => { by[e.why] = (by[e.why] || 0) + e.n; });
+  return Object.keys(by).map(k => [k, by[k]]).sort((a, b) => b[1] - a[1]);
+}
+// Spending it: a rating point, or a perk. Each returns what to say, and whether it worked.
+function raiseRating(k) {
+  const c = CAREER && CAREER.coach, nm = (COACH_RATINGS.find(x => x[0] === k) || [])[1];
+  if (!c || !nm) return { ok: false, say: "" };
+  if (c[k] >= RATING_MAX) return { ok: false, say: `${nm} is as high as it goes.` };
+  const cost = rateCost(c[k]), have = CAREER.xp || 0;
+  if (have < cost) return { ok: false, say: `Raising ${nm} takes ${cost} XP. You have ${have}.` };
+  CAREER.xp = have - cost; c[k]++;
+  if (SEASON && SEASON.myId) mySchool().rating = schoolRating(mySchool());
+  return { ok: true, say: `${nm} is ${c[k]}. ${CAREER.xp} XP left.` };
+}
+function learnPerk(k) {
+  const c = CAREER && CAREER.coach, P = PERKS[k];
+  if (!c || !P) return { ok: false, say: "" };
+  if (coachHas(c, k)) return { ok: false, say: `${P.name}: learned. ${P.desc}` };
+  const have = CAREER.xp || 0;
+  if (have < P.cost) return { ok: false, say: `${P.name} takes ${P.cost} XP. You have ${have}.` };
+  CAREER.xp = have - P.cost; (c.perks = c.perks || []).push(k);
+  return { ok: true, say: `You learned ${P.name}. ${CAREER.xp} XP left.` };
+}

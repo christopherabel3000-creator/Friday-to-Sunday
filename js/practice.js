@@ -45,7 +45,7 @@ const physBlocks = b => ["qb", "skill", "ol", "front", "secondary", "kick", "con
 const prepLevelOf = b => b <= 0 ? 0 : b < 1.25 ? 1 : b < 2.4 ? 2 : 3;
 // A coach with Scouting 45 or better gets one level more out of the same film time
 const SCOUT_SHARP = 45;
-const prepLevelFor = (b, coach) => { const l = prepLevelOf(b); return l && coach && coach.sct >= SCOUT_SHARP ? Math.min(3, l + 1) : l; };
+const prepLevelFor = (b, coach) => { const l = prepLevelOf(b); return l ? Math.min(3, l + (coach && coach.sct >= SCOUT_SHARP ? 1 : 0) + (coachHas(coach, "film") ? 1 : 0)) : 0; };
 // How fresh the team is at kickoff, in percent of full energy
 const freshOf = (b, contact) => clamp(Math.round(100 - physBlocks(b) * (CONTACT[contact] || CONTACT.shells).wear + 3 * b.rec), 86, 100);
 
@@ -125,7 +125,7 @@ function learnMul(s) {
   return clamp(1 + (avg(lu.map(p => p.r.awr)) - 40) * .015, .7, 1.4) * devMul(s.coach);
 }
 function installPlays(s, blocks, focus, rep) {
-  const m = s.mastery, pts = INSTALL_RATE * effBlocks(blocks) * learnMul(s);
+  const m = s.mastery, pts = INSTALL_RATE * effBlocks(blocks) * learnMul(s) * (coachHas(s.coach, "inst") ? 1.3 : 1);
   if (!m || pts <= 0) return;
   const ids = INSTALL_IDS.filter(id => m[id] != null), foc = (focus || []).filter(id => ids.includes(id)).slice(0, 3), rest = ids.filter(id => !foc.includes(id));
   const share = id => foc.length ? (foc.includes(id) ? .7 / foc.length : .3 / Math.max(1, rest.length)) : 1 / ids.length;
@@ -200,8 +200,8 @@ function practiceSchool(s, plan, rng, opts) {
   for (const unit in UNITS) {
     const eff = effBlocks(b[unit]);
     if (!eff) continue;
-    // A coach's background can speed up one unit (a former quarterback's quarterbacks, say)
-    const bg = (s.coach && s.coach.grow && s.coach.grow[unit]) || 1;
+    // A coach's background or perks can speed up a unit (a former quarterback's quarterbacks, say)
+    const bg = unitGrowMul(s.coach, unit);
     unitPlayers(s, unit).forEach(([p, attrs, pos]) => growPlayer(p, attrs, pos, GROW_RATE * eff * ethMul(p) * dev * c.grow * bg * (YEAR_GROW[p.yr] || 1), rng, rep));
   }
   // Conditioning: stamina, and a little strength and speed

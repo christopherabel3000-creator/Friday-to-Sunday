@@ -192,7 +192,19 @@ const homeEdge = o => S && S.teams && !S.neutral ? (o === 0 ? HOME_EDGE : -HOME_
 const MOT_K = .004;
 function motEdge(t) {
   if (!S || !S.teams || S.quarter < 4 || S.teams[t].score - S.teams[1 - t].score > 8) return 0;
-  return (((S.teams[t].coach && S.teams[t].coach.mot) || 42) - 42) * MOT_K;
+  return (((S.teams[t].coach && S.teams[t].coach.mot) || 42) - 42) * MOT_K + (hasPerk(t, "motv") ? PERK_EDGE.motv : 0);
+}
+// Perks (coach.js): an edge on the snap for the offense (o), from either coach's perks
+const hasPerk = (t, k) => !!(S && S.teams && coachHas(S.teams[t].coach, k));
+const PERK_EDGE = { offg: .04, defm: .04, blitz: .05, trick: .15, motv: .04 };
+function perkEdge(o, off, def) {
+  const d = 1 - o;
+  let e = 0;
+  if (hasPerk(o, "offg") && ((OFF_STYLES[offStyleOf(o)].plays || {})[off] || 0) >= .4) e += PERK_EDGE.offg;
+  if (hasPerk(o, "trick") && off === "te") e += PERK_EDGE.trick;
+  if (hasPerk(d, "defm") && ((DEF_STYLES[defStyleOf(d)].calls || {})[def] || 0) >= .4) e -= PERK_EDGE.defm;
+  if (hasPerk(d, "blitz") && BLITZ_IDS.includes(def)) e -= PERK_EDGE.blitz;
+  return e;
 }
 const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o) + motEdge(o) - motEdge(1 - o) : 0;
 // A coach's specialty: a former lineman's teams run the ball, and stop it, a little better
@@ -680,12 +692,13 @@ function cpuLook(d) {
 }
 const edgeVs = (off, def) => clamp(M[off][def] + pkgEdge(off, S.offPkg, S.defPkg) + styleEdge(off, def, S.poss), -3, 3);
 // Both calls are in: the offense gets one look at the defense before the snap
+const DETECT = .33;
 function afterDef() {
   if (!audiblesOn() || !OFFP[S.offCall]) { resolve(); return; }
   S.look = makeLook();
-  // A coach with a sharp eye (Scouting 60 and up) sometimes spots a disguise
-  const sct = ((S.teams[S.poss].coach || {}).sct) || 0;
-  if (S.look.fake && !S.teams[S.poss].cpu && sct >= 60 && rand() < (sct - 50) / 100) S.look.flag = true;
+  // A coach with a sharp eye (Scouting 60 and up, or the Disguise detector perk) sometimes spots a disguise
+  const sct = ((S.teams[S.poss].coach || {}).sct) || 0, spot = (sct >= 60 ? (sct - 50) / 100 : 0) + (hasPerk(S.poss, "disg") ? DETECT : 0);
+  if (S.look.fake && !S.teams[S.poss].cpu && spot > 0 && rand() < spot) S.look.flag = true;
   if (S.teams[S.poss].cpu) { cpuAudible(); resolve(); return; }
   S.audSel = null;
   S.side = "aud"; S.phase = passPhone() ? "handoff" : "los";
@@ -771,7 +784,8 @@ function audNote() {
 function chartSnap(r) {
   if (r.preSnap || r.accepted || r.s == null || !OFFP[S.offCall] || !DEF_IDS.includes(S.defCall) || !S.snap) return;
   const tg = S.snap.toGo, b = tg <= 3 ? "s" : tg <= 7 ? "m" : "l";
-  (S.chart = S.chart || []).push({ o: S.snap.poss, b, off: S.offCall, def: S.defCall, aud: S.aud ? 1 : 0, look: S.look ? 1 : 0, fake: S.look && S.look.fake ? 1 : 0, s: r.s, h: S.snap.q <= 2 ? 1 : 2 });
+  (S.chart = S.chart || []).push({ o: S.snap.poss, b, off: S.offCall, def: S.defCall, aud: S.aud ? 1 : 0, look: S.look ? 1 : 0, fake: S.look && S.look.fake ? 1 : 0, s: r.s, h: S.snap.q <= 2 ? 1 : 2,
+    hu: (S.teams[0].cpu ? 0 : 1) + (S.teams[1].cpu ? 0 : 2) });
 }
 function finalize(r) {
   if (r.preSnap) { r.penClock = true; finishClock(r, !S.wasRunning); }
