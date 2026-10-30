@@ -17,9 +17,15 @@ You're a first-time head coach at a tiny high school with a losing tradition. Yo
 ## The career at a glance
 
 - Levels: high school (classes 1A to 7A, by enrollment), college (three tiers of programs), and the pros.
+- Talent arrives differently at each level: turnout in high school, recruiting and NIL in college, and the draft in the pros.
+- Game rules follow the level: 12-minute quarters in high school and 15-minute quarters in college and the pros, with each level's real overtime (see Overtime by level).
 - Each year runs through the offseason, summer, the regular season and the postseason.
 - You move up through job offers. They come only in the offseason and depend on your reputation compared to what each school expects. Losing can put you on the hot seat.
 - Later, a second path: coordinator jobs, where you call one side of the ball.
+
+## Difficulty
+
+The game starts with one difficulty level, Normal. Other levels come later. They adjust the strength of your team and your opponents, and how fast you earn XP.
 
 ## Milestone 1: one high school season
 
@@ -27,9 +33,11 @@ In this milestone:
 
 - Start a career: name your coach, pick a background and a scheme, and take over a small 1A school.
 - A roster of about 30 players with ratings, many of them playing both ways.
-- A depth chart that fills itself, with your changes on top.
+- A depth chart that can set itself, changes for a single game, and substitutions during a game.
 - A fictional district of 8 schools plus 3 non-district games, for a 10-game schedule.
 - Each week, set practice, then play every snap or sim the game.
+- High school game rules: 12-minute quarters and high school overtime.
+- One difficulty level, Normal.
 - Ratings drive the simulation. Play results name your players, and every player's stats are kept.
 - Playbook installs and mastery, opponent prep and scouting reports, fatigue and injuries.
 - District standings, a state playoff bracket for your class, and a champion.
@@ -91,7 +99,9 @@ Each player is one sentence a screen reader can get through in a breath, for exa
 
 ## Depth chart and personnel
 
-- The depth chart lists the starters and backups at each position. It fills itself by overall rating, and you can move anyone.
+- The depth chart lists the starters and backups at each position. It can set itself completely by overall rating, and you can move anyone.
+- Changes can be permanent or for one game only. For example, start a scrambling quarterback against a defense that blitzes a lot, or a stronger passer against one that sits back in coverage. After that game, the depth chart goes back to how it was.
+- You can substitute during a game: between plays, put a different player in at any position. A substitute stays in until you change it back, or until fatigue or injury moves the depth chart along.
 - Gridiron Duel's personnel packages pull players from the depth chart: 10, 11, 12, 21, 13 and Jumbo on offense, and Base, Nickel, Dime and Goal Line on defense. A package that needs a weak fourth receiver or third corner plays weaker.
 - Fatigue builds with every snap and recovers on the bench. Two-way players tire faster. Tired starters come out automatically when a backup is ready, based on a rotation setting.
 
@@ -103,7 +113,7 @@ Gridiron Duel rolls each snap from one edge number: the play-call matchup plus p
 2. **Talent edges come from the players on the field,** one for each part of the play:
    - Run blocking: the offensive line and other blockers against the defensive line and linebackers. Shifts tackles for loss and run yards.
    - Ball carrier: elusiveness and speed against tackling. Shifts big runs and yards after contact. Ball security against the defense shifts fumbles.
-   - Protection: pass blocking against the pass rush. Scales the sack rate.
+   - Protection: pass blocking against the pass rush. Scales the sack rate. A fast quarterback escapes some sacks and scrambles for yards when a pass play breaks down, which is what makes a scrambler worth starting against a blitzing defense.
    - Throw and catch: the quarterback's accuracy and the receivers' routes and hands against coverage. Shifts completions and interceptions. The quarterback's arm limits deep throws.
    - Speed: receivers against defensive backs. Shifts big plays after the catch.
 
@@ -118,7 +128,7 @@ Gridiron Duel rolls each snap from one edge number: the play-call matchup plus p
    Targets for a 1A game: more runs than passes, a completion rate around 50 percent, and few field goals beyond 35 yards.
 4. **Results name the players.** Each play names the passer, ball carrier, target and tackler, and every player's stats are kept.
 5. **Each team has its own coach.** Gridiron Duel's difficulty settings (scouting, adapting, audibles, disguises, how sharply it calls plays, and execution) become each coach's ratings, set per team instead of once per game.
-6. **Rules follow the level.** Rules that differ by level, like overtime and extra-point distance, follow the level being played. See the open questions.
+6. **Rules follow the level.** Quarters run 12 minutes in high school and 15 in college and the pros, and overtime follows each level's real rules (see Overtime by level). Whether other rules that differ by level follow it too is an open question below.
 
 ## Coaches
 
@@ -185,14 +195,25 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 - A small school starts with about four offensive plays and four defensive calls it knows well. The rest have to be installed.
 - Kicks, kneel-downs and spikes are always available.
 - From Milestone 2, mastery fades some each offseason as seniors graduate.
+- New plays can join later, starting with designed quarterback runs, like a QB draw and a read option, and trick plays.
 
 ## Game day
 
 - Play every snap or sim the game. A key-moments mode, which sims until the game is close and late, comes later.
-- Gridiron Duel's rules carry over: the clock, timeouts, spikes and sideline routes, audibles, disguises, penalties and overtime.
+- Gridiron Duel's rules carry over: the clock, timeouts, spikes and sideline routes, audibles, disguises and penalties. Quarter length and overtime follow the level.
+- You can change the lineup between plays (see Depth chart and personnel).
 - The opposing coach is computer-controlled, with its own ratings and scheme.
 - Scouting lasts all season. Opposing coaches chart your habits across games, and your opponent prep shows theirs.
 - After the game: the final score, box score, player stats and a short summary.
+
+## Overtime by level
+
+Each level uses its real overtime rules. The details get checked against the current rulebooks when each level is built.
+
+- **High school,** using the national high school rule: there's no clock. Each team gets a series starting first and goal at the opponent's 10-yard line. If one team is ahead after both series, it wins. Otherwise another overtime is played, and the choice of who goes first alternates. The defense can't score, since a turnover ends the series. Each team gets one timeout per overtime, and nobody has to go for two.
+- **College:** each team gets a possession starting at the opponent's 25-yard line. In the second overtime, a team that scores a touchdown must go for two. From the third overtime on, teams trade two-point plays until one of them wins. Each team gets one timeout per overtime.
+- **Pros, regular season:** one 10-minute period. Both teams get the ball, unless the defense scores on the first possession or that possession runs out the clock. After that, the team ahead wins, and a tie goes to the next score. If it's still tied after 10 minutes, the game ends in a tie. Each team gets two timeouts.
+- **Pros, playoffs:** 15-minute periods until there's a winner, with both teams guaranteed the ball. The first two periods play like a half, then there's a new kickoff, and a new coin toss after four periods. Gridiron Duel's overtime is already close to this.
 
 ## The season
 
@@ -216,7 +237,7 @@ Recruiting high school prospects, NIL budgets that are bigger at bigger schools,
 
 ### Milestone 5: the pros
 
-A fictional pro league, with a simplified draft, contracts and salary cap, and free agency.
+A fictional pro league. Talent comes through the draft, with simplified contracts, a salary cap and free agency.
 
 ### Milestone 6: the coordinator path
 
@@ -257,10 +278,14 @@ Take a coordinator job and call one side of the ball while a computer head coach
 - Hosting: GitHub Pages while building, and itch.io when it's ready.
 - No online multiplayer. Firebase is only for cloud saves.
 
+## Decisions so far
+
+- Talent: turnout in high school, recruiting and NIL in college, the draft in the pros.
+- Quarters: 12 minutes in high school, 15 in college and the pros.
+- Overtime: each level's real rules, with one 10-minute period and ties possible in the pro regular season.
+- Depth chart: automatic if you want it, with changes for a single game and substitutions during a game.
+- Difficulty: Normal only to start.
+
 ## Open questions
 
-1. Recruiting: this design assumes recruiting and NIL start at college, with high school rosters coming from turnout. Is that right?
-2. Quarter length: Gridiron Duel offers 4, 8 and 15-minute quarters, and real high school quarters are 12 minutes. Should the career offer a choice, and what should the default be?
-3. Overtime: keep Gridiron Duel's overtime, or use real high school and college overtime, where teams trade possessions from a set yard line?
-4. Roster control: should you set every depth chart spot yourself, or just the starters, with the rest automatic?
-5. Career difficulty: should there be a setting at the start (relaxed, standard or hard) that changes opposing coaches, player growth, and later job security?
+1. Should other rules that differ by level follow the real rules too, such as when the clock stops, whether there's a two-minute warning, and extra-point distance?
