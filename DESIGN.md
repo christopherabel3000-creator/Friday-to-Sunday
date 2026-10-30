@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: planning. No code yet. The first playable version is one full high school season (Milestone 1 below).
+Status: building Milestone 1, one high school season. Step 1 of the build plan below is done: an exhibition game between two rated 1A schools under high school rules.
 
 ## The pitch
 
@@ -45,6 +45,14 @@ In this milestone:
 - A season summary at the end.
 
 Not in this milestone: graduation and more seasons, program activities that bring in players, coach XP and perks, boosters and budgets, job offers, college, the pros, and the coordinator path.
+
+Build steps, each one playable and tested before the next:
+
+1. **Done:** an exhibition game between two generated 1A schools, with rated rosters, an automatic depth chart, ratings driving every snap, high school rules and overtime, player stats, and VoiceOver support.
+2. The depth chart: moving players, changes for one game, substitutions during a game, fatigue and rotation.
+3. The season: the district, the schedule, standings, the state playoffs, and quick sims of the games you aren't in.
+4. Practice: the weekly plan, playbook installs and mastery, opponent prep and scouting reports, growth, and injuries.
+5. The career: creating your coach, cloud save codes, export and import, and the season summary.
 
 Milestone 1 is done when:
 
@@ -126,6 +134,10 @@ Gridiron Duel rolls each snap from one edge number: the play-call matchup plus p
    - Punt distance follows the punter's leg.
 
    Targets for a 1A game: more runs than passes, a completion rate around 50 percent, and few field goals beyond 35 yards.
+
+   How it's built: Gridiron Duel's numbers describe players rated about 75 (the pros), so each level-of-play adjustment scales from 75. A kicker's range is about 25 yards plus 0.44 per point of leg (a 35 leg reaches about 40 yards, a 90 about 64), and accuracy sets how often a kick inside that range is good.
+
+   Where step 1 landed, over 300 simulated 1A games: about 20 points per team, 59 percent runs, 51 percent completions, 3 percent interceptions, about 6 penalties a team, field goals mostly inside 35 yards, about two-thirds of extra points good with a quarter of tries going for two, and the team with the better starters (by 4 or more rating points) winning about three games in four.
 4. **Results name the players.** Each play names the passer, ball carrier, target and tackler, and every player's stats are kept.
 5. **Each team has its own coach.** Gridiron Duel's difficulty settings (scouting, adapting, audibles, disguises, how sharply it calls plays, and execution) become each coach's ratings, set per team instead of once per game.
 6. **Rules follow the level, exactly.** Every rule that differs by level, from quarter length and clock stoppages to kickoffs, tries, penalties and overtime, follows that level's real rules (see Rules by level and Overtime by level).
@@ -307,17 +319,19 @@ Take a coordinator job and call one side of the ball while a computer head coach
 
 ## Technical plan
 
-- Plain HTML, CSS and JavaScript with no build step, like Gridiron Duel, but split into several files loaded in order:
-  - engine.js: the snap simulation, copied from Gridiron Duel with its sections marked, so a fix can be copied between the two games. Rating hooks go in clearly marked places.
+- Plain HTML, CSS and JavaScript with no build step, like Gridiron Duel, but split into several files loaded in order. The files share their top-level names, so each name is unique across files and never matches a browser window property (a test checks).
+  - engine.js: Gridiron Duel's game flow, clock, overtime, coin toss and audibles, with its sections marked, so a fix can be copied between the two games.
+  - sim.js: the snap, rolled from the players on the field, plus penalties, kicking and tries.
   - ai.js: the computer coordinator, driven by coach ratings.
-  - players.js: player generation, ratings, growth, fatigue and injuries.
-  - team.js: rosters, depth charts, and unit ratings for each package.
-  - season.js: the league, schedule, standings, playoffs, and simulating other games.
-  - practice.js: practice plans, growth and mastery.
+  - players.js: player generation and ratings. Growth, fatigue and injuries join it in later steps.
+  - team.js: schools, rosters, depth charts, and who's on the field for each package.
+  - season.js (step 3): the league, schedule, standings, playoffs, and simulating other games.
+  - practice.js (step 4): practice plans, growth and mastery.
   - coach.js: coach ratings, and later XP and perks.
-  - save.js: device saves, cloud saves, and export and import.
-  - rules.js: one rules profile per level (high school, college, pros). Everything that differs by level, from the clock to kickoffs, tries, penalties and overtime, is read from here.
-  - ui.js, split further as it grows: the screens.
+  - save.js (step 5): cloud saves, and export and import. Device saves are in ui.js for now.
+  - rules.js: one rules profile per level. Everything that differs by level, from the clock to kickoffs, tries, penalties and overtime, is read from here. High school is in; the pros profile holds Gridiron Duel's NFL rules so the engine stays general; college comes with Milestone 4.
+  - util.js and data.js: helpers, the seeded random numbers, and the name lists.
+  - ui_game.js and ui.js: the screens, split further as they grow.
 - A seeded random number generator, so a world and its rosters can be rebuilt from a seed.
 - A headless test hook like Gridiron Duel's, plus a tests folder with scripts that play full seasons and check balance.
 - Hosting: GitHub Pages while building, and itch.io when it's ready.

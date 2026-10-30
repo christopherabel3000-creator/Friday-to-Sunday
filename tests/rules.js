@@ -1,0 +1,309 @@
+// High school rules checks: clock, kicks, tries, penalties, the running clock and overtime, plus
+// rosters and depth charts. Each check sets up a game state and runs the real engine.
+// Usage: node tests/rules.js
+const { load } = require("./load.js");
+let fails = 0, checks = 0;
+const ok = (c, msg) => { checks++; if (!c) { fails++; console.log("FAIL: " + msg); } };
+// A fresh game between two generated schools. You coach team 0 unless watch is set.
+function game(watch) {
+  const sb = load(), g = sb.__get, F = sb.__fts;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); APP.ex.you = ${watch ? '"watch"' : 0}; startExhibition();`);
+  return { sb, g, F, S: () => g("S") };
+}
+// Puts a game into a plain mid-game state: Q1, team 0 with the ball, no pending decisions
+function plain(g, extra) {
+  g(`Object.assign(S, { quarter: 1, clock: 600, poss: 0, spot: 40, down: 1, toGo: 10, phase: "", toss: null, periodOver: false, gameOver: false,
+    needPAT: false, tryChoice: null, kickChoice: null, retryTwo: null, twoPt: null, clockRunning: false, oobRestart: false, ot: null, otEnd: false, runClock: false });
+    S.teams[0].score = 0; S.teams[1].score = 0;`);
+  if (extra) g(`Object.assign(S, ${JSON.stringify(extra)})`);
+}
+
+// ---- Rosters and depth charts ----
+{
+  const { g } = game(true);
+  let small = 0, total = 0, startersIn = 0, startersAll = 0, twoWay = 0, schools = 0;
+  for (let i = 0; i < 40; i++) {
+    g(`newExhibition()`);
+    for (const k of [0, 1]) {
+      schools++;
+      const s = g(`APP.ex.schools[${k}]`);
+      total += s.players.length;
+      ok(s.players.length >= 25 && s.players.length <= 31, `roster size ${s.players.length}`);
+      ok(s.players.every(p => Object.values(p.r).every(v => v >= 1 && v <= 99)), "ratings between 1 and 99");
+      ok(new Set(s.players.map(p => p.last)).size === s.players.length, "last names are unique on a team");
+      for (const pk of ["p10", "p11", "p12", "p21", "p13", "jumbo", "base", "nickel", "dime", "goal"]) {
+        const ids = g(`lineupPlayers(lineupFor(APP.ex.schools[${k}], "${pk}")).map(p => p.id)`);
+        ok(ids.length === 11 && new Set(ids).size === 11, `${pk} puts 11 different players on the field (${ids.length})`);
+      }
+      const ovrs = g(`(() => { const t = APP.ex.schools[${k}], out = []; for (const pk of ["p11", "base"]) { const lu = lineupFor(t, pk); for (const pos in lu) lu[pos].forEach(p => out.push(ovr(p, pos))); } return out; })()`);
+      ovrs.forEach(v => { startersAll++; if (v >= 20 && v <= 59) startersIn++; });
+      twoWay += g(`twoWayStarters(APP.ex.schools[${k}]).length`);
+      const k0 = g(`APP.ex.schools[${k}].depth.K[0]`), kick = g(`playerById(APP.ex.schools[${k}], "${k0}")`);
+      if (kick.r.leg <= 45) small++;
+    }
+  }
+  ok(startersIn / startersAll >= .85, `small-school starters mostly rate 20 to 59 (${(100 * startersIn / startersAll).toFixed(0)}%)`);
+  ok(twoWay / schools >= 4, `many starters play both ways (${(twoWay / schools).toFixed(1)} a team)`);
+  ok(small / schools >= .5, `most small-school kickers have a modest leg (${small} of ${schools})`);
+  const range = g(`Math.round(fgRange({ r: { leg: 35 } }))`);
+  ok(range >= 38 && range <= 42, `a 35 leg tops out around 40 yards (${range})`);
+  // The same seed always builds the same world
+  const a = g(`(() => { const g1 = dice(12345); return genSchool(g1, { id: "x", cls: "1A", mascot: "Owls", towns: new Set() }); })()`);
+  const b = g(`(() => { const g1 = dice(12345); return genSchool(g1, { id: "x", cls: "1A", mascot: "Owls", towns: new Set() }); })()`);
+  ok(JSON.stringify(a) === JSON.stringify(b), "a seed rebuilds the same school");
+}
+
+// ---- Clock ----
+{
+  const { g } = game(false);
+  plain(g);
+  ok(g("S.cfg.qLen") === 720 && g("R().qLen") === 720, "12-minute quarters");
+  ok(g("S.tos[0]") === 3, "three timeouts a half");
+  // Out of bounds stops the clock until the snap, even in the 1st quarter
+  g(`finishClock({ oob: true }, false)`);
+  ok(g("S.clockRunning") === false, "out of bounds in the 1st quarter stops the clock until the snap");
+  // A first down stops the clock until the ball is ready
+  g(`finishClock({ fd: true }, false)`);
+  ok(g("S.clockRunning") === true && g("S.oobRestart") === true && g("S.readyWhy") === "fd", "a first down restarts the clock on the ready");
+  // A gain short of the line to gain: the clock keeps running
+  g(`finishClock({}, false)`);
+  ok(g("S.clockRunning") === true && g("S.oobRestart") === false, "an in-bounds gain keeps the clock running");
+  // An accepted penalty: on the ready, or on the snap in the last two minutes when the fouled team wants it
+  g(`finishClock({ penClock: true, penBy: 1 }, false)`);
+  ok(g("S.oobRestart") === true && g("S.readyWhy") === "pen", "an accepted penalty restarts the clock on the ready");
+  g(`Object.assign(S, { quarter: 4, clock: 90 }); S.teams[0].score = 0; S.teams[1].score = 7; finishClock({ penClock: true, penBy: 1 }, false)`);
+  ok(g("S.clockRunning") === false, "late, a trailing team that was fouled starts the clock on the snap");
+  g(`S.teams[0].score = 14; finishClock({ penClock: true, penBy: 1 }, false)`);
+  ok(g("S.clockRunning") === true && g("S.oobRestart") === true, "late, a leading team that was fouled lets it start on the ready");
+  // No two-minute warning
+  g(`Object.assign(S, { quarter: 2, clock: 130, tmwHit: false }); tick(15)`);
+  ok(!g("S.tmwHit") && g("S.clock") === 115, "no two-minute warning when the clock passes 2:00 during a play");
+  g(`Object.assign(S, { quarter: 2, clock: 130 }); runoff(20)`);
+  ok(g("S.clock") === 110, "no two-minute warning between plays");
+}
+
+// ---- Running clock ----
+{
+  const { g } = game(true);
+  plain(g, { quarter: 3, clock: 500 });
+  g(`S.teams[0].score = 42; S.teams[1].score = 7; finishClock({}, true)`);
+  ok(g("S.runClock") === true, "a 35-point lead in the second half starts the running clock");
+  ok(g("S.clockRunning") === true, "the running clock keeps going through an incompletion");
+  g(`S.teams[1].score = 21; finishClock({ oob: true }, false)`);
+  ok(g("S.runClock") === true && g("S.clockRunning") === true, "it stays on even when the lead shrinks");
+  g(`S.needPAT = true; finishClock({}, true)`);
+  ok(g("S.clockRunning") === false, "it stops for a score");
+  plain(g, { quarter: 2, clock: 500 });
+  g(`S.teams[0].score = 42; S.teams[1].score = 0; finishClock({}, true)`);
+  ok(g("S.runClock") === false, "not in the first half");
+  plain(g, { quarter: 3, clock: 500 });
+  g(`S.cfg.title = true; S.teams[0].score = 42; S.teams[1].score = 0; finishClock({}, true); S.cfg.title = false`);
+  ok(g("S.runClock") === false, "not in a state championship game");
+}
+
+// ---- Kickoffs, punts and field goals ----
+{
+  const { g } = game(true);
+  plain(g);
+  let tb = 0, tbBad = 0, oob = 0, oobBad = 0, ret = 0, retClock = 0;
+  for (let i = 0; i < 3000; i++) {
+    plain(g, { clock: 600 });
+    const text = g(`kickoff(1, false)`);
+    if (/Touchback/.test(text)) { tb++; if (g("S.spot") !== 20 || g("S.clock") !== 600) tbBad++; }
+    else if (/out of bounds/.test(text)) { oob++; if (g("S.spot") !== 35) oobBad++; }
+    else { ret++; if (g("S.clock") < 600) retClock++; }
+  }
+  ok(tb > 0 && tbBad === 0, `a kick into the end zone is a touchback at the 20 with no time off (${tb})`);
+  ok(oob > 0 && oobBad === 0, `a kick out of bounds gives the ball at the 35 (${oob})`);
+  ok(ret > tb * 5, `most small-school kickoffs are returned (${ret} returned, ${tb} touchbacks)`);
+  ok(retClock === ret, "the clock runs during a kickoff return");
+  // A big leg reaches the end zone a lot more
+  g(`(() => { const K = kickerOf(0); K.r.leg = 95; })()`);
+  let bigTb = 0;
+  for (let i = 0; i < 400; i++) { plain(g); if (/Touchback/.test(g(`kickoff(1, false)`))) bigTb++; }
+  ok(bigTb > 120, `a 95 leg kicks a lot of touchbacks (${bigTb} of 400)`);
+  // Punts into the end zone: touchback at the 20
+  let ptb = 0, ptbBad = 0;
+  g(`(() => { const P = punterOf(0); P.r.leg = 95; P.r.kac = 90; })()`);
+  for (let i = 0; i < 400; i++) {
+    plain(g, { spot: 62, down: 4, toGo: 8 });
+    g(`S.defCall = "ba"; S.offCall = "punt";`);
+    const r = g(`doPunt()`);
+    if (/into the end zone/.test(r.text)) { ptb++; if (g("S.spot") !== 20 || g("S.poss") !== 1) ptbBad++; }
+  }
+  ok(ptb > 0 && ptbBad === 0, `a punt into the end zone is a touchback at the 20 (${ptb})`);
+  // Missed field goals are treated like punts
+  g(`(() => { const K = kickerOf(0); K.r.leg = 40; K.r.kac = 30; })()`);
+  let wide = 0, wideBad = 0, short = 0, shortBad = 0;
+  for (let i = 0; i < 1500; i++) {
+    plain(g, { spot: 72, down: 4, toGo: 6 });
+    g(`S.defCall = "ba"; S.offCall = "fg";`);
+    const r = g(`doFG()`);
+    if (/wide/.test(r.text)) { wide++; if (g("S.spot") !== 20 || g("S.poss") !== 1) wideBad++; }
+    if (/short/.test(r.text)) { short++; const sp = g("S.spot"); if (sp < 2 || sp > 9 || g("S.poss") !== 1) shortBad++; }
+  }
+  ok(wide > 0 && wideBad === 0, `a missed field goal into the end zone is a touchback at the 20 (${wide})`);
+  ok(short > 0 && shortBad === 0, `a field goal that comes down short is downed near the goal line (${short})`);
+  ok(g("kickDist()") === 100 - g("S.spot") + 17, "field goal distance is yards to the goal line plus 17");
+  // Free kick after a safety comes from the 20
+  plain(g, { spot: 1, down: 2, toGo: 10 });
+  let safeties = 0, safetyBad = 0;
+  for (let i = 0; i < 3000 && safeties < 5; i++) {
+    plain(g, { spot: 1, down: 2, toGo: 10 });
+    g(`S.offPkg = "p11"; S.defPkg = "base"; S.offCall = "dp"; S.defCall = "ab"; S.snap = { total: 0, poss: 0, spot: 1, down: 2, toGo: 10, q: 1, clock: 600 };`);
+    const r = g(`doScrimmage()`);
+    if (r.head === "Safety") { safeties++; if (!/free kick from their own 20/.test(r.sub || "") || g("S.teams[1].score") !== 2) safetyBad++; }
+  }
+  ok(safeties > 0 && safetyBad === 0, `a safety is followed by a free kick from the 20 (${safeties})`);
+}
+
+// ---- Tries ----
+{
+  const { g } = game(true);
+  plain(g);
+  ok(g("R().tryTwo") === 97 && g("R().tryXp") === 97, "tries are snapped from the 3");
+  ok(g("xpDist(R().tryTwo)") === 20, "an extra point is a 20-yard kick");
+  ok(g("xpDist(92)") === 25, "a try backed up 5 yards is a 25-yard kick");
+  // The defense can't score on a try
+  let ints = 0, intPts = 0;
+  for (let i = 0; i < 2000 && ints < 10; i++) {
+    // (at the end of the half, so no kickoff follows the try)
+    plain(g, { quarter: 2, clock: 0, periodOver: true }); g(`S.patTeam = 0; S.teams[0].score = 6; startTwo();`);
+    // team 0 is computer-controlled in a watch game: the try runs to its result
+    const s = g("S");
+    if (s.last && /intercepted/.test(s.last.text)) { ints++; if (s.teams[1].score !== 0) intPts++; }
+  }
+  ok(ints > 0 && intPts === 0, `an interception on a try ends it, with no points for the defense (${ints})`);
+  // A touchdown on the last play that decides the game: no try
+  plain(g, { quarter: 4, clock: 0, periodOver: true });
+  g(`S.teams[0].score = 20; S.teams[1].score = 14; afterTD(0)`);
+  ok(g("S.needPAT") === false, "no try after a deciding touchdown on the last play");
+  g(`S.teams[0].score = 20; S.teams[1].score = 20; afterTD(0)`);
+  ok(g("S.needPAT") === true, "a try when it can still decide the game");
+  plain(g, { quarter: 2, clock: 0, periodOver: true });
+  g(`S.teams[0].score = 20; S.teams[1].score = 0; afterTD(0)`);
+  ok(g("S.needPAT") === true, "a try at the end of the first half");
+}
+
+// ---- Penalties ----
+{
+  const { g } = game(true);
+  plain(g);
+  const base = { poss: 0, spot: 40, down: 3, toGo: 20, needPAT: false, patTeam: 0, gameOver: false, ot: null, scores: [0, 0], st: [{}, {}], ps: {} };
+  g(`S.offCall = "dp"`);
+  const dpi = g(`enforce("dpi", ${JSON.stringify(base)})`);
+  ok(dpi.s.spot === 55 && dpi.s.down === 3 && dpi.s.toGo === 5, `pass interference: 15 yards, no automatic first down (${JSON.stringify(dpi.s)})`);
+  const dh = g(`enforce("dh", ${JSON.stringify(base)})`);
+  ok(dh.s.spot === 50 && dh.s.down === 3, "defensive holding: 10 yards, no automatic first down");
+  const rtp = g(`enforce("rtp", ${JSON.stringify(base)})`);
+  ok(rtp.s.spot === 55 && rtp.s.down === 1, "roughing the passer: 15 yards and an automatic first down");
+  const fm = g(`enforce("fm", ${JSON.stringify(base)})`);
+  ok(fm.s.spot === 55 && fm.s.down === 3, "face mask: 15 yards, no automatic first down");
+  const opi = g(`enforce("opi", ${JSON.stringify(base)})`);
+  ok(opi.s.spot === 25 && opi.s.down === 3 && opi.s.toGo === 35, "offensive pass interference: 15 yards from the previous spot, no loss of down");
+  ok(g(`penOf("enc").pre === true`) && g(`penOf("os")`) == null, "encroachment is a dead-ball foul before the snap; there's no free-play offside");
+  // Near the goal line: half the distance
+  const goal = g(`enforce("dpi", ${JSON.stringify(Object.assign({}, base, { spot: 92, toGo: 8, down: 2 }))})`);
+  ok(goal.s.spot === 96, "half the distance to the goal");
+  // Defensive fouls during a run past the line are enforced from the end of the run
+  let found = 0, bad = 0;
+  for (let i = 0; i < 4000 && found < 6; i++) {
+    plain(g, { spot: 30, down: 1, toGo: 10 });
+    g(`S.offPkg = "p11"; S.defPkg = "base"; S.offCall = "ir"; S.defCall = "ba"; S.snap = { total: 0, poss: 0, spot: 30, down: 1, toGo: 10, q: 1, clock: 600 }; S.teams[0].cpu = false;`);
+    const pre = g(`snapState()`);
+    const r = g(`(() => { const r = doScrimmage(); window_r = r; return r; })()`);
+    if (!(r.y > 0 && r.y < 20 && !r.fumble && r.head !== "Touchdown" && g("S.poss") === 0)) continue;
+    g(`setupPenalty("dh", window_r, ${JSON.stringify(pre)})`);
+    const P = g("S.pen");
+    found++;
+    if (!P.endOfPlay || P.acc.spot !== Math.min(30 + r.y + 10, 99)) bad++;
+  }
+  ok(found > 0 && bad === 0, `defensive holding on a run is enforced from the end of the run (${found})`);
+  // A period can't end on an accepted foul by either team: one untimed down
+  let untimed = 0;
+  for (let i = 0; i < 4000 && untimed < 3; i++) {
+    plain(g, { quarter: 2, clock: 4, spot: 50 });
+    g(`S.offPkg = "p11"; S.defPkg = "base"; S.offCall = "sp"; S.defCall = "ba"; S.snap = { total: 0, poss: 0, spot: 50, down: 1, toGo: 10, q: 2, clock: 4 };`);
+    const pre = g(`snapState()`);
+    g(`window_r = doScrimmage()`);
+    if (!g("S.periodOver") || g("S.poss") !== 0) continue;
+    g(`S.teams[1].cpu = false; setupPenalty("oh", window_r, ${JSON.stringify(pre)}); choosePenalty(true); S.teams[1].cpu = true`);
+    untimed++;
+    ok(g("S.periodOver") === false && /untimed down/.test(g("S.last.sub")), "an accepted offensive foul at 0:00 gives one untimed down");
+  }
+  ok(untimed > 0, "found plays that ended the half");
+}
+
+// ---- Overtime ----
+{
+  let games = 0, otGames = 0, bad = [], ends = { second: 0, after: 0 }, choiceSwitch = 0, choiceChecks = 0;
+  for (let i = 0; i < 400 && otGames < 150; i++) {
+    const { g, F } = game(true);
+    plain(g, { quarter: 4, clock: 0, periodOver: true });
+    g(`S.teams[0].score = 14; S.teams[1].score = 14; endPeriod()`);
+    games++;
+    const t = g("S.toss");
+    if (!t || !t.ot || !t.hs) { bad.push("tied after regulation: an overtime coin toss"); continue; }
+    g(`tossCall("heads"); tossChoose(rand() < .5 ? "defense" : "offense")`);
+    if (g("S.toss") !== null || g("S.ot.kind") !== "hs") bad.push("the toss settles who goes first");
+    if (g("S.spot") !== 90 || g("S.toGo") !== 10 || g("S.down") !== 1) bad.push("a series starts first and goal at the 10");
+    if (g("S.tos[0]") !== 1 || g("S.tos[1]") !== 1) bad.push("one timeout per team in overtime");
+    if (!g("fgAvailable()")) bad.push("a field goal can be tried on any down in overtime");
+    if (g("puntAvailable()")) bad.push("no punting in overtime");
+    otGames++;
+    g(`startPlay()`);
+    const first = g("S.ot.first"), tossWinner = g("S.ot.toss");
+    let n = 0, lastQ = 5, seenScoreByDefense = false;
+    while (g("S.phase") !== "final" && n < 3000) {
+      const before = g("[S.teams[0].score, S.teams[1].score, S.poss, S.quarter]");
+      F.autoStep(); n++;
+      const after = g("[S.teams[0].score, S.teams[1].score, S.poss, S.quarter]");
+      // The ball always belongs to the team whose series it is (a turnover just ends the series)
+      const o = g("S.ot");
+      if (g("S.phase") !== "final" && o && after[2] !== (o.ser === 1 ? o.first : 1 - o.first)) bad.push("the ball stays with the team whose series it is");
+      // From the second period on, the first choice alternates (computer coaches choose defense first)
+      if (o && o.n >= 2 && o.ser === 1) { choiceChecks++; if (o.first === (o.n % 2 ? 1 - tossWinner : tossWinner)) choiceSwitch++; }
+      if (after[3] >= 5 && g("S.clock") !== 0) bad.push("no clock in overtime");
+      // The defense never scores in overtime
+      const def = 1 - before[2];
+      if (after[def] > before[def] && g("S.ot && S.ot.kind") === "hs" && before[3] >= 5 && g("S.last && S.last.team") === before[2] && !/two-point|extra point/i.test(g("S.last.text") || "")) seenScoreByDefense = true;
+    }
+    if (seenScoreByDefense) bad.push("the defense scored in overtime");
+    const s = g("S");
+    if (/returned all the way|Returned for a|Safety/.test(s.log.filter(e => e.q >= 5).map(e => e.text).join(" "))) bad.push("a defensive score in overtime");
+    if (s.teams[0].score === s.teams[1].score) bad.push("overtime ended tied");
+    if (/kick reaches the end zone|returns the kick|kickoff/i.test(s.log.filter(e => e.q >= 5).map(e => e.text).join(" "))) bad.push("a kickoff in overtime");
+    // The game ends after both series, or when the second team goes ahead
+    const lastEntry = s.log[0];
+    if (s.ot.ser === 2) ends.second++; else bad.push("the game ended during the first series");
+    void first; void lastQ; void lastEntry;
+  }
+  ok(otGames >= 30, `played overtime games (${otGames})`);
+  ok(bad.length === 0, "overtime rules: " + [...new Set(bad)].join("; "));
+  ok(choiceChecks > 0 && choiceSwitch === choiceChecks, `the first choice alternates each period (${choiceSwitch} of ${choiceChecks})`);
+}
+
+// ---- Whole games ----
+{
+  const { g, F } = game(true);
+  let finished = 0;
+  for (let i = 0; i < 30; i++) {
+    g(`newExhibition(); APP.ex.you = "watch"; startExhibition();`);
+    let n = 0;
+    while (g("S.phase") !== "final" && n < 6000) { F.autoStep(); n++; }
+    if (g("S.phase") === "final") finished++;
+    const s = g("S");
+    // Stats add up: team rushing yards equal the players' rushing yards (sacks count as passing)
+    for (const t of [0, 1]) {
+      const ids = new Set(s.teams[t].players.map(p => p.id));
+      let ry = 0, py = 0, sackY = 0;
+      for (const id in s.ps) if (ids.has(id)) { ry += s.ps[id].ry || 0; py += s.ps[id].py || 0; sackY += s.ps[id].sky || 0; }
+      ok(ry === s.teams[t].st.rush, `team rushing yards match the players' (${s.teams[t].st.rush} and ${ry})`);
+      ok(py - sackY === s.teams[t].st.pass, `team passing yards match the players' minus sacks (${s.teams[t].st.pass} and ${py - sackY})`);
+    }
+  }
+  ok(finished === 30, `every game reaches a final (${finished} of 30)`);
+}
+
+console.log(`${checks - fails}/${checks} checks passed`);
+process.exit(fails ? 1 : 0);

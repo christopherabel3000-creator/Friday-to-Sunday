@@ -1,0 +1,12 @@
+{
+  "name": "friday-to-sunday",
+  "private": true,
+  "description": "Tests for Friday to Sunday. The game itself needs no build step or packages.",
+  "scripts": {
+    "test": "node tests/lint.js && node tests/rules.js && node tests/dom.js && node tests/balance.js 200"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3",
+    "acorn": "^8.14.0"
+  }
+}
