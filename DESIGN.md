@@ -61,6 +61,39 @@ Milestone 1 is done when:
 - A save survives closing the page, and moves to another device with the cloud code.
 - Every screen works with VoiceOver, on iPhone and on a computer.
 
+## Milestone 2: more seasons
+
+The same state goes on from year to year. Your school keeps its players, minus the seniors, plus a class of freshmen and whoever you talk into joining. In the offseason you spend your coach's XP and plan the summer, and every season opens with three weeks of preseason camp.
+
+In this milestone:
+
+- Seasons that follow one another in the same state: graduation, growth over the summer, incoming freshmen based on enrollment, tradition and your youth program, a new schedule each year, and tradition that follows results.
+- Preseason camp: three weeks of practice before week 1 every season, the first one included, so a new coach can start installing their schemes. With no opponent yet, opponent prep time goes into install.
+- Career stats for your players, a graduation report, and the state champions by year.
+- Coach XP from wins, upsets, titles, playoff runs, players improving and the snaps your calls win. Spend it on ratings and perks.
+- The offseason program: hallway recruiting (pitch athletes from other sports, and kids who don't play anything, to come out for football), youth camp, summer weights, 7-on-7 and study hall, with a new coach rating, Program building.
+- Grades and eligibility: a report card can make a player ineligible for a couple of weeks, and study hall helps.
+
+Booster fundraisers move to Milestone 3, with budgets.
+
+Build steps, each one playable and tested before the next:
+
+1. **Done:** more seasons: the offseason with graduation, growth and freshmen, the next season with its preseason camp, and the rest of the state moving on with you.
+2. Coach XP and perks.
+3. The offseason program: hallway recruiting, the summer, Program building, and grades and eligibility.
+
+How it's built (step 1):
+
+- The calendar: camp, weeks 1 to 10, the playoffs, the season summary, then the offseason. Starting the next season ends every school's year, and the new one opens with camp.
+- Camp is three weeks of practice. Its weeks are numbered with the games (0, -1 and -2 come before week 1), so practice, injuries and healing work as they do in the season. With no opponent, the plan's opponent prep weight moves to install, for the computer's schools too. Hold each week's practice and move on, or sim the rest of camp and read one report for all of it.
+- The year ends for real at your district's schools: seniors graduate, a few players leave (5 percent a year, more with less work ethic; passers and kickers stay), everyone else grows over the summer and moves up a year, injuries heal, the team slips 8 percent of the way back toward 30 on every play, and a class of freshmen comes out. Each player's year has its own seeded dice.
+- Summer growth: 1.9 points at his positions for a rising sophomore, 2.1 for a rising junior and 1.7 for a rising senior, times work ethic and the coach's Development, in two steps so it slows near potential.
+- Freshman classes: 4.5 + 2.5 percent of enrollment + 0.03 × (tradition − 50) players, give or take 1.2 (4 to 12), at a level of 37 + 0.06 × (tradition − 50), give or take 2. Every class has two linemen, a fast skill player and a defensive back; a passer comes every other year and a kicker every other year, and the rest are runners, big athletes, linebackers, linemen and speed players. Their potential is 5 above a freshman's in a brand-new state, which keeps seniors about as good year after year. Each school keeps the size and level of its last four classes.
+- Schools on paper: their first roster comes from the seed until all of it has graduated. After that a school is only its last four classes, each player taken through his years: a season of balanced practice on paper (14 weeks, in five steps) and the summer. Rebuilding takes the same time in any year, about 4 ms a school, so the whole state moves on in a fraction of a second. Their quick-sim ratings come from that roster each year, and grow 0.14 a week through camp and the season (about what your district's schools do).
+- Tradition: 90 percent of last year's plus 10 percent of the season's showing: winning percentage, 8 for each playoff win and 15 for a state title, kept between 5 and 95.
+- Over five to eight simulated years, starters average about 42 in your district and in the rest of the state alike, against about 43.5 in a brand-new state.
+- Each season has its own seed and year. Your players keep career totals of their stats, the state keeps its champions by year, and the new season keeps a report of how your team changed.
+
 ## The world
 
 - A fictional state with seven classes, from 1A (the smallest schools) to 7A (the largest). Bigger schools have more students to draw players from.
@@ -347,7 +380,7 @@ How it's built (step 3):
 
 ### Milestone 2: more seasons
 
-Graduation, player growth over the offseason, incoming freshmen based on enrollment and turnout, and coach XP and perks. Program activities that bring in players: recruiting athletes from other sports in the hallways, youth camps, summer weights, 7-on-7 leagues, booster fundraisers, and academic help to keep players eligible.
+See Milestone 2 near the top.
 
 ### Milestone 3: the high school job market
 

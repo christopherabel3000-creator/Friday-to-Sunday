@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 5;
+const BUILD = 6;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -79,6 +79,16 @@ function upgradeSave(s) {
     if (me && me.coach) { me.coach.you = true; s.career = { v: 1, coach: me.coach, seasons: [] }; }
     else if (se) { s.season = null; if (["pick", "season"].includes(s.app.screen)) s.app.screen = "home"; }
   }
+  // Version 6: more seasons. A season gets its year, the state its first year and seed, and every
+  // school its first tradition. A season already under way had no camp; one still waiting for its
+  // school gets camp.
+  const se6 = s.season;
+  if (se6 && se6.schools && se6.year == null) {
+    const y = thisYear(), picking = se6.phase === "pick";
+    Object.assign(se6, { world: se6.seed, year: y, year0: y, pre: picking ? PRESEASON_WEEKS : 0, camp: 0, history: [] });
+    if (picking) se6.cpuWeek = -PRESEASON_WEEKS;
+    Object.values(se6.schools).forEach(sc => { if (sc.trad0 == null) sc.trad0 = sc.trad; });
+  }
   s.build = BUILD;
   return s;
 }
@@ -88,11 +98,14 @@ function vHome() {
   const live = liveGame(), me = SEASON && SEASON.myId ? mySchool() : null, c = CAREER && CAREER.coach;
   const restart = `<button class="btn ghost" data-a="newcareer">${confirming === "newcareer" ? "Tap again to start over" : "Start a new career"}</button>`;
   let season;
+  // Where the season stands: its week, camp, or the offseason, and the button that picks it up
+  const ph = SEASON && SEASON.phase, when = ph === "over" ? `${SEASON.year} season over` : ph === "offseason" ? `${SEASON.year} offseason` : ph === "preseason" ? `${SEASON.year} preseason camp` : SEASON ? weekName(Math.min(SEASON.week, LAST_WEEK)) : "";
+  const go = ph === "over" ? ["summary", "Season summary"] : ph === "offseason" ? ["season", "Continue the offseason"] : ph === "preseason" ? ["season", "Back to camp"] : ["season", "Continue the season"];
   if (me) season = `<section class="panel teamcard" style="--team:${me.color}">
-      <span class="eyebrow">${esc(coachFullName(c))} · ${SEASON.phase === "over" ? "Season over" : weekName(Math.min(SEASON.week, LAST_WEEK))}</span>
+      <span class="eyebrow">${esc(coachFullName(c))} · ${when}</span>
       <h2 class="h2small">${esc(nameOf(me.id))}</h2>
-      <p class="muted">${esc(seasonStatus())}</p>
-      <button class="btn" data-a="${SEASON.phase === "over" ? "summary" : "season"}">${SEASON.phase === "over" ? "Season summary" : "Continue the season"}</button>
+      <p class="muted">${esc(ph === "offseason" ? "The seniors are graduating. The next season starts with camp." : ph === "preseason" ? `Camp week ${SEASON.camp} of ${SEASON.pre}. No games yet.` : seasonStatus())}</p>
+      <button class="btn" data-a="${go[0]}">${go[1]}</button>
       <div class="choices"><button class="btn ghost" data-a="coach">Your coach</button>${restart}</div>
     </section>`;
   else if (c && SEASON) season = `<section class="panel">
@@ -218,13 +231,21 @@ function vHelp() {
     ]))}
     ${sec("The season", ul([
       "Pick your school from the eight in your district. You take over as head coach. Each school's card says what its last coach ran, and how much of your playbook it already knows.",
+      "Every season opens with three weeks of preseason camp: practice, and no games. With no opponent to study, opponent prep time goes into install, so camp is the time to teach your plays. Hold each week's practice, or sim the rest of camp.",
       "Weeks 1 to 3 are against schools from other districts. Weeks 4 to 10 are the district schedule: you play everyone in your district once.",
       "The top two in each district make the 16-team state playoffs. Ties in the standings go to head-to-head, then the overall record, then point differential in district games, up to 14 points a game.",
       "District champions host the first round. After that the better record hosts, and the state championship is at a neutral site.",
       "Each week, play your game snap by snap or sim it. Your coach calls the plays in a sim, and your players' stats count either way.",
       "Games between schools in your district run on the full game engine behind the scenes. The rest of the state is simmed from each team's ratings.",
       "Your schemes, rotation and depth chart carry from week to week. A depth chart for the next game only goes back to normal after that game.",
-      "Once there's a state champion, the season summary has your record and finish, the games to remember, your leaders and who improved the most. Then coach another season in a new district, or start a new career."
+      "Once there's a state champion, the season summary has your record and finish, the games to remember, your leaders and who improved the most."
+    ]))}
+    ${sec("The offseason", ul([
+      "After the season summary comes the offseason. Your seniors graduate, and the offseason screen shows who's leaving and who's coming back.",
+      "Starting the next season, everyone else gets a summer older: players grow over the summer, a few leave the team, and a new class of freshmen comes out. How many depends on your school's size and tradition.",
+      "Tradition follows results, a little each year, and better tradition brings out more freshmen, and better ones.",
+      "The rest of the state moves on with you: every school graduates its seniors and brings in a new class, and the schedule is new each year.",
+      "Your players keep their career stats. Their screens show what they did before this season."
     ]))}
     ${sec("Practice", ul([
       "Each week has ten practice blocks. Give each area none, light, normal or heavy, and the blocks are shared out by weight. Presets give a quick start: Balanced, Install, Game prep and Rest.",
@@ -311,7 +332,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: vSeason, week: vWeek, standings: vStandings, schedule: vSchedule,
   bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
-  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves };
+  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -404,7 +425,7 @@ function seasonRoster(id) {
   APP.screen = "roster";
 }
 // The screen for the season as it stands
-const seasonScreen = () => !SEASON ? "home" : SEASON.phase === "pick" ? "pick" : "season";
+const seasonScreen = () => !SEASON ? "home" : SEASON.phase === "pick" ? "pick" : SEASON.phase === "offseason" ? "offseason" : "season";
 function act(a, ds) {
   ds = ds || {};
   const pre = preSnap(a);
@@ -443,13 +464,25 @@ function act(a, ds) {
     case "cbg": if (BACKGROUNDS[ds.v] && APP.coachDraft) { APP.coachDraft.bg = ds.v; announce(`${BACKGROUNDS[ds.v].name}: ${raisedLine(makeCoach("", "", ds.v))}.`); } break;
     case "makecoach": if (makeCoachNow()) { APP.screen = "pick"; scrollTop(); } break;
     case "coach": if (CAREER) { if (APP.screen !== "coach") APP.coachBack = APP.screen; APP.screen = "coach"; scrollTop(); } break;
-    case "summary": if (SEASON && SEASON.phase === "over" && SEASON.myId) { recordCareerSeason(); APP.screen = "summary"; scrollTop(); } break;
-    // Another season with the same coach: a new district and a new school
-    case "nextseason":
-      if (!CAREER || (SEASON && SEASON.myId && SEASON.phase !== "over")) break;
-      recordCareerSeason();
+    case "summary": if (SEASON && ["over", "offseason"].includes(SEASON.phase) && SEASON.myId) { recordCareerSeason(); APP.screen = "summary"; scrollTop(); } break;
+    // Preseason camp: on to the next week, or the rest of camp at once (with a report on all of it)
+    case "campnext":
+      if (!inCamp()) break;
+      campNext(); APP.reportView = null; APP.screen = "season";
+      if (!inCamp()) announce("Camp is over. Week 1 is next.");
+      scrollTop(); break;
+    case "campsim":
+      if (!inCamp() || !confirmed("campsim")) break;
+      SEASON.campReport = mergeReports(simCamp()); APP.reportView = SEASON.campReport ? "camp" : null; APP.screen = SEASON.campReport ? "preport" : "season"; scrollTop(); break;
+    // The offseason, then the next season
+    case "offseason":
+      if (!SEASON || SEASON.phase !== "over" || !SEASON.myId) break;
+      recordCareerSeason(); SEASON.phase = "offseason"; APP.screen = "offseason"; scrollTop(); break;
+    case "nextyear":
+      if (!SEASON || SEASON.phase !== "offseason") break;
       if (S && S.season) S = null;
-      newSeason(); APP.screen = "pick"; scrollTop(); break;
+      nextSeason(); APP.screen = "newyear"; scrollTop(); break;
+    case "newyear": if (SEASON && SEASON.yearReport) { APP.screen = "newyear"; scrollTop(); } break;
     case "newcareer":
       if (!confirmed("newcareer")) break;
       keepBackup();
@@ -474,7 +507,7 @@ function act(a, ds) {
       const v = +ds.v;
       if (!AREA_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
       SEASON.plan.areas[ds.t] = v;
-      announce(`${AREA_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${blocksText(blocksOf(SEASON.plan)[ds.t])}.`); break;
+      announce(`${AREA_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${blocksText(blocksOf(planNow())[ds.t])}.`); break;
     }
     case "pcontact": if (CONTACT[ds.v]) { SEASON.plan.contact = ds.v; announce(`${CONTACT[ds.v].name}.`); } break;
     case "ppreset": if (PRESETS[ds.v]) { SEASON.plan.areas = clone(PRESETS[ds.v].areas); SEASON.plan.contact = PRESETS[ds.v].contact; announce(`${PRESETS[ds.v].name} plan, in ${CONTACT[SEASON.plan.contact].name.toLowerCase()}.`); } break;
@@ -488,7 +521,7 @@ function act(a, ds) {
       break;
     }
     case "hold": if (SEASON && SEASON.myId && !practiced()) { holdPractice(); APP.reportNext = null; APP.screen = "preport"; scrollTop(); } break;
-    case "preport": if (SEASON && SEASON.practice) { APP.reportNext = null; APP.screen = "preport"; scrollTop(); } break;
+    case "preport": if (SEASON && SEASON.practice) { APP.reportNext = null; APP.reportView = null; APP.screen = "preport"; scrollTop(); } break;
     case "scout": if (SEASON && SEASON.practice && SEASON.practice.film) { APP.scoutBack = APP.screen; APP.screen = "scout"; scrollTop(); } break;
     case "weekdone": {
       recordMyGame();
@@ -518,6 +551,7 @@ function act(a, ds) {
       else if (APP.screen === "week" && APP.weekFrom === "schedule") APP.screen = "schedule";
       else if (APP.screen === "coach") APP.screen = SCREENS[APP.coachBack] && APP.coachBack !== "coach" ? APP.coachBack : "home";
       else APP.screen = seasonScreen();
+      APP.reportView = null;
       scrollTop(); break;
     }
     // The depth chart
@@ -591,11 +625,13 @@ function startScreen() {
   if (sc === "pick") return SEASON && SEASON.phase === "pick" && CAREER ? sc : "home";
   if (sc === "newcoach") return APP.coachDraft ? sc : "home";
   if (sc === "coach") return CAREER ? sc : "home";
-  if (sc === "summary") return season && SEASON.phase === "over" ? sc : season ? "season" : "home";
+  if (sc === "summary") return season && ["over", "offseason"].includes(SEASON.phase) ? sc : season ? "season" : "home";
+  if (sc === "offseason") return season && SEASON.phase === "offseason" ? sc : season ? "season" : "home";
+  if (sc === "newyear") return season && SEASON.yearReport ? sc : season ? "season" : "home";
   if (sc === "simming") return season ? "season" : "home";
   if (sc === "week") return season && APP.weekView && APP.weekView < SEASON.week ? sc : season ? "season" : "home";
   if (sc === "bracket") return season && SEASON.bracket ? sc : season ? "season" : "home";
-  if (sc === "preport") return season && SEASON.practice ? sc : season ? "season" : "home";
+  if (sc === "preport") return season && (SEASON.practice || (APP.reportView === "camp" && SEASON.campReport)) ? sc : season ? "season" : "home";
   if (sc === "scout") return season && SEASON.practice && SEASON.practice.film ? sc : season ? "season" : "home";
   if (sc === "practice" || sc === "install") return season ? sc : "home";
   if (["season", "standings", "schedule"].includes(sc)) return season ? sc : "home";

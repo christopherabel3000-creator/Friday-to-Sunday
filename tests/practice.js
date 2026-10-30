@@ -118,7 +118,7 @@ const school = (g, seed) => g(`genSchool(dice(${seed}), { id: "t${seed}", cls: "
 // ---- Opponent prep ----
 {
   const { g } = fresh();
-  g(`newSeason(123); pickSchool(SEASON.districts[SEASON.district - 1].ids[0]);`);
+  g(`newSeason(123); pickSchool(SEASON.districts[SEASON.district - 1].ids[0]); simCamp();`);
   const ids = g("SEASON.districts[SEASON.district - 1].ids");
   // Film study tells a running team from a throwing one
   const film = (off) => g(`(() => { const o = seasonSchool("${ids[1]}"); o.off = "${off}"; const f = filmStudy(o, mySchool()); return f; })()`);
@@ -141,7 +141,7 @@ const school = (g, seed) => g(`genSchool(dice(${seed}), { id: "t${seed}", cls: "
 // ---- Practice in the season ----
 {
   const { g } = fresh();
-  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newSeason(2468); pickSchool(SEASON.districts[SEASON.district - 1].ids[3]);`);
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newSeason(2468); pickSchool(SEASON.districts[SEASON.district - 1].ids[3]); simCamp();`);
   ok(!g("practiced()"), "practice hasn't happened yet");
   const rep = g("holdPractice()");
   ok(g("practiced()") && rep.week === 1 && rep.film && rep.opp === g("opponentIn(myGameIn(1), SEASON.myId)"), "hold practice: a report, with film study of this week's opponent");

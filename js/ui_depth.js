@@ -222,6 +222,7 @@ function vPlayer() {
     </section>
     ${st ? `<section class="panel"><h3>This game</h3>${playerGameLine(st)}</section>` : ""}
     ${mineInSeason ? `<section class="panel"><h3>This season</h3>${playerSeasonLine(SEASON.stats[p.id])}</section>` : ""}
+    ${mineInSeason && p.cs && p.cs.g ? `<section class="panel"><h3>Before this season</h3><p>${plural(p.cs.g, "game")}${careerStatLine(p.cs) ? `: ${esc(careerStatLine(p.cs))}` : ""}.</p></section>` : ""}
     <section class="panel">
       <h3>Ratings</h3>
       ${ATTR_GROUPS.map(([g, list]) => `<p class="sechead" role="heading" aria-level="4">${g}</p><ul class="hlist ratings">${list.map(a => `<li>${ATTR_NAMES[a]} ${p.r[a]}</li>`).join("")}</ul>`).join("")}

@@ -292,8 +292,26 @@ function checkScreen(page, label) {
   typeIn("plast", "Abell");
   ok(ev("CAREER.coach.last") === "Abell" && ev("mySchool().coach.last") === "Abell", "rename your coach as you type");
   tap(p4, "back");
-  ok(ev("APP.screen") === "season", "back to the week ahead");
+  ok(ev("APP.screen") === "season", "back to the season screen");
   ok(heading() === ev("nameOf(SEASON.myId)"), "the season screen opens on your school's name");
+  // Preseason camp: practice, no games
+  ok(/Camp week 1 of 3/.test(d4.querySelector(".masthead .eyebrow").textContent) && btn(d4, "hold") && !btn(d4, "playgame") && /No games yet/.test(d4.body.textContent), "the season opens with camp: practice, no games");
+  checkScreen(p4, "camp");
+  tap(p4, "practice");
+  ok(/^Camp week 1/.test(d4.querySelector(".masthead .eyebrow").textContent) && /no opponent to study/.test(d4.body.textContent), "the practice plan in camp: prep time goes into install");
+  tap(p4, "back");
+  tap(p4, "hold");
+  ok(ev("APP.screen") === "preport" && /Practice report/.test(heading() || "") && btn(d4, "campnext") && /On to camp week 2/.test(btn(d4, "campnext").textContent) && !btn(d4, "playgame"), "hold practice: the report, and on to the next week");
+  checkScreen(p4, "camp practice report");
+  tap(p4, "campnext");
+  ok(ev("APP.screen") === "season" && ev("SEASON.camp") === 2 && /Camp week 2 of 3/.test(d4.querySelector(".masthead .eyebrow").textContent), "camp week 2");
+  tap(p4, "campsim");
+  ok(/Tap again/.test(btn(d4, "campsim").textContent) && ev("SEASON.camp") === 2, "the rest of camp asks for a second tap");
+  tap(p4, "campsim");
+  ok(ev("APP.screen") === "preport" && /Camp report/.test(heading() || "") && ev("SEASON.phase") === "regular" && ev("SEASON.week") === 1, "the rest of camp at once, with a report on all of it");
+  ok(/On to week 1/.test(btn(d4, "back").textContent), "then on to week 1");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "season" && /Week 1/.test(d4.querySelector(".masthead .eyebrow").textContent), "week 1");
   ok(btn(d4, "playgame") && btn(d4, "simgame") && /On paper/.test(d4.body.textContent), "this week's game: play it or sim it, and who's favored");
   ok(d4.querySelector('table.stand th[scope="row"]') && /\(you\)/.test(d4.querySelector("table.stand").textContent), "your district's standings, with your school marked");
   checkScreen(p4, "the week ahead");
@@ -433,17 +451,34 @@ function checkScreen(page, label) {
   ok(/with the (best|(second|third|fourth|fifth|sixth|seventh|eighth)-best) starters in the district before the season/.test(d4.body.textContent) && ev("CAREER.seasons.length") === 1, "your finish against your talent, and the season goes into your career");
   checkScreen(p4, "season summary");
   tap(p4, "coach");
-  ok(/Season 1: /.test(d4.body.textContent), "your coach's page lists the season");
+  ok(/20\d\d: .+, \d+-\d+, /.test(d4.body.textContent), "your coach's page lists the season");
   tap(p4, "back");
   ok(ev("APP.screen") === "summary", "back to the summary");
-  tap(p4, "nextseason");
-  ok(ev("APP.screen") === "pick" && ev("SEASON.myId") === null && ev("CAREER.coach.last") === "Abell" && ev("CAREER.seasons.length") === 1, "coach another season: the same coach picks a new school");
+  // The offseason, then the next season
+  tap(p4, "offseason");
+  ok(ev("APP.screen") === "offseason" && ev("SEASON.phase") === "offseason" && heading() === ev("nameOf(SEASON.myId)") && /Graduating/.test(d4.body.textContent) && /Coming back/.test(d4.body.textContent), "the offseason: who's graduating and who's coming back");
+  checkScreen(p4, "offseason");
+  const year = ev("SEASON.year"), seniors = ev("mySchool().players.filter(p => p.yr === 12).length");
   tap(p4, "gohome");
-  ok(/Looking for a job/.test(d4.body.textContent) && btn(d4, "season") && /Pick your school/.test(btn(d4, "season").textContent), "the main menu: your coach is looking for a job");
+  ok(/offseason/.test(d4.body.textContent) && /Continue the offseason/.test(btn(d4, "season").textContent), "the main menu picks up the offseason");
+  tap(p4, "season");
+  tap(p4, "nextyear");
+  ok(ev("APP.screen") === "newyear" && ev("SEASON.year") === year + 1 && new RegExp(`^The ${year + 1} `).test(heading() || "") && /New freshmen/.test(d4.body.textContent) && ev("SEASON.yearReport.grads.length") === seniors, `the ${year + 1} season: how the team changed`);
+  checkScreen(p4, "how the team changed");
+  tap(p4, "season");
+  ok(ev("APP.screen") === "season" && ev("SEASON.phase") === "preseason" && /Camp week 1 of 3/.test(d4.querySelector(".masthead .eyebrow").textContent) && btn(d4, "newyear"), "then camp, with the team's changes a tap away");
+  const store7 = {}; for (let i = 0; i < w4.localStorage.length; i++) { const k = w4.localStorage.key(i); store7[k] = w4.localStorage.getItem(k); }
+  const p7r = await openPage(store7);
+  ok(p7r.w.eval("SEASON.year") === year + 1 && p7r.w.eval("SEASON.camp") === 1 && p7r.w.eval("APP.screen") === "season" && p7r.errors.length === 0, "camp in a new season picks up after a reload");
+  tap(p4, "gohome");
+  ok(/preseason camp/.test(d4.body.textContent) && /Back to camp/.test(btn(d4, "season").textContent), "the main menu: back to camp");
   tap(p4, "newcareer");
   ok(/Tap again/.test(btn(d4, "newcareer").textContent), "starting over asks for a second tap");
   tap(p4, "newcareer");
   ok(ev("APP.screen") === "newcoach" && ev("CAREER") === null && ev("SEASON") === null && d4.getElementById("cfirst").value === "", "a new career starts with a new coach");
+  typeIn("cfirst", "Sam"); typeIn("clast", "Lee"); tap(p4, "makecoach");
+  tap(p4, "gohome");
+  ok(/Looking for a job/.test(d4.body.textContent) && btn(d4, "season") && /Pick your school/.test(btn(d4, "season").textContent), "the main menu: your coach is looking for a job");
   ok(p4.errors.length === 0, "no script errors in the season: " + p4.errors.slice(0, 2).join(" | "));
 
   // ---- Saves: save codes and cloud saves ----

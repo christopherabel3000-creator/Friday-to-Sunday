@@ -54,6 +54,7 @@ function paperLine(gm) {
 // Where you stand, in a sentence or two
 function seasonStatus() {
   const me = SEASON.myId, r = fullRecord(me), n = weeksDone(), d = SEASON.district;
+  if (SEASON.phase === "preseason") return `Camp, then ten games, and the state playoffs for the top two in District ${d}.`;
   if (SEASON.phase === "regular") {
     if (!n) return `Ten games, then the state playoffs for the top two in District ${d}.`;
     const p = placeOf(me, Math.min(n, REGULAR_WEEKS)), race = raceStatus(me, n);
@@ -93,10 +94,12 @@ function vPick() {
 
 /* ---------- The week ahead ---------- */
 function vSeason() {
-  const me = mySchool(), id = me.id, n = SEASON.week, gm = myGameIn(n), live = isMyGame() && S.phase !== "final";
-  const eyebrow = SEASON.phase === "over" ? "Season over" : SEASON.phase === "playoffs" ? `State playoffs · ${weekName(n)}` : `${weekName(n)} · Class 1A, District ${SEASON.district}`;
+  if (SEASON.phase === "offseason") return vOffseason();
+  const me = mySchool(), id = me.id, n = SEASON.week, gm = myGameIn(n), live = isMyGame() && S.phase !== "final", camp = inCamp();
+  const eyebrow = SEASON.phase === "over" ? `${SEASON.year} season over` : camp ? `${SEASON.year} preseason · Camp week ${SEASON.camp} of ${SEASON.pre}` : SEASON.phase === "playoffs" ? `State playoffs · ${weekName(n)}` : `${weekName(n)} · Class 1A, District ${SEASON.district}`;
   let main = "";
-  if (live) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · In progress</p><p>${esc(boardSummary())}</p><button class="btn" data-a="resume">Back to the game</button></section>`;
+  if (camp) main = campPanel();
+  else if (live) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · In progress</p><p>${esc(boardSummary())}</p><button class="btn" data-a="resume">Back to the game</button></section>`;
   else if (gm && !played(gm)) {
     const opp = seasonSchool(opponentIn(gm, id)), r = opp.id;
     main = `<section class="panel teamcard" style="--team:${opp.color}">
@@ -133,9 +136,9 @@ function vSeason() {
       <p>${esc(weekName(last))}: ${lastGm && played(lastGm) ? esc(resultText(lastGm, id).replace(/^You/, "you")) + "." : "no game for you."}</p>
       <button class="btn ghost" data-a="week" data-v="${last}">${weekName(last)} results</button></section>` : "";
   // The rest of the season's screens. Your roster is with this week's game when there is one.
-  const more = [SEASON.bracket ? `<button class="btn ghost" data-a="bracket">Playoff bracket</button>` : "", gm && !played(gm) && !live ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`,
+  const more = [SEASON.bracket ? `<button class="btn ghost" data-a="bracket">Playoff bracket</button>` : "", gm && !played(gm) && !live && !camp ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`,
     `<button class="btn ghost" data-a="coach">Your coach</button>`].filter(Boolean);
-  const simBtn = SEASON.phase === "regular" ? ["playoffs", "Sim to the playoffs"] : SEASON.phase === "playoffs" ? ["end", "Sim the rest of the season"] : null;
+  const simBtn = camp ? ["camp", "Sim the rest of camp"] : SEASON.phase === "regular" ? ["playoffs", "Sim to the playoffs"] : SEASON.phase === "playoffs" ? ["end", "Sim the rest of the season"] : null;
   return `
     <div class="masthead" style="--team:${me.color}">
       <p class="eyebrow">${eyebrow}</p>
@@ -143,6 +146,7 @@ function vSeason() {
       <p class="muted">${esc(seasonStatus())}</p>
     </div>
     ${main}
+    ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(me.off, me.def)}<p class="muted styledesc">${esc(knownLine(me))}</p></section>` : ""}
     ${lastPanel}
     <section class="panel">
       <h3>District ${SEASON.district}</h3>
@@ -150,7 +154,23 @@ function vSeason() {
       <div class="choices"><button class="btn ghost" data-a="standings">All standings</button><button class="btn ghost" data-a="schedule">Schedule and stats</button></div>
       ${more.length > 1 ? `<div class="choices">${more.join("")}</div>` : more.join("")}
     </section>
-    ${simBtn && !live ? `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>` : ""}`;
+    ${simBtn && !live ? (camp ? `<button class="btn ghost" data-a="campsim">${confirming === "campsim" ? "Tap again to sim the rest of camp" : simBtn[1]}</button>`
+      : `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>`) : ""}`;
+}
+// Preseason camp: a week of practice, then the next one, with week 1 coming
+function campPanel() {
+  const me = mySchool(), done = practiced(), left = SEASON.pre - SEASON.camp, gm = myGameIn(1), hurt = me.players.filter(p => p.inj);
+  const first = gm ? `The season opens in week 1 ${vsText(gm, me.id)}.` : "";
+  const next = left ? `On to camp week ${SEASON.camp + 1}` : "On to week 1";
+  return `<section class="panel">
+      <p class="eyebrow">Preseason camp · Week ${SEASON.camp} of ${SEASON.pre}</p>
+      <h3>${left ? `${plural(left + 1, "week")} of camp left` : "The last week of camp"}</h3>
+      <p>No games yet. ${esc(first)} With no opponent to study, opponent prep time goes into install.</p>
+      ${hurt.length ? `<p>Injured: ${esc(andList(hurt.map(p => `${p.last}, ${injText(p.inj)}`)))}.</p>` : ""}
+      ${done ? `<p>This week's practice is done.</p><button class="btn" data-a="campnext">${next}</button>` : `<button class="btn" data-a="hold">Hold practice</button>`}
+      <div class="choices"><button class="btn ghost" data-a="practice">Practice plan</button>${done ? `<button class="btn ghost" data-a="preport">Practice report</button>` : `<button class="btn ghost" data-a="install">Install focus</button>`}</div>
+      ${SEASON.yearReport ? `<button class="btn ghost" data-a="newyear">How the team changed</button>` : ""}
+    </section>`;
 }
 // This week's practice: the plan or the report, and who's hurt
 function practicePanel() {
@@ -297,6 +317,7 @@ function vBracket() {
       <p class="muted">District champions host the first round. After that the better record hosts, and the state championship is at a neutral site.${SEASON.champion ? ` Champions: the ${esc(nameOf(SEASON.champion))}.` : ""}</p>
     </div>
     ${b.rounds.map((round, r) => `<section class="panel"><h3>${PLAYOFF_ROUNDS[r]}</h3><ul class="hlist">${round.map(gm => `<li${gameHas(gm, me) ? ' class="me"' : ""}>${esc(line(gm))}</li>`).join("")}</ul></section>`).join("")}
+    ${(SEASON.history || []).length ? `<section class="panel"><h3>Past champions</h3><ul class="hlist">${SEASON.history.slice().reverse().map(x => `<li>${x.year}: ${esc(x.name)}</li>`).join("")}</ul></section>` : ""}
     <button class="btn ghost" data-a="back">Back</button>`;
 }
 

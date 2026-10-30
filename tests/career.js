@@ -132,16 +132,18 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     ok(x.improved.length > 0 && x.improved.every((y, i) => y.d > 0 && (i === 0 || x.improved[i - 1].d >= y.d)), "the most improved players, most first");
     const champ = g("SEASON.champion === SEASON.myId"), finish = g("CAREER.seasons[0].finish");
     ok(champ ? finish === "State champions" : /^(Lost in the|Missed the playoffs)/.test(finish), `how it ended: ${finish}`);
-    ok(/^Season 1: .+, \d+-\d+, (first|second|third|fourth|fifth|sixth|seventh|eighth) in the district\. .+\.$/.test(g("careerLine(CAREER.seasons[0], 0)")), "a line for your coach's page");
+    ok(/^\d{4}: .+, \d+-\d+, (first|second|third|fourth|fifth|sixth|seventh|eighth) in the district\. .+\.$/.test(g("careerLine(CAREER.seasons[0], 0)")), "a line for your coach's page");
     // The summary screen draws
     g(`APP = { v: 1, screen: "summary", ex: null, view: null }; newExhibition();`);
     const html = g("vSummary()");
-    ok(/The record/.test(html) && /Leaders/.test(html) && /Most improved/.test(html) && /data-a="nextseason"/.test(html) && /data-a="newcareer"/.test(html), "the summary: record, leaders, most improved, and what's next");
+    ok(/The record/.test(html) && /Leaders/.test(html) && /Most improved/.test(html) && /data-a="offseason"/.test(html) && /data-a="newcareer"/.test(html), "the summary: record, leaders, most improved, and what's next");
     // Another season with the same coach: a new district and school
-    const seed = g("SEASON.seed");
-    g(`act("nextseason")`);
-    ok(g("APP.screen") === "pick" && g("SEASON.seed") !== seed && g("SEASON.myId") === null && g("CAREER.seasons.length") === 1, "coach another season: pick a new school");
-    g(`pickSchool(SEASON.districts[SEASON.district - 1].ids[0])`);
+    // The next season, at the same school with the same coach
+    const seed = g("SEASON.seed"), myId = g("SEASON.myId");
+    g(`act("offseason")`);
+    ok(g("APP.screen") === "offseason" && g("SEASON.phase") === "offseason", "on to the offseason");
+    g(`act("nextyear")`);
+    ok(g("APP.screen") === "newyear" && g("SEASON.seed") !== seed && g("SEASON.myId") === myId && g("SEASON.phase") === "preseason" && g("CAREER.seasons.length") === 1, "the next season: the same school, starting with camp");
     ok(g("mySchool().off") === "gnp" && g("mySchool().coach === CAREER.coach"), "with the same coach and schemes");
   }
 

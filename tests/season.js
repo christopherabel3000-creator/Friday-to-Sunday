@@ -30,7 +30,7 @@ const fresh = () => { const sb = load(); return { sb, g: sb.__get, F: sb.__fts }
   // Picking a school: you take over its coaching job
   ok(!g(`pickSchool("${id}")`), "you can only pick a school in your district");
   const mine = S0.districts[S0.district - 1].ids[2];
-  ok(g(`pickSchool("${mine}")`) && g("SEASON.myId") === mine && g("SEASON.phase") === "regular", "pick a school");
+  ok(g(`pickSchool("${mine}")`) && g("SEASON.myId") === mine && g("SEASON.phase") === "preseason" && g("SEASON.camp") === 1, "pick a school: camp comes first");
   ok(g("mySchool().coach.you") && g("mySchool().coach.off") === g('COACH_LEVEL["1A"]'), "your coach has the class average ratings for now");
   ok(!g(`pickSchool("${S0.districts[S0.district - 1].ids[3]}")`), "and only once");
 }
@@ -137,7 +137,7 @@ const fresh = () => { const sb = load(); return { sb, g: sb.__get, F: sb.__fts }
   // the district schedule could go
   let wrong = 0, claims = 0, missed = 0;
   const tally = { title: 0, in: 0, out: 0 };
-  for (let trial = 0; trial < 60; trial++) {
+  for (let trial = 0; trial < 120; trial++) {
     const n = 7 + (trial % 3);
     g(`SEASON.weeks.forEach(w => w.games.forEach(gm => { gm.hs = null; gm.as = null; }))`);
     g(`(() => { const rank = id => +id.split("s")[1]; SEASON.weeks.slice(3, ${n}).forEach(w => w.games.forEach(gm => { const hw = Math.random() < 1 / (1 + Math.exp((rank(gm.h) - rank(gm.a)) * .6)); gm.hs = hw ? 21 : 14; gm.as = hw ? 14 : 21; })); })()`);
@@ -242,7 +242,7 @@ const fresh = () => { const sb = load(); return { sb, g: sb.__get, F: sb.__fts }
 // ---- Background games leave your game alone ----
 {
   const { g, F } = fresh();
-  g("newSeason(8080); pickSchool(SEASON.districts[SEASON.district - 1].ids[0]); startMyGame();");
+  g("newSeason(8080); pickSchool(SEASON.districts[SEASON.district - 1].ids[0]); simCamp(); startMyGame();");
   for (let i = 0; i < 60; i++) g("S.teams.forEach(t => t.cpu = true); autoStep(); S.teams.forEach(t => t.cpu = t.id !== SEASON.myId);");
   const before = g("JSON.stringify(S)"), ref = g("S");
   const ids = g("SEASON.districts[SEASON.district - 1].ids");
@@ -255,6 +255,9 @@ const fresh = () => { const sb = load(); return { sb, g: sb.__get, F: sb.__fts }
 {
   const { g } = fresh();
   g("newSeason(1001); pickSchool(SEASON.districts[SEASON.district - 1].ids[4]);");
+  ok(!g("startMyGame()") && g("finishWeek()") === 0 && g("SEASON.phase") === "preseason", "no games in camp");
+  g("simCamp()");
+  ok(g("SEASON.phase") === "regular" && g("SEASON.week") === 1 && g("SEASON.camp") === 0, "after camp, week 1");
   const me = g("SEASON.myId");
   ok(g("finishWeek()") === 0 && g("SEASON.week") === 1, "the week can't finish before your game is played");
   // Next-game depth chart: used by the next kickoff, then gone

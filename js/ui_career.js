@@ -141,11 +141,11 @@ function vSummary() {
       <button class="btn ghost" data-a="coach">Your coach</button></section>
     <section class="panel">
       <h3>What's next</h3>
-      <p class="muted">Take a job in a new district with the same coach, or start over with a new one.</p>
-      <button class="btn" data-a="nextseason">Coach another season</button>
+      <p class="muted">The offseason: your seniors graduate, the rest of the team gets a summer older, and a new class of freshmen comes out. Or start over with a new coach.</p>
+      <button class="btn" data-a="${SEASON.phase === "offseason" ? "season" : "offseason"}">${SEASON.phase === "offseason" ? "Back to the offseason" : "On to the offseason"}</button>
       <button class="btn ghost" data-a="newcareer">${confirming === "newcareer" ? "Tap again to start over" : "Start a new career"}</button>
     </section>
-    <button class="btn ghost" data-a="back">Back to the season</button>`;
+    ${SEASON.phase === "over" ? `<button class="btn ghost" data-a="back">Back to the season</button>` : ""}`;
 }
 
 /* ---------- Saves ---------- */

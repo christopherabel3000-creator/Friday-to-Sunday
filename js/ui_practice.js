@@ -18,7 +18,7 @@ const masteryLine = (s, id) => { const v = Math.round(s.mastery[id]); return `${
 
 /* ---------- The practice plan ---------- */
 function vPractice() {
-  const plan = SEASON.plan, b = blocksOf(plan), pre = presetOf(plan), done = practiced(), n = SEASON.week;
+  const plan = SEASON.plan, b = blocksOf(planNow()), pre = presetOf(plan), done = practiced(), n = practiceSlot(), camp = inCamp();
   const seg = (a, list, cur, label, extra) => `<div style="display:grid;gap:6px" role="group" aria-label="${label}"><span class="eyebrow" aria-hidden="true">${label}${extra || ""}</span><div class="seg${list.length > 3 ? " grid2" : ""}">
     ${list.map(([v, l]) => `<button data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div></div>`;
   const row = id => `<div style="display:grid;gap:6px" role="group" aria-label="${AREA_NAMES[id]}"><span class="eyebrow" aria-hidden="true">${AREA_NAMES[id]} · ${blocksText(b[id])}</span>
@@ -26,7 +26,7 @@ function vPractice() {
   const focus = (plan.focus || []).filter(id => playName(id));
   return `
     <div class="masthead" style="--team:${mySchool().color}">
-      <p class="eyebrow">${weekName(n)} · Practice</p>
+      <p class="eyebrow">${practiceWeekName(n)} · Practice</p>
       <h2 data-focus tabindex="-1">Practice plan</h2>
       <p class="muted">Ten blocks a week, two a day. Each area gets a share of them by its weight, so more for one means less for the rest. The plan carries over from week to week.</p>
     </div>
@@ -47,7 +47,7 @@ function vPractice() {
       <p class="muted styledesc">${focus.length ? `Install focus: ${esc(andList(focus.map(playName)))}.` : "No install focus: install time is spread over the whole playbook."}</p>
       <button class="btn ghost slim" data-a="install">Pick plays to install</button>
       ${row("prep")}
-      <p class="muted styledesc">Film study of this week's opponent: ${PREP_TEXT[prepLevelFor(b.prep, mySchool().coach)]}, and a small edge when they run the calls you studied.</p>
+      <p class="muted styledesc">${camp ? "In camp there's no opponent to study, so this time goes into install." : `Film study of this week's opponent: ${PREP_TEXT[prepLevelFor(b.prep, mySchool().coach)]}, and a small edge when they run the calls you studied.`}</p>
       ${row("cond")}
       <p class="muted styledesc">Stamina, so players tire more slowly, and a little strength and speed.</p>
       ${row("rec")}
@@ -55,7 +55,7 @@ function vPractice() {
     </section>
     <section class="panel">
       <h3>This week</h3>
-      <p>${capFirst(blocksLine(b))}. Your players should start the game about ${freshOf(b, plan.contact)} percent fresh.</p>
+      <p>${capFirst(blocksLine(b))}.${camp ? "" : ` Your players should start the game about ${freshOf(b, plan.contact)} percent fresh.`}</p>
       ${done ? `<button class="btn" data-a="preport">Practice report</button>` : `<button class="btn" data-a="hold">Hold practice</button>`}
     </section>
     <button class="btn ghost" data-a="back">Back to the week</button>`;
@@ -77,8 +77,10 @@ function vInstall() {
 }
 
 /* ---------- The practice report ---------- */
+// The week's practice report, or all of camp's together (APP.reportView "camp", after Sim the rest of camp)
 function vPReport() {
-  const P = SEASON.practice, s = mySchool(), n = P.week, gm = myGameIn(n), live = !!(gm && !played(gm));
+  const all = APP.reportView === "camp" && SEASON.campReport, P = all || SEASON.practice, s = mySchool(), n = P.week, camp = !!P.camp;
+  const gm = camp ? null : myGameIn(n), live = !!(gm && !played(gm));
   const nm = id => { const p = playerById(s, id); return p ? fullName(p) : ""; };
   const list = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
   // Who got better: the most improved first, a dozen at most
@@ -97,25 +99,29 @@ function vPReport() {
   const hurt = P.hurt.map(id => { const p = playerById(s, id); return p ? `${fullName(p)}, ${injText(p.inj)}` : ""; }).filter(Boolean);
   const still = s.players.filter(p => p.inj && !P.hurt.includes(p.id)).map(p => `${fullName(p)}, ${injText(p.inj)}`);
   const opp = P.opp ? SEASON.schools[P.opp] : null;
-  const actions = !live ? "" : APP.reportNext === "kickoff"
+  // In camp: on to the next week (this report is this week's), or back to the week ahead
+  const campNow = inCamp() && !all && practiced() && P.week === practiceSlot();
+  const actions = campNow ? `<button class="btn" data-a="campnext">${SEASON.camp < SEASON.pre ? `On to camp week ${SEASON.camp + 1}` : "On to week 1"}</button>`
+    : !live ? "" : APP.reportNext === "kickoff"
     ? `<button class="btn" data-a="playgame">Kick off</button>`
     : `<div class="choices"><button class="btn" data-a="playgame">Play the game</button><button class="btn ghost" data-a="simgame">Sim the game</button></div>`;
   return `
     <div class="masthead" style="--team:${s.color}">
-      <p class="eyebrow">${weekName(n)} · Practice</p>
-      <h2 data-focus tabindex="-1">Practice report</h2>
-      <p class="muted">${capFirst(blocksLine(P.blocks))}. In ${CONTACT[P.contact].name.toLowerCase()}.</p>
+      <p class="eyebrow">${all ? `${SEASON.year} preseason camp` : practiceWeekName(n)} · Practice</p>
+      <h2 data-focus tabindex="-1">${all ? "Camp report" : "Practice report"}</h2>
+      <p class="muted">${all ? `${plural(P.weeks, "week")} of camp, each one with ${blocksLine(P.blocks)}` : capFirst(blocksLine(P.blocks))}. In ${CONTACT[P.contact].name.toLowerCase()}.</p>
     </div>
     ${hurt.length || still.length ? `<section class="panel"><h3>Injuries</h3>${hurt.length ? `<p>Hurt in practice:</p>${list(hurt)}` : `<p>Nobody was hurt in practice.</p>`}${still.length ? `<p>Still out:</p>${list(still)}` : ""}</section>` : ""}
-    <section class="panel"><h3>Who got better</h3>${grew.length ? list(grew.slice(0, 12).map(x => x.t)) + (grew.length > 12 ? `<p class="muted">And ${plural(grew.length - 12, "more player")}.</p>` : "") : `<p>Nobody moved up a full point this week.</p>`}</section>
-    <section class="panel"><h3>Install</h3>${P.mastery.length ? list(P.mastery.slice().sort((a, b) => (b[2] - b[1]) - (a[2] - a[1])).slice(0, 8).map(([id, a, b]) => `${playName(id)}: ${a} to ${b}`)) : `<p>No play moved up a full point.</p>`}</section>
-    <section class="panel">
+    <section class="panel"><h3>Who got better</h3>${grew.length ? list(grew.slice(0, 12).map(x => x.t)) + (grew.length > 12 ? `<p class="muted">And ${plural(grew.length - 12, "more player")}.</p>` : "") : `<p>Nobody moved up a full point ${all ? "in camp" : "this week"}.</p>`}</section>
+    <section class="panel"><h3>Install</h3>${P.mastery.length ? list(P.mastery.slice().sort((a, b) => (b[2] - b[1]) - (a[2] - a[1])).slice(0, 8).map(([id, a, b]) => `${playName(id)}: ${a} to ${b}`)) : `<p>No play moved up a full point.</p>`}
+      ${camp ? `<p class="muted">With no opponent to study in camp, opponent prep time went into install.</p>` : ""}</section>
+    ${camp ? "" : `<section class="panel">
       <h3>Game day</h3>
       <p>Your players should start the game about ${P.fresh} percent fresh.</p>
       ${opp ? `<p>Film study: ${PREP_TEXT[P.prep]} on the ${esc(opp.mascot)}.</p><button class="btn ghost" data-a="scout">Scouting report</button>` : ""}
-    </section>
+    </section>`}
     ${actions}
-    <button class="btn ghost" data-a="back">Back to the week</button>`;
+    <button class="btn ghost" data-a="back">${all ? "On to week 1" : camp && inCamp() ? "Back to camp" : "Back to the week"}</button>`;
 }
 
 /* ---------- The scouting report ---------- */
