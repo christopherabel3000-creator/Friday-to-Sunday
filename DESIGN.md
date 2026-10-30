@@ -36,7 +36,7 @@ In this milestone:
 - A depth chart that can set itself, changes for a single game, and substitutions during a game.
 - A fictional district of 8 schools plus 3 non-district games, for a 10-game schedule.
 - Each week, set practice, then play every snap or sim the game.
-- High school game rules: 12-minute quarters and high school overtime.
+- High school rules throughout, including 12-minute quarters, high school clock rules and high school overtime (see Rules by level).
 - One difficulty level, Normal.
 - Ratings drive the simulation. Play results name your players, and every player's stats are kept.
 - Playbook installs and mastery, opponent prep and scouting reports, fatigue and injuries.
@@ -128,7 +128,7 @@ Gridiron Duel rolls each snap from one edge number: the play-call matchup plus p
    Targets for a 1A game: more runs than passes, a completion rate around 50 percent, and few field goals beyond 35 yards.
 4. **Results name the players.** Each play names the passer, ball carrier, target and tackler, and every player's stats are kept.
 5. **Each team has its own coach.** Gridiron Duel's difficulty settings (scouting, adapting, audibles, disguises, how sharply it calls plays, and execution) become each coach's ratings, set per team instead of once per game.
-6. **Rules follow the level.** Quarters run 12 minutes in high school and 15 in college and the pros, and overtime follows each level's real rules (see Overtime by level). Whether other rules that differ by level follow it too is an open question below.
+6. **Rules follow the level, exactly.** Every rule that differs by level, from quarter length and clock stoppages to kickoffs, tries, penalties and overtime, follows that level's real rules (see Rules by level and Overtime by level).
 
 ## Coaches
 
@@ -200,11 +200,46 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 ## Game day
 
 - Play every snap or sim the game. A key-moments mode, which sims until the game is close and late, comes later.
-- Gridiron Duel's rules carry over: the clock, timeouts, spikes and sideline routes, audibles, disguises and penalties. Quarter length and overtime follow the level.
+- Gridiron Duel's systems carry over: the game clock, timeouts, spikes and sideline routes, audibles, disguises and penalties. Their rules follow the level being played (see Rules by level).
 - You can change the lineup between plays (see Depth chart and personnel).
 - The opposing coach is computer-controlled, with its own ratings and scheme.
 - Scouting lasts all season. Opposing coaches chart your habits across games, and your opponent prep shows theirs.
 - After the game: the final score, box score, player stats and a short summary.
+
+## Rules by level
+
+Friday to Sunday follows each level's real rules as exactly as the game can: the national high school rules (NFHS) for high school, NCAA rules for college, and NFL rules for the pros. Each level has its own rules profile, and the engine reads every rule that differs by level from it instead of having it built in.
+
+Rules change most years, so each level's rules get checked against current sources before that level is built. Items marked "to confirm" haven't been checked yet.
+
+### High school (NFHS), for Milestone 1
+
+- 12-minute quarters and three timeouts per half. There's no two-minute warning.
+- The clock stops on an incomplete pass, a player going out of bounds, a change of possession, a score, a timeout, a fair catch and a touchback. In each case it starts again on the snap.
+- The clock also stops when a team earns a first down, and starts again when the ball is ready for play.
+- After an accepted penalty, the clock starts when the ball is ready for play. In the last two minutes of either half, the team that was fouled can make it wait for the snap instead.
+- On a kickoff, the clock starts when the receiving team touches the ball.
+- Any kick that crosses the goal line is dead right away, for a touchback. Nobody returns a kick out of the end zone.
+- A missed field goal is treated like a punt.
+- The defense can't score on a try. If it gets the ball, the try is over.
+- Defensive pass interference is 15 yards, with no automatic first down. Only roughing the passer, kicker, snapper or holder gives an automatic first down. This comes from a 2017 summary, so it's to confirm.
+- State associations can use a running clock in lopsided games, and the fictional state will. The margin is to be decided.
+- To confirm: the kickoff spot, the touchback spot, and the spot for tries.
+
+### College (NCAA), for Milestone 4
+
+- 15-minute quarters and three timeouts per half. A team can't call two timeouts in a row.
+- A two-minute timeout in each half, like the NFL's two-minute warning (since 2024).
+- The clock keeps running after a first down, except in the last two minutes of each half (since 2023).
+- A penalty at the end of the first or third quarter carries over to the next quarter instead of giving an untimed down.
+- To confirm: timing after a player goes out of bounds, the kickoff and touchback spots, the spot for tries, missed field goals, and pass interference.
+
+### Pros (NFL), for Milestone 5
+
+- 15-minute quarters, three timeouts per half, and the two-minute warning.
+- Gridiron Duel's timing: going out of bounds stops the clock until the snap only in the last two minutes of the first half and the last five minutes of the second half.
+- The dynamic kickoff: the ball is kicked from the 35. A kick into the end zone is a touchback at the 35. A kick that lands between the goal line and the 20 is live and has to be returned, and if it rolls into the end zone and is downed there, the touchback is at the 20. A kick that lands short of the 20 gives the receiving team the ball at its 40. A team that's behind can declare an onside kick at any time. Gridiron Duel already has the touchback at the 35 and the short-kick rule. The rest is new.
+- To confirm: the spots for tries, and pass interference.
 
 ## Overtime by level
 
@@ -213,7 +248,7 @@ Each level uses its real overtime rules. The details get checked against the cur
 - **High school,** using the national high school rule: there's no clock. Each team gets a series starting first and goal at the opponent's 10-yard line. If one team is ahead after both series, it wins. Otherwise another overtime is played, and the choice of who goes first alternates. The defense can't score, since a turnover ends the series. Each team gets one timeout per overtime, and nobody has to go for two.
 - **College:** there's no clock. Each team gets a possession starting at the opponent's 25-yard line. In the second overtime, a team that scores a touchdown must go for two. From the third overtime on, teams trade two-point plays until one of them wins. Each team gets one timeout per overtime.
 - **Pros, regular season:** one 10-minute period, timed like a fourth quarter: the late-game clock rules start at the five-minute mark, and there's a two-minute warning. Each team gets two timeouts. Both teams get the ball, unless the defense scores on the first possession or that possession runs out the clock. After that, the team ahead wins, and a tie goes to the next score. When time runs out, the team ahead wins, even in the middle of the second team's possession, and if it's tied, the game ends in a tie.
-- **Pros, playoffs:** Gridiron Duel's overtime: 15-minute periods until there's a winner, both teams guaranteed the ball, the first two periods played like a half, then a new kickoff, and a new coin toss after four periods. One difference: in Gridiron Duel, a lead at the end of any overtime period wins. Under the NFL rule, if a period ends before the second team's guaranteed possession is over, play continues into the next period. The pros here use the NFL rule.
+- **Pros, playoffs:** 15-minute periods until there's a winner, with both teams guaranteed the ball. If a period ends before the second team's guaranteed possession is over, play continues into the next period. The first two periods play like a half, then there's a new kickoff, and a new coin toss after four periods. Gridiron Duel's overtime works exactly this way, so it carries over as is.
 
 ## The season
 
@@ -272,6 +307,7 @@ Take a coordinator job and call one side of the ball while a computer head coach
   - practice.js: practice plans, growth and mastery.
   - coach.js: coach ratings, and later XP and perks.
   - save.js: device saves, cloud saves, and export and import.
+  - rules.js: one rules profile per level (high school, college, pros). Everything that differs by level, from the clock to kickoffs, tries, penalties and overtime, is read from here.
   - ui.js, split further as it grows: the screens.
 - A seeded random number generator, so a world and its rosters can be rebuilt from a seed.
 - A headless test hook like Gridiron Duel's, plus a tests folder with scripts that play full seasons and check balance.
@@ -282,10 +318,11 @@ Take a coordinator job and call one side of the ball while a computer head coach
 
 - Talent: turnout in high school, recruiting and NIL in college, the draft in the pros.
 - Quarters: 12 minutes in high school, 15 in college and the pros.
-- Overtime: each level's real rules. High school and college overtime have no clock. The pro regular season has one 10-minute period with fourth-quarter timing, two timeouts each, and ties possible. The pro playoffs work like Gridiron Duel's overtime, with the NFL's guaranteed-possession rule.
+- Rules: every level follows its real rules exactly, NFHS for high school, NCAA for college and NFL for the pros, checked against current sources before each level is built.
+- Overtime: each level's real rules. High school and college overtime have no clock. The pro regular season has one 10-minute period with fourth-quarter timing, two timeouts each, and ties possible. The pro playoffs use NFL playoff overtime, which Gridiron Duel now matches.
 - Depth chart: automatic if you want it, with changes for a single game and substitutions during a game.
 - Difficulty: Normal only to start.
 
 ## Open questions
 
-1. During regulation (not overtime), should rules that differ by level follow the real rules too, such as when the clock stops, whether there's a two-minute warning, and extra-point distance?
+None right now.
