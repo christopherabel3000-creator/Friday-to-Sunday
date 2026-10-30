@@ -212,6 +212,8 @@ Friday to Sunday follows each level's real rules as exactly as the game can: the
 
 Rules change most years, so each level's rules get checked against current sources before that level is built. Items marked "to confirm" haven't been checked yet.
 
+High school rules vary a little from state to state. Where they differ, the fictional state uses the most common choice.
+
 ### High school (NFHS), for Milestone 1
 
 - 12-minute quarters and three timeouts per half. There's no two-minute warning.
@@ -219,12 +221,14 @@ Rules change most years, so each level's rules get checked against current sourc
 - The clock also stops when a team earns a first down, and starts again when the ball is ready for play.
 - After an accepted penalty, the clock starts when the ball is ready for play. In the last two minutes of either half, the team that was fouled can make it wait for the snap instead.
 - On a kickoff, the clock starts when the receiving team touches the ball.
+- Kickoffs are from the 40. Touchbacks are at the 20.
 - Any kick that crosses the goal line is dead right away, for a touchback. Nobody returns a kick out of the end zone.
-- A missed field goal is treated like a punt.
-- The defense can't score on a try. If it gets the ball, the try is over.
-- Defensive pass interference is 15 yards, with no automatic first down. Only roughing the passer, kicker, snapper or holder gives an automatic first down. This comes from a 2017 summary, so it's to confirm.
-- State associations can use a running clock in lopsided games, and the fictional state will. The margin is to be decided.
-- To confirm: the kickoff spot, the touchback spot, and the spot for tries.
+- After a fair catch, the ball goes at the spot of the catch.
+- A missed field goal is treated like a punt. If it goes into the end zone, it's a touchback at the 20. If not, it can be downed or returned.
+- Kicking tees are allowed for field goals and extra points.
+- Tries are snapped from the 3-yard line, so an extra-point kick is about 20 yards. The defense can't score on a try. If it gets the ball, the try is over.
+- Defensive pass interference is 15 yards, with no automatic first down. Offensive pass interference is 15 yards from the previous spot, with no loss of down. Only roughing the passer, kicker, snapper or holder gives an automatic first down.
+- Running clock: once a team leads by 35 or more in the second half, the clock keeps running, stopping only for scores, timeouts and injuries. It stays that way even if the lead shrinks, and it isn't used in state championship games. 35 points is the margin Indiana and Michigan use (Ohio uses 30).
 
 ### College (NCAA), for Milestone 4
 
@@ -232,20 +236,25 @@ Rules change most years, so each level's rules get checked against current sourc
 - A two-minute timeout in each half, like the NFL's two-minute warning (since 2024).
 - The clock keeps running after a first down, except in the last two minutes of each half (since 2023).
 - A penalty at the end of the first or third quarter carries over to the next quarter instead of giving an untimed down.
-- To confirm: timing after a player goes out of bounds, the kickoff and touchback spots, the spot for tries, missed field goals, and pass interference.
+- Kickoffs are from the 35. Touchbacks are at the 25, and a fair catch inside the 25 on a kickoff counts as a touchback (since 2018).
+- Tries are snapped from the 3-yard line, so an extra-point kick is about 20 yards. The defense can return a try for two points.
+- No kicking tees for field goals and extra points.
+- To confirm: timing after a player goes out of bounds, missed field goals, and pass interference.
 
 ### Pros (NFL), for Milestone 5
 
 - 15-minute quarters, three timeouts per half, and the two-minute warning.
 - Gridiron Duel's timing: going out of bounds stops the clock until the snap only in the last two minutes of the first half and the last five minutes of the second half.
-- The dynamic kickoff: the ball is kicked from the 35. A kick into the end zone is a touchback at the 35. A kick that lands between the goal line and the 20 is live and has to be returned, and if it rolls into the end zone and is downed there, the touchback is at the 20. A kick that lands short of the 20 gives the receiving team the ball at its 40. A team that's behind can declare an onside kick at any time. Gridiron Duel already has the touchback at the 35 and the short-kick rule. The rest is new.
-- To confirm: the spots for tries, and pass interference.
+- The dynamic kickoff: the ball is kicked from the 35. A kick into the end zone is a touchback at the 35. A kick that lands between the goal line and the 20 is live and has to be returned, and if it rolls into the end zone and is downed there, the touchback is at the 20. A kick that lands short of the 20 gives the receiving team the ball at its 40. Gridiron Duel already has the touchback at the 35 and the short-kick rule. The rest is new.
+- Onside kicks: any team can declare one at any point in the game, whatever the score (since 2026). Before that, it was only a team that was behind: in the fourth quarter in 2024, and at any time in 2025.
+- Extra-point kicks are snapped from the 15, about a 33-yard kick. Two-point tries are from the 2. The defense can return a try for two points.
+- To confirm: the receiving team's kickoff alignment, which changed again in 2026, and pass interference.
 
 ## Overtime by level
 
 Each level uses its real overtime rules. The details get checked against the current rulebooks when each level is built.
 
-- **High school,** using the national high school rule: there's no clock. Each team gets a series starting first and goal at the opponent's 10-yard line. If one team is ahead after both series, it wins. Otherwise another overtime is played, and the choice of who goes first alternates. The defense can't score, since a turnover ends the series. Each team gets one timeout per overtime, and nobody has to go for two.
+- **High school,** using the format the NFHS suggests. State associations can pick their own format (Missouri starts at the 25, and Texas uses college rules), but this one is the standard. There's no clock. Each team gets a series starting first and goal at the opponent's 10-yard line. If one team is ahead after both series, it wins. Otherwise another overtime is played, and the choice of who goes first alternates. The defense can't score, since a turnover ends the series. Each team gets one timeout per overtime, and nobody has to go for two.
 - **College:** there's no clock. Each team gets a possession starting at the opponent's 25-yard line. In the second overtime, a team that scores a touchdown must go for two. From the third overtime on, teams trade two-point plays until one of them wins. Each team gets one timeout per overtime.
 - **Pros, regular season:** one 10-minute period, timed like a fourth quarter: the late-game clock rules start at the five-minute mark, and there's a two-minute warning. Each team gets two timeouts. Both teams get the ball, unless the defense scores on the first possession or that possession runs out the clock. After that, the team ahead wins, and a tie goes to the next score. When time runs out, the team ahead wins, even in the middle of the second team's possession, and if it's tied, the game ends in a tie.
 - **Pros, playoffs:** 15-minute periods until there's a winner, with both teams guaranteed the ball. If a period ends before the second team's guaranteed possession is over, play continues into the next period. The first two periods play like a half, then there's a new kickoff, and a new coin toss after four periods. Gridiron Duel's overtime works exactly this way, so it carries over as is.
@@ -318,7 +327,7 @@ Take a coordinator job and call one side of the ball while a computer head coach
 
 - Talent: turnout in high school, recruiting and NIL in college, the draft in the pros.
 - Quarters: 12 minutes in high school, 15 in college and the pros.
-- Rules: every level follows its real rules exactly, NFHS for high school, NCAA for college and NFL for the pros, checked against current sources before each level is built.
+- Rules: every level follows its real rules exactly, NFHS for high school, NCAA for college and NFL for the pros, checked against current sources before each level is built. Where high school rules vary by state, the fictional state uses the most common choice.
 - Overtime: each level's real rules. High school and college overtime have no clock. The pro regular season has one 10-minute period with fourth-quarter timing, two timeouts each, and ties possible. The pro playoffs use NFL playoff overtime, which Gridiron Duel now matches.
 - Depth chart: automatic if you want it, with changes for a single game and substitutions during a game.
 - Difficulty: Normal only to start.
