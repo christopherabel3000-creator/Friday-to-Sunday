@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 3;
+const BUILD = 4;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -12,6 +12,8 @@ const BUILD = 3;
 //   ex: the exhibition matchup { seed, schools: [home, away], you: 0, 1 or "watch", styles: { off, def } }
 //   view: what the roster screens show { ctx, team, pair, player, back, edit, sel } (ui_depth.js)
 //   weekView, weekFrom: the week the results screen shows, and the screen that opened it
+//   reportNext: "kickoff" when the practice report leads straight into the game
+//   scoutBack: the screen the scouting report goes back to
 // S (engine.js) is the game being played, and SEASON (season.js) the season.
 let APP = null;
 function newExhibition() {
@@ -54,6 +56,17 @@ function upgradeSave(s) {
   const v = s.app.view;
   if (v && !v.ctx) { v.ctx = v.back === "game" ? "game" : "ex"; if (v.back === "home") v.back = "exhibition"; }
   if ((s.build || 0) < 3 && s.app.screen === "home") s.app.screen = "exhibition";
+  // Version 4: practice, playbooks and injuries. Every school that keeps its roster gets a playbook
+  // from its schemes, and the season gets a practice plan.
+  const book = sc => { if (sc && sc.players && !sc.mastery) sc.mastery = genMastery(dice(hashSeed(`${sc.seed || 0}:${sc.id}:book`)), (sc.coach && sc.coach.off_style) || sc.off, (sc.coach && sc.coach.def_style) || sc.def); };
+  if (s.app.ex) s.app.ex.schools.forEach(book);
+  const se = s.season;
+  if (se && se.schools) {
+    Object.values(se.schools).forEach(book);
+    if (!se.plan) Object.assign(se, { plan: newPlan(), practice: null, cpuWeek: Math.max(0, (se.week || 1) - 1), film: null, injLog: {} });
+    const me = se.myId && se.schools[se.myId];
+    if (me && me.players) me.players.forEach(p => { if (p.o0 == null) p.o0 = ovr(p, p.pos); });
+  }
   s.build = BUILD;
   return s;
 }
@@ -177,6 +190,29 @@ function vHelp() {
       "Games between schools in your district run on the full game engine behind the scenes. The rest of the state is simmed from each team's ratings.",
       "Your schemes, rotation and depth chart carry from week to week. A depth chart for the next game only goes back to normal after that game."
     ]))}
+    ${sec("Practice", ul([
+      "Each week has ten practice blocks. Give each area none, light, normal or heavy, and the blocks are shared out by weight. Presets give a quick start: Balanced, Install, Game prep and Rest.",
+      "Fundamentals grow the players in each unit: quarterbacks, running backs and receivers, the offensive line, the defensive front, the secondary and the kickers. Growth depends on the player's work ethic, his year, your Development rating and the time spent, and slows as he nears his potential.",
+      "Contact trades growth against injuries: shorts, shells or full pads. Conditioning builds stamina. Recovery means fewer practice injuries, faster healing and fresher legs on game day.",
+      "Practice happens once a week, before the game. Hold it yourself to read the practice report first, or it happens on its own when you play or sim the game.",
+      "The practice report lists only what changed: who got better, who got hurt, and the plays your team learned."
+    ]))}
+    ${sec("Playbook and mastery", ul([
+      "Your team knows each play from 0 to 100. A small school starts out knowing about four plays on each side of the ball well, the core of its schemes.",
+      "A play your team knows well is a small edge. A play it's still learning costs edge, and draws more flags and fumbles. The call sheet shows each play's mastery.",
+      "Install time raises mastery. Pick up to three plays to focus on, or spread it over the whole playbook. Change your schemes and you'll have new plays to learn.",
+      "The other team's coach calls the plays his team knows best, too."
+    ]))}
+    ${sec("Scouting", ul([
+      "Opponent prep is film study of this week's opponent. A little time gives a short report; more gives their habits in short, medium and long yardage, the personnel they use, how often they blitz and disguise, and what beats their favorite calls.",
+      "On snaps when they run a call you studied, your team gets a small edge.",
+      "Every coach you play has watched your earlier games, and starts out knowing your habits. A good scout trusts that film more."
+    ]))}
+    ${sec("Injuries", ul([
+      "Players get hurt now and then in games and in practice. Ball carriers, tacklers, tired players and players with poor health get hurt the most.",
+      "Most injuries cost the rest of a game or the next one. Some cost weeks, and a few end the season.",
+      "An injured player stays on your depth chart, and the next healthy player behind him plays. Rosters say who's hurt and for how long."
+    ]))}
     ${sec("Depth chart and fatigue", ul([
       "Change the depth chart from your roster: pick a position, pick a player, then start him, move him up or down, or take him off. Reset to automatic puts everyone back by the ratings.",
       "Before a game, changes can apply to every game or to the next game only. After that game, the depth chart goes back to how it was.",
@@ -231,7 +267,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: vSeason, week: vWeek, standings: vStandings, schedule: vSchedule,
-  bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit };
+  bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -361,11 +397,35 @@ function act(a, ds) {
       if (!SEASON || !SEASON.myId) break;
       if (isMyGame() && S.phase !== "final") { APP.screen = "game"; scrollTop(); break; }
       // Your season game takes the place of an exhibition game in progress, after a second tap
-      if (liveExhibition() && !confirmed(a)) break;
+      if (liveExhibition()) { if (!confirmed(a)) break; S = null; }
+      // Playing the game: the week's practice first, and its report, with the kickoff right there
+      if (a === "playgame" && !practiced()) { holdPractice(); APP.reportNext = "kickoff"; APP.screen = "preport"; scrollTop(); break; }
       if (a === "playgame") { if (startMyGame()) APP.screen = "game"; }
       else if (simMyGame()) { const n = finishWeek(); if (n) { APP.weekView = n; APP.weekFrom = "season"; APP.screen = "week"; } }
       scrollTop(); break;
     }
+    // Practice
+    case "practice": APP.screen = "practice"; scrollTop(); break;
+    case "parea": {
+      const v = +ds.v;
+      if (!AREA_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
+      SEASON.plan.areas[ds.t] = v;
+      announce(`${AREA_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${blocksText(blocksOf(SEASON.plan)[ds.t])}.`); break;
+    }
+    case "pcontact": if (CONTACT[ds.v]) { SEASON.plan.contact = ds.v; announce(`${CONTACT[ds.v].name}.`); } break;
+    case "ppreset": if (PRESETS[ds.v]) { SEASON.plan.areas = clone(PRESETS[ds.v].areas); SEASON.plan.contact = PRESETS[ds.v].contact; announce(`${PRESETS[ds.v].name} plan, in ${CONTACT[SEASON.plan.contact].name.toLowerCase()}.`); } break;
+    case "install": APP.screen = "install"; scrollTop(); break;
+    case "pfocus": {
+      const f = SEASON.plan.focus || (SEASON.plan.focus = []), i = f.indexOf(ds.v);
+      if (!INSTALL_IDS.includes(ds.v)) break;
+      if (i >= 0) { f.splice(i, 1); announce(`${playName(ds.v)} off the install focus.`); }
+      else if (f.length >= 3) announce("Three plays already. Take one off first.");
+      else { f.push(ds.v); announce(`${playName(ds.v)} added to the install focus.`); }
+      break;
+    }
+    case "hold": if (SEASON && SEASON.myId && !practiced()) { holdPractice(); APP.reportNext = null; APP.screen = "preport"; scrollTop(); } break;
+    case "preport": if (SEASON && SEASON.practice) { APP.reportNext = null; APP.screen = "preport"; scrollTop(); } break;
+    case "scout": if (SEASON && SEASON.practice && SEASON.practice.film) { APP.scoutBack = APP.screen; APP.screen = "scout"; scrollTop(); } break;
     case "weekdone": {
       recordMyGame();
       const n = S && S.season && S.season.seed === SEASON.seed ? S.season.week : SEASON.week;
@@ -388,6 +448,8 @@ function act(a, ds) {
     case "player": APP.view.player = ds.v; APP.screen = "player"; scrollTop(); break;
     case "back": {
       if (APP.screen === "player" || APP.screen === "depth") APP.screen = "roster";
+      else if (APP.screen === "install") APP.screen = "practice";
+      else if (APP.screen === "scout" && ["game", "preport"].includes(APP.scoutBack)) APP.screen = APP.scoutBack === "game" && !(S && S.teams) ? "season" : APP.scoutBack;
       else if (APP.screen === "roster") { const b = APP.view && APP.view.back; APP.screen = b === "game" && !(S && S.teams) ? "home" : b || "home"; }
       else if (APP.screen === "week" && APP.weekFrom === "schedule") APP.screen = "schedule";
       else APP.screen = seasonScreen();
@@ -465,6 +527,9 @@ function startScreen() {
   if (sc === "simming") return season ? "season" : "home";
   if (sc === "week") return season && APP.weekView && APP.weekView < SEASON.week ? sc : season ? "season" : "home";
   if (sc === "bracket") return season && SEASON.bracket ? sc : season ? "season" : "home";
+  if (sc === "preport") return season && SEASON.practice ? sc : season ? "season" : "home";
+  if (sc === "scout") return season && SEASON.practice && SEASON.practice.film ? sc : season ? "season" : "home";
+  if (sc === "practice" || sc === "install") return season ? sc : "home";
   if (["season", "standings", "schedule"].includes(sc)) return season ? sc : "home";
   return SCREENS[sc] ? sc : "home";
 }

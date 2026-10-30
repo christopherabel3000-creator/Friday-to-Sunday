@@ -11,10 +11,10 @@ const DISTRICTS = 8, PER_DISTRICT = 8;
 function schoolRating(s) {
   return { off: sideRating(s, "off"), def: sideRating(s, "def"), c: Math.round((s.coach.off + s.coach.def) / 2) };
 }
-// Everything about a school except its players
+// Everything about a school except its players and playbook
 function schoolSummary(s) {
   const out = {};
-  for (const k in s) if (k !== "players" && k !== "depth") out[k] = s[k];
+  for (const k in s) if (k !== "players" && k !== "depth" && k !== "mastery") out[k] = s[k];
   out.coach = clone(s.coach);
   return out;
 }
@@ -39,19 +39,24 @@ function genWorld(seed, homeD) {
   }
   return { schools, districts };
 }
-// Rebuilds a whole school from its summary: the same seed builds the same school
-function rebuildSchool(sum) {
+// Rebuilds a whole school from its summary: the same seed builds the same school. weeks: how many
+// weeks of practice it has had this season, played out on paper with its own seeded dice (no
+// injuries), so it has grown about as much as the schools you can watch.
+function rebuildSchool(sum, weeks) {
   const s = genSchool(dice(sum.seed), { id: sum.id, cls: sum.cls, mascot: sum.mascot, town: sum.town, color: [sum.color, sum.colorName, sum.colorFam], trad: sum.trad });
+  for (let w = 1; w <= (weeks || 0); w++) practiceSchool(s, CPU_PLAN, seededRandom(hashSeed(`${sum.seed}:${w}`)), { noInjuries: true });
   return Object.assign(s, { seed: sum.seed, district: sum.district, colorFam: sum.colorFam, rating: sum.rating });
 }
+// Weeks of practice so far: this week's counts as soon as the week starts
+const practiceWeeks = () => !SEASON || SEASON.phase === "pick" ? 0 : Math.min(SEASON.week, LAST_WEEK);
 // A school with its players: the saved one in your district, or one rebuilt from its summary (kept
 // while the page is open; games and roster screens only read it)
 const REBUILT = new Map();
 function seasonSchool(id) {
   const s = SEASON.schools[id];
   if (!s || isFull(s)) return s;
-  const key = `${SEASON.seed}:${id}`;
-  if (!REBUILT.has(key)) REBUILT.set(key, rebuildSchool(s));
+  const wk = practiceWeeks(), key = `${SEASON.seed}:${id}:${wk}`;
+  if (!REBUILT.has(key)) REBUILT.set(key, rebuildSchool(s, wk));
   return REBUILT.get(key);
 }
 
@@ -132,7 +137,8 @@ function newSeason(seed) {
   const g = dice(seed ^ 0x5eed), district = g.i(1, DISTRICTS);
   const w = genWorld(seed, district);
   SEASON = { v: 1, seed, cls: "1A", district, myId: null, schools: w.schools, districts: w.districts, weeks: makeSchedule(w.districts, g),
-    week: 1, phase: "pick", bracket: null, champion: null, rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {} };
+    week: 1, phase: "pick", bracket: null, champion: null, rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {},
+    plan: newPlan(), practice: null, cpuWeek: 0, film: null, injLog: {} };
   return SEASON;
 }
 // You take over a school, and its coach's job. Until you create your own coach (step 5), your ratings
@@ -143,6 +149,8 @@ function pickSchool(id) {
   const s = SEASON.schools[id], c = { first: "", last: "", you: true, off_style: s.off, def_style: s.def };
   COACH_RATINGS.forEach(([k]) => { c[k] = YOUR_COACH; });
   s.coach = c; s.rating = schoolRating(s);
+  // Where each player started, to see how far he's come
+  s.players.forEach(p => { p.o0 = ovr(p, p.pos); });
   SEASON.myId = id; SEASON.phase = "regular";
   return true;
 }
@@ -302,14 +310,85 @@ function quickGame(gm) {
   Object.assign(gm, { hs, as, ot });
 }
 
+/* ---------- Practice ---------- */
+// Your practice this week, with your plan, and the rest of your district's with a balanced week.
+// Practice happens once a week: when you hold it, or on its own before the games are played.
+const practiced = () => !!(SEASON.practice && SEASON.practice.week === SEASON.week);
+function holdPractice() {
+  const n = SEASON.week;
+  if (practiced()) return SEASON.practice;
+  cpuPractice(n);
+  const me = mySchool(), rep = practiceSchool(me, SEASON.plan, rand), gm = myGameIn(n);
+  Object.assign(rep, { week: n, focus: (SEASON.plan.focus || []).slice() });
+  // Opponent prep: film study of this week's opponent
+  if (gm && !played(gm)) { rep.opp = opponentIn(gm, me.id); rep.film = filmStudy(seasonSchool(rep.opp), me); }
+  me.rating = schoolRating(me);
+  SEASON.practice = rep;
+  return rep;
+}
+function cpuPractice(n) {
+  if (SEASON.cpuWeek >= n) return;
+  SEASON.cpuWeek = n;
+  SEASON.districts[SEASON.district - 1].ids.forEach(id => {
+    if (id === SEASON.myId) return;
+    const s = SEASON.schools[id];
+    practiceSchool(s, CPU_PLAN, rand);
+    s.rating = schoolRating(s);
+  });
+}
+// How much a typical school's starters improve each week on a balanced plan (tests/practice.js
+// measures it), for the quick-sim ratings of the schools that only practice on paper
+const WEEKLY_GROWTH = .175;
+// The end of a week: injuries heal a week, and the schools elsewhere in the state get a little better
+function endOfWeek() {
+  SEASON.districts[SEASON.district - 1].ids.forEach(id => {
+    const s = SEASON.schools[id], mine = id === SEASON.myId;
+    const back = healSchool(s, mine ? (practiced() ? SEASON.practice.blocks.rec : blocksOf(SEASON.plan).rec) : blocksOf(CPU_PLAN).rec, rand);
+    if (mine) injLog(SEASON.week).back = back;
+    s.rating = schoolRating(s);
+  });
+  for (const id in SEASON.schools) { const s = SEASON.schools[id]; if (!isFull(s)) { s.rating.off += WEEKLY_GROWTH; s.rating.def += WEEKLY_GROWTH; } }
+}
+
+// Your injury news by week: who was hurt in the game, and who's back (the last few weeks are kept)
+function injLog(n) {
+  const L = SEASON.injLog || (SEASON.injLog = {});
+  Object.keys(L).forEach(k => { if (+k < n - 2) delete L[k]; });
+  return L[n] || (L[n] = { game: [], back: [] });
+}
+
+/* ---------- Film of your habits ---------- */
+// Every coach you play has watched your earlier games: after each game, what your team called by
+// situation goes into the season's film (older games count for less), and before the next one the
+// other coach starts out knowing it. A better scout trusts it more.
+function keepFilm(t) {
+  const sc = S.scout && S.scout[t];
+  if (!sc) return;
+  const f = SEASON.film || (SEASON.film = { o: {}, d: {}, dp: {} });
+  ["o", "d", "dp"].forEach(kind => {
+    const dst = f[kind], src = sc[kind] || {};
+    for (const key in dst) for (const id in dst[key]) dst[key][id] *= .6;
+    for (const key in src) { const m = dst[key] || (dst[key] = {}); for (const id in src[key]) m[id] = (m[id] || 0) + src[key][id]; }
+  });
+}
+function seedFilm(t, coach) {
+  const f = SEASON.film, k = clamp((((coach && coach.sct) || 42) - 25) / 60, 0, 1) * .6;
+  if (!f || k <= 0) return;
+  const sc = scoutOf(t);
+  ["o", "d", "dp"].forEach(kind => { for (const key in f[kind]) { const m = sc[kind][key] = {}; for (const id in f[kind][key]) m[id] = f[kind][key][id] * k; } });
+}
+
 /* ---------- Full games nobody's watching ---------- */
 // The computer coaches both teams, then the game you were looking at (S) comes back
 function simFullGame(gm) {
   const keep = S, kt = kickTD, ke = kickEnded;
   try {
-    initGame({ level: "hs", cpu: [true, true], title: !!gm.title, neutral: !!gm.neutral }, [seasonSchool(gm.h), seasonSchool(gm.a)]);
+    const hs = seasonSchool(gm.h), as = seasonSchool(gm.a);
+    initGame({ level: "hs", cpu: [true, true], title: !!gm.title, neutral: !!gm.neutral }, [hs, as]);
     for (let i = 0; i < 8000 && S.phase !== "final"; i++) autoStep();
     Object.assign(gm, { hs: S.teams[0].score, as: S.teams[1].score, ot: Math.max(0, S.quarter - 4) });
+    // Injuries stay with the schools that keep their rosters
+    [hs, as].forEach((s, i) => { if (isFull(SEASON.schools[s.id])) keepInjuries(S.teams[i], s); });
   } finally { S = keep; kickTD = kt; kickEnded = ke; }
   if (gm.hs === gm.as) quickGame(gm);
 }
@@ -325,16 +404,22 @@ function playOthers(n) {
 // Is the game in S your game this week?
 const isMyGame = () => !!(S && S.teams && S.season && SEASON && S.season.seed === SEASON.seed && S.season.week === SEASON.week);
 function myGameConfig(gm) {
-  const mine = i => [gm.h, gm.a][i] === SEASON.myId, nd = SEASON.nextDepth;
+  const mine = i => [gm.h, gm.a][i] === SEASON.myId, nd = SEASON.nextDepth, fresh = practiced() ? SEASON.practice.fresh : 100;
   return { level: "hs", cpu: [!mine(0), !mine(1)], rot: [mine(0) ? SEASON.rot : "normal", mine(1) ? SEASON.rot : "normal"],
-    depth: [mine(0) && nd ? nd.depth : null, mine(1) && nd ? nd.depth : null], title: !!gm.title, neutral: !!gm.neutral };
+    depth: [mine(0) && nd ? nd.depth : null, mine(1) && nd ? nd.depth : null], title: !!gm.title, neutral: !!gm.neutral,
+    fresh: [mine(0) ? fresh : 100, mine(1) ? fresh : 100] };
 }
-// Kicks off your game this week. A depth chart for the next game only is used up by it.
+// Kicks off your game this week, after the week's practice. A depth chart for the next game only is
+// used up by it. Your team takes its film study into the game, and the other coach has watched yours.
 function startMyGame() {
   const gm = myGameIn(SEASON.week);
   if (!gm || played(gm)) return false;
+  holdPractice();
   initGame(myGameConfig(gm), [seasonSchool(gm.h), seasonSchool(gm.a)]);
   S.season = { seed: SEASON.seed, week: SEASON.week, my: SEASON.myId };
+  const me = S.teams.findIndex(t => t.id === SEASON.myId), P = SEASON.practice;
+  if (P && P.film && P.opp === S.teams[1 - me].id) S.teams[me].prep = prepFrom(P.film, P.prep, mySchool().coach.sct);
+  seedFilm(me, S.teams[1 - me].coach);
   SEASON.nextDepth = null; SEASON.depthMode = "always";
   return true;
 }
@@ -347,6 +432,12 @@ function recordMyGame() {
   S.season.done = true;
   if (!gm || played(gm)) return false;
   Object.assign(gm, { hs: S.teams[0].score, as: S.teams[1].score, ot: Math.max(0, S.quarter - 4) });
+  // Injuries go home with the players (the other school's too, when it keeps its roster), and your
+  // calls go into the film other coaches will watch
+  const me = S.teams.findIndex(t => t.id === SEASON.myId);
+  injLog(SEASON.week).game = S.teams[me].players.filter(p => p.inj && !playerById(mySchool(), p.id).inj).map(p => p.id);
+  S.teams.forEach(t => { const s = SEASON.schools[t.id]; if (isFull(s)) keepInjuries(t, s); });
+  keepFilm(me);
   S.teams.find(t => t.id === SEASON.myId).players.forEach(p => {
     const st = S.ps[p.id];
     if (!st) return;
@@ -369,7 +460,9 @@ function simMyGame() {
 function finishWeek() {
   const n = SEASON.week, gm = myGameIn(n);
   if (SEASON.phase === "pick" || SEASON.phase === "over" || (gm && !played(gm))) return 0;
+  cpuPractice(n);
   playOthers(n);
+  endOfWeek();
   SEASON.week = n + 1;
   if (n === REGULAR_WEEKS) makeBracket();
   else if (n > REGULAR_WEEKS) nextRound();

@@ -74,6 +74,13 @@ function onFieldLine(t, pk) {
 }
 
 /* ---------- Calling a play ---------- */
+// How well your team knows a play, on its card: " · learning 45"
+function masteryTag(t, id) {
+  const m = S.teams[t].mastery;
+  if (!m || m[id] == null) return "";
+  const v = Math.round(m[id]);
+  return ` · ${masteryWord(v)} ${v}`;
+}
 function fitTagFor(pk, id) {
   const f = (PKG_FIT[pk] || {})[id] || 0, cm = ((OFF_PKGS[pk] || {}).comp || {})[id] || 1;
   if (f <= -1.5 || cm <= .4) return " · very poor fit";
@@ -86,7 +93,7 @@ function fitTagFor(pk, id) {
 function vLOS() {
   const o = S.poss, d = 1 - o, tm = S.teams[o], L = LOOKS[S.look.d], cur = OFFP[S.offCall];
   const card = id => `<button class="play" data-a="audpick" data-v="${id}" aria-pressed="${S.audSel === id}">
-      <span class="tag">${OFFP[id].tag + fitTagFor(S.offPkg, id) + styleTag(true, id, o)}</span><span class="sr-only">. </span><span class="nm">${OFFP[id].name}</span><span class="sr-only">. </span><span class="ds">${OFFP[id].desc}</span></button>`;
+      <span class="tag">${OFFP[id].tag + fitTagFor(S.offPkg, id) + styleTag(true, id, o) + masteryTag(o, id)}</span><span class="sr-only">. </span><span class="nm">${OFFP[id].name}</span><span class="sr-only">. </span><span class="ds">${OFFP[id].desc}</span></button>`;
   const to = S.audSel && OFFP[S.audSel];
   return `${board()}
     <div style="--team:${tm.color};display:grid;gap:14px">
@@ -117,7 +124,7 @@ function vCall() {
   if (!choices.includes(pk)) pk = choices[0];
   const kickUnit = isOff && isST(pk);
   const ids = isOff ? (kickUnit ? [] : offIds(pk)) : DEF_IDS, book = isOff ? OFFP : DEFP;
-  const fitTag = id => (isOff ? fitTagFor(pk, id) : "") + styleTag(isOff, id, t);
+  const fitTag = id => (isOff ? fitTagFor(pk, id) : "") + styleTag(isOff, id, t) + masteryTag(t, id);
   const pkgBook = isOff ? { ...OFF_PKGS, ...ST_PKGS } : DEF_PKGS;
   const pkgBtn = id => `<button class="pkg${isST(id) ? " stpkg" : ""}" data-a="pkg" data-v="${id}" aria-pressed="${pk === id}">
       <span class="pn">${pkgBook[id].name}</span><span class="sr-only">: </span><span class="pw">${pkgBook[id].who}</span></button>`;
@@ -251,6 +258,7 @@ function vResult() {
       ${r.read ? `<span class="read ${r.read.c}"><i aria-hidden="true"></i>${esc(r.read.t)}</span>` : ""}
       <p class="narr">${esc(r.text)}</p>
       ${r.audNote ? `<p class="audnote">${esc(r.audNote)}</p>` : ""}
+      ${r.injNote ? `<p class="audnote">${esc(r.injNote)}</p>` : ""}
       ${r.sub ? `<p class="next">${esc(r.sub)}</p>` : ""}
       ${r.subNote ? `<p class="audnote">${esc(r.subNote)}</p>` : ""}
       </div>
@@ -534,6 +542,7 @@ function vExtras() {
   const live = S.phase !== "final";
   const foot = `<div class="foot">
     ${t[0].cpu && t[1].cpu ? `<button class="linkbtn" data-a="roster" data-t="0">Rosters</button>` : `<button class="linkbtn" data-a="lineup">Lineup and subs</button>`}
+    ${S.season && SEASON && SEASON.practice && SEASON.practice.film && SEASON.practice.week === S.season.week ? `<button class="linkbtn" data-a="scout">Scouting report</button>` : ""}
     ${live ? `<button class="linkbtn ${confirming === "sim" ? "warn" : ""}" data-a="sim">${confirming === "sim" ? "Tap again to sim to the end" : "Sim to the end"}</button>` : ""}
     ${live && !S.season ? `<button class="linkbtn ${confirming === "end" ? "warn" : ""}" data-a="end">${confirming === "end" ? "Tap again to end this game" : "End game"}</button>` : ""}
   </div>`;

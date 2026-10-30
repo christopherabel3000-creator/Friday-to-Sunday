@@ -190,6 +190,23 @@ const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o)
 // Sharpen or flatten a set of play-call weights, by the coach making the call
 function sharpen(w, t, isOff) { const k = isOff ? CP(t).sharpO : CP(t).sharpD; if (k !== 1) Object.keys(w).forEach(id => { w[id] = Math.pow(Math.max(0, w[id]), k); }); return w; }
 
+/* ---------- Playbook mastery ---------- */
+// How well a team knows each play, 0 to 100 (practice.js installs plays). A play a team knows better
+// than a typical small school knows its own (70) is a small edge, on the play-call scale; one it's still
+// learning costs edge and draws more flags and fumbles. A team without a playbook record (the pros, for
+// now) plays every call at 70, and so do kicks and kneel-downs.
+const MASTERY_BASE = 70;
+const masteryOf = (t, id) => { const m = S && S.teams && S.teams[t] && S.teams[t].mastery; return m && m[id] != null ? m[id] : MASTERY_BASE; };
+const masteryEdge = v => (v - MASTERY_BASE) * (v >= MASTERY_BASE ? .006 : .009);
+// Flags and fumbles: more than usual (above 1) on a play still being learned, fewer on one mastered.
+// Measured from 60, about what the average call is worth once the plays a team doesn't know well are
+// mixed in with its core plays, so flag and fumble totals stay where the engine was tuned.
+const masteryMul = (v, k) => clamp(1 - k * (v - 60), .75, 1.5);
+// The computer calls the plays its team knows: weight from 0.3 (brand new) to 1 (mastered)
+const masteryPref = v => .3 + .7 * Math.pow(clamp(v, 0, 100) / 100, 1.4);
+const MASTERY_WORDS = [[85, "mastered"], [65, "solid"], [40, "learning"], [0, "new"]];
+const masteryWord = v => MASTERY_WORDS.find(([at]) => v >= at)[1];
+
 /* ---------- Helpers ---------- */
 let S = null;
 // The rules of the level being played (rules.js)
@@ -228,10 +245,11 @@ function gameTeam(s, cpu, styles) {
   return { id: s.id, name: s.mascot, school: s.town, abbr: s.abbr, color: s.color, level: s.level, cpu: !!cpu,
     off: resolveStyle(styles.off || s.off, OFF_STYLE_IDS), def: resolveStyle(styles.def || s.def, DEF_STYLE_IDS),
     coach: clone(s.coach), cp: coachParams(s.coach), players: clone(s.players), depth: clone(s.depth), dver: 0,
-    score: 0, st: newTeamStats() };
+    mastery: s.mastery ? clone(s.mastery) : null, score: 0, st: newTeamStats() };
 }
 // cfg: { level, cpu: [home, away], styles: [home, away], rot: [home, away], depth: [home, away], aud,
-// title, neutral }. schools[0] is the home team. depth: a depth chart for this game only (or null).
+// title, neutral, fresh: [home, away] }. schools[0] is the home team. depth: a depth chart for this
+// game only (or null). fresh: energy at kickoff (100 unless practice wore a team down).
 // title: a state championship game (no running clock). neutral: played at a neutral site.
 function initGame(cfg, schools) {
   const Rl = RULES[cfg.level] || RULES.hs, qLen = cfg.qLen || Rl.qLen;
@@ -239,7 +257,7 @@ function initGame(cfg, schools) {
   if (t1.abbr === t0.abbr) t1.abbr = schoolAbbr(t1.school, t0.abbr);
   [t0, t1].forEach((t, i) => {
     if (cfg.depth && cfg.depth[i]) t.depth = clone(cfg.depth[i]);
-    freshGame(t, cfg.rot && cfg.rot[i]);
+    freshGame(t, cfg.rot && cfg.rot[i], cfg.fresh && cfg.fresh[i]);
   });
   const recv = rand() < .5 ? 0 : 1;
   S = { v: 1, cfg: { level: Rl.id, qLen, aud: cfg.aud !== false, title: !!cfg.title }, neutral: !!cfg.neutral, teams: [t0, t1], ps: {},
@@ -667,7 +685,7 @@ function cpuAudible() {
   const ld = S.look.d, cur = edgeVs(S.offCall, ld);
   if (cur > -1) return;
   let best = null, be = -9;
-  audIds().forEach(id => { const e = edgeVs(id, ld) + (S.toGo >= 8 && OFFP[id].kind === "run" ? -1 : 0) + (S.toGo <= 2 && id === "dp" ? -1 : 0); if (e > be) { be = e; best = id; } });
+  audIds().forEach(id => { const e = edgeVs(id, ld) + masteryEdge(masteryOf(S.poss, id)) + (S.toGo >= 8 && OFFP[id].kind === "run" ? -1 : 0) + (S.toGo <= 2 && id === "dp" ? -1 : 0); if (e > be) { be = e; best = id; } });
   // Trust the look less against a defense that has been disguising a lot
   const ds = lookStat("disgStats", 1 - S.poss), fakeRate = (ds.k + 1) / (ds.n + 3);
   if (best && be - cur >= 2 && rand() < cp.aud * clamp((1 - fakeRate) / .67, .25, 1.3)) { S.aud = { from: S.offCall, to: best }; S.offCall = best; S.offSide = S.offSide && sideOn(best); }
@@ -712,6 +730,8 @@ function resolve() {
   else r = doScrimmage();
   // The players on the field tire (kicks and fouls before the snap don't count)
   if (!r.preSnap && S.offCall !== "punt" && S.offCall !== "fg") tireSnap(S.snap.poss, S.offPkg, S.defPkg);
+  // Somebody might be hurt on the play
+  if (!r.preSnap && OFFP[S.offCall]) { const hurt = injurySnap(r); if (hurt) r.injNote = hurt; }
   r.offId = S.offCall; r.defId = S.defCall; r.team = S.snap.poss; r.aud = S.aud;
   if (!r.opk) { r.opk = S.offPkg; r.dpk = S.defPkg; }
   if (r.m != null && !r.preSnap) { r.s = playScore(r, S.snap); r.read = verdict(r, S.snap); }
@@ -756,7 +776,7 @@ function finalize(r) {
   S.last = r; S.phase = "result"; S.banner = "";
   S.log.unshift({ q: S.snap.q, clock: S.snap.clock, team: S.snap.poss, sit: S.snap.sit,
     off: S.offCall === "punt" ? "Punt" : S.offCall === "fg" ? "Field goal" : S.offCall === "kneel" ? "Kneel down" : S.offCall === "fp" ? "Fake punt" : S.offCall === "ffg" ? "Fake field goal" : `${OFF_PKGS[S.offPkg] ? OFF_PKGS[S.offPkg].short + " · " : ""}${OFFP[S.offCall].name}${S.offSide && sideOn(S.offCall) ? " (sideline)" : ""}${S.aud ? ` (audible from ${OFFP[S.aud.from].name})` : ""}`,
-    def: S.defCall ? `${DEF_PKGS[S.defPkg] ? DEF_PKGS[S.defPkg].short + " · " : ""}${DEFP[S.defCall].name}${S.look && S.look.fake ? ` (disguised as ${LOOKS[S.look.d].name.toLowerCase()})` : ""}` : "", text: r.text + (r.sub ? " " + r.sub : ""), score: `${S.teams[0].score}-${S.teams[1].score}` });
+    def: S.defCall ? `${DEF_PKGS[S.defPkg] ? DEF_PKGS[S.defPkg].short + " · " : ""}${DEFP[S.defCall].name}${S.look && S.look.fake ? ` (disguised as ${LOOKS[S.look.d].name.toLowerCase()})` : ""}` : "", text: r.text + (r.sub ? " " + r.sub : "") + (r.injNote ? " " + r.injNote : ""), score: `${S.teams[0].score}-${S.teams[1].score}` });
 }
 // Seconds that come off before the next snap with the clock running
 function betweenPlays() {

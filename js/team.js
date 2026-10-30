@@ -33,7 +33,21 @@ function genSchool(g, opts) {
   s.abbr = schoolAbbr(town, opts.otherAbbr);
   s.off = s.coach.off_style; s.def = s.coach.def_style;
   s.depth = autoDepth(s);
+  s.mastery = genMastery(g, s.off, s.def);
   return s;
+}
+// The playbook a school knows: about four plays on each side of the ball, the core of its schemes,
+// and a little of everything else (engine.js: playbook mastery)
+const CORE_PLAYS = { bal: ["ir", "or", "sp", "pa"], air: ["sp", "ms", "dp", "sc"], gnp: ["ir", "or", "dr", "pa"], wc: ["sc", "sp", "ms", "ir"] };
+const CORE_CALLS = { bal: ["ba", "ma", "zo", "c3"], blz: ["rb", "ab", "zb", "ma"], nfz: ["zo", "c3", "ma", "pr"], rs: ["rb", "ba", "c3", "zb"] };
+// Plays that can be installed: the playbook plus the special plays (kicks, kneels and spikes are always known)
+const INSTALL_IDS = ["ir", "or", "dr", "sc", "sp", "ms", "dp", "pa", "qs", "hm", "te", "rb", "ba", "ma", "zo", "c3", "pr", "ab", "zb"];
+function genMastery(g, off, def) {
+  const core = new Set((CORE_PLAYS[off] || CORE_PLAYS.bal).concat(CORE_CALLS[def] || CORE_CALLS.bal)), m = {};
+  INSTALL_IDS.forEach(id => { m[id] = clamp(Math.round(core.has(id) ? g.n(72, 6) : g.n(32, 9)), 8, 90); });
+  // The sneak is simple, the Hail Mary gets a little practice, and the tackle-eligible trick is rare
+  m.qs = clamp(Math.round(g.n(66, 8)), 30, 90); m.hm = clamp(Math.round(g.n(44, 8)), 15, 70); m.te = clamp(Math.round(g.n(26, 7)), 8, 55);
+  return m;
 }
 const schoolName = s => `${s.town} ${s.mascot}`;
 // How a school's tradition reads

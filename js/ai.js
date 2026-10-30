@@ -173,8 +173,10 @@ function cpuKickCall() {
   if (S.toGo <= 4 && rand() < .04) return S.spot < 62 || fgP < .3 ? "fp" : "ffg";
   return "punt";
 }
+// The computer leans toward the plays its team knows
+function knownWeights(w, t) { Object.keys(w).forEach(k => { if (OFFP[k] || DEFP[k]) w[k] *= masteryPref(masteryOf(t, k)); }); return w; }
 function cpuOff() {
-  if (S.twoPt) return wpick(fitWeights({ ir: 4, or: 1.5, sc: 1, sp: 3.5, ms: 2, dp: .3, pa: 2 }));
+  if (S.twoPt) return wpick(knownWeights(fitWeights({ ir: 4, or: 1.5, sc: 1, sp: 3.5, ms: 2, dp: .3, pa: 2 }), S.poss));
   if (kneelAvailable()) {
     const lead = S.teams[S.poss].score - S.teams[1 - S.poss].score;
     if (lead > 0 || (lead === 0 && S.spot < 50)) return "kneel";
@@ -207,6 +209,7 @@ function cpuOff() {
     if (tp) for (const pk in tp.f) e += tp.conf * tp.f[pk] * clashFor(k, S.offPkg, pk);
     w[k] *= (mul[k] = adaptMul(e, me));
   });
+  knownWeights(w, me);
   const call = wpick(sharpen(w, me, true));
   if (td && mul[call] >= 2) {
     const top = topOf(td.f);
@@ -247,6 +250,7 @@ function cpuDef() {
     for (const p in t.f) e += t.f[p] * (M[p][d] || 0);
     w[d] = (w[d] + .15) * (mul[d] = adaptMul(-t.conf * e, dt));
   });
+  knownWeights(w, dt);
   const call = wpick(sharpen(w, dt, false));
   if (t && mul[call] >= 2) {
     const top = topOf(t.f);

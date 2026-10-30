@@ -275,6 +275,7 @@ function checkScreen(page, label) {
   tap(p4, "simgame");
   ok(ev("APP.screen") === "week" && ev("SEASON.week") === 2 && /^You (beat|lost to) the /.test(heading() || ""), `sim the game: the week's results open on yours (${heading()})`);
   ok(ev("S.season.week") === 1 && ev(`S.teams.find(t => t.id === SEASON.myId).depth.QB[0]`) === sqb[1] && ev("S.teams.find(t => t.id === SEASON.myId).off") === "wc", "the game used your next-game lineup and your scheme");
+  ok(ev("SEASON.practice.week") === 1, "simming the game held the week's practice first");
   ok(ev("SEASON.nextDepth") === null, "the next-game lineup is used up");
   ok(btn(d4, "boxscore") && /District \d/.test(d4.body.textContent), "box score link and your district's scores");
   checkScreen(p4, "week 1 results");
@@ -285,11 +286,47 @@ function checkScreen(page, label) {
   tap(p4, "season");
   ok(ev("APP.screen") === "season" && /Week 2/.test(d4.querySelector(".masthead .eyebrow").textContent), "on to week 2");
   ok(btn(d4, "week", 1), "last week's results are a tap away");
+  // Practice for week 2: the plan, a preset, an area, the install focus, then hold practice
+  ok(/Practice/.test(d4.body.textContent) && btn(d4, "practice") && btn(d4, "hold"), "the week ahead has practice: the plan, or hold it now");
+  tap(p4, "practice");
+  ok(/Practice plan/.test(heading() || ""), "the practice plan opens on its heading");
+  ok(btn(d4, "ppreset", "balanced").getAttribute("aria-pressed") === "true" && btn(d4, "pcontact", "shells").getAttribute("aria-pressed") === "true", "a balanced week in shells to start");
+  checkScreen(p4, "practice plan");
+  const said4 = async () => { await new Promise(r => setTimeout(r, 120)); return d4.getElementById("sr").textContent; };
+  tap(p4, "ppreset", "gameprep");
+  ok(ev("SEASON.plan.areas.prep") === 3 && /Game prep plan/.test(await said4()) && focused(d4) === btn(d4, "ppreset", "gameprep"), "a preset sets the plan, and says so");
+  const olHeavy = [...d4.querySelectorAll('[data-a="parea"]')].find(b => b.dataset.t === "ol" && b.dataset.v === "3");
+  olHeavy.focus(); olHeavy.click();
+  ok(ev("SEASON.plan.areas.ol") === 3 && /Offensive line: heavy, \d/.test(await said4()) && !btn(d4, "ppreset", "gameprep").matches('[aria-pressed="true"]'), "heavy on the offensive line: announced, and it's no longer a preset");
+  tap(p4, "install");
+  ok(/Install focus/.test(heading() || "") && d4.querySelectorAll('[data-a="pfocus"]').length === 19, "the install screen lists the whole playbook");
+  tap(p4, "pfocus", "ms"); tap(p4, "pfocus", "zb");
+  ok(JSON.stringify(ev("SEASON.plan.focus")) === '["ms","zb"]' && btn(d4, "pfocus", "ms").getAttribute("aria-pressed") === "true", "pick plays to install");
+  checkScreen(p4, "install");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "practice" && /Mesh and Zone Blitz/.test(d4.body.textContent), "back on the plan, with the install focus");
+  const ms0 = ev("mySchool().mastery.ms");
+  tap(p4, "hold");
+  ok(ev("APP.screen") === "preport" && /Practice report/.test(heading() || "") && ev("practiced()"), "hold practice: the practice report");
+  ok(ev("mySchool().mastery.ms") > ms0, "the install focus went in");
+  ok(btn(d4, "scout") && btn(d4, "playgame") && /Who got better/.test(d4.body.textContent), "the report: who got better, and the scouting report");
+  checkScreen(p4, "practice report");
+  tap(p4, "scout");
+  ok(ev("APP.screen") === "scout" && heading() === ev("nameOf(SEASON.practice.opp)") && /Their offense/.test(d4.body.textContent), "the scouting report on this week's opponent");
+  checkScreen(p4, "scouting report");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "preport", "back to the practice report");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "season" && btn(d4, "preport") && !btn(d4, "hold"), "practice is done for the week");
   // Play week 2 by tapping a little, step away, then sim the rest
   tap(p4, "playgame");
   ok(ev("APP.screen") === "game" && ev("isMyGame()") && ev("S.season.week") === 2, "play your week 2 game");
+  ok(ev("S.teams.find(t => t.id === SEASON.myId).prep") && ev("S.teams.find(t => t.id === SEASON.myId).prep.k") > 0, "your team takes its film study into the game");
   for (let i = 0; i < 12; i++) { const S = ev("S"); if (S.phase === "result") tap(p4, "cont"); else if (S.phase === "toss") tap(p4, "toss", S.toss.step === "call" ? "heads" : (btn(d4, "toss", "receive") ? "receive" : "defense")); else ev("S.teams.forEach(t => t.cpu = true); autoStep(); S.teams.forEach(t => t.cpu = t.id !== SEASON.myId); render();"); }
   ok(!btn(d4, "end"), "a season game can't be thrown away");
+  for (let i = 0; i < 300; i++) { const S = ev("S"); if (S.phase === "call" && S.side === "off" && !S.teams[S.poss].cpu) break; if (S.phase === "result") tap(p4, "cont"); else ev("S.teams.forEach(t => t.cpu = true); autoStep(); S.teams.forEach(t => t.cpu = t.id !== SEASON.myId); render();"); }
+  if (ev("S.phase") === "call") ok(/(mastered|solid|learning|new) \d+/.test(d4.querySelector('[data-a="pick"] .tag').textContent), "the call sheet shows how well your team knows each play");
+  ok(btn(d4, "scout"), "the scouting report is a tap away during the game");
   tap(p4, "gohome");
   ok(/Your season game is in progress/.test(d4.body.textContent) && btn(d4, "resume"), "the main menu offers to go back to your season game");
   tap(p4, "exhibition");
@@ -307,13 +344,25 @@ function checkScreen(page, label) {
   const p5 = await openPage(store4);
   ok(p5.w.eval("SEASON.week") === 3 && p5.w.eval("APP.screen") === "season" && p5.w.eval("JSON.stringify(SEASON.weeks)") === ev("JSON.stringify(SEASON.weeks)"), "the season picks up where it left off after a reload");
   ok(p5.errors.length === 0, "no errors after reloading the season");
+  // An exhibition in progress gives way to the season game, after a second tap
+  tap(p4, "gohome"); tap(p4, "exhibition"); tap(p4, "kickoff");
+  ok(ev("S && !S.season && S.phase !== 'final'"), "an exhibition game is under way");
+  tap(p4, "gohome"); tap(p4, "season");
+  tap(p4, "playgame");
+  ok(/Tap again to leave the exhibition/.test(btn(d4, "playgame").textContent) && ev("APP.screen") === "season", "playing the season game asks before leaving the exhibition");
+  tap(p4, "playgame");
+  ok(ev("APP.screen") === "preport" && ev("S") === null && /Kick off/.test(btn(d4, "playgame").textContent), "then practice, with the kickoff right there");
+  tap(p4, "playgame");
+  ok(ev("APP.screen") === "game" && ev("isMyGame()") && ev("S.season.week") === 3, "and the week 3 game starts with one tap");
+  tap(p4, "sim"); tap(p4, "sim"); tap(p4, "weekdone"); tap(p4, "season");
+  ok(ev("SEASON.week") === 4, "on to week 4");
   // Standings, schedule and stats
   tap(p4, "standings");
   ok(d4.querySelectorAll("table.stand").length === 8 && /Standings/.test(heading() || ""), "standings for all eight districts");
   checkScreen(p4, "standings");
   tap(p4, "back");
   tap(p4, "schedule");
-  ok(d4.querySelectorAll('.roster [data-a="week"]').length === 2 && d4.querySelectorAll(".sched").length === 8, "your schedule: two results to open, eight games to go");
+  ok(d4.querySelectorAll('.roster [data-a="week"]').length === 3 && d4.querySelectorAll(".sched").length === 7, "your schedule: three results to open, seven games to go");
   ok(d4.querySelector(".statwrap, table caption"), "season stats tables");
   checkScreen(p4, "schedule");
   tap(p4, "week", 1);

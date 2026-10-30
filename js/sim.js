@@ -33,12 +33,14 @@ function pickBy(list, wf) {
   return list[list.length - 1];
 }
 const dbsOf = D => (D.CB || []).concat(D.S || []);
-// The ball carrier on a run. The second back spells the starter now and then.
+// The ball carrier on a run. The second back spells the starter now and then, and more often once
+// the starter has carried it 18 times in a game, so even a run-first team spreads the load.
 function pickCarrier(t, L) {
-  const rbs = L.RB || [];
+  const rbs = L.RB || [], lead = rbs[0], carries = lead && S.ps[lead.id] ? S.ps[lead.id].ru || 0 : 0;
+  const spell = clamp(.15 + .012 * Math.max(0, carries - 18), .15, .45);
   if (rbs.length > 1 && rand() < .22) return rbs[1];
-  // Now and then the second back comes in for a carry (tired backs also rotate out, fatigue.js)
-  if (rbs.length === 1 && rand() < .08) {
+  // The second back comes in for a carry (tired backs also rotate out, fatigue.js)
+  if (rbs.length === 1 && rand() < spell) {
     const on = new Set(lineupPlayers(L).map(p => p.id)), b = depthOrder(S.teams[t], "RB").find(p => !on.has(p.id) && !p.rest);
     if (b) return fatView(b);
   }
@@ -144,6 +146,17 @@ function verdict(r, snap) {
     else if (v.c === "o" && sp.def <= -.3 && (dsId !== "nfz" || run)) v.t += " " + defSoft;
     noted = v.t.length > n0;
   }
+  // The week's film study, when the side that studied won the snap
+  if (!noted && r.pr && rand() < .6 && ((r.pr > 0 && v.c === "o") || (r.pr < 0 && v.c === "d"))) {
+    const t = r.pr > 0 ? o : 1 - o;
+    v.t += ` ${tname(t)} were ready for ${r.pr > 0 ? DEFP[r.defId].name : OFFP[r.offId].name}: the film study paid off.`;
+    noted = true;
+  }
+  // A play still being learned, when it cost the side running it
+  if (!noted && S.teams && o != null && rand() < .6) {
+    if (v.c === "d" && r.mo != null && r.mo < 45) { v.t += ` The ${tname(o)} are still learning ${OFFP[r.offId].name}.`; noted = true; }
+    else if (v.c === "o" && r.md != null && r.md < 45 && DEFP[r.defId]) { v.t += ` The ${tname(1 - o)} are still learning ${DEFP[r.defId].name}.`; noted = true; }
+  }
   // Otherwise, the players: who won their part of the play
   if (!noted) { const tn = talentNote(r, v); if (tn) v.t += " " + tn; }
   return v;
@@ -185,9 +198,11 @@ function rollPlay(off, def, opk, dpk, side) {
   if (P.kind === "run") x.car = off === "qs" ? x.qb : pickCarrier(o, L);
   else { x.tgt = pickTarget(off, L); x.cov = coverFor(x.tgt, D); }
   const T = x.T = talentEdges(off, def, x);
-  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o);
+  // Execution: disguises, the coaches, how well each side knows its call, and the week's film study
+  const mo = masteryOf(o, off), md = masteryOf(1 - o, def), pr = prepEdge(o, off, def);
+  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + masteryEdge(mo) - masteryEdge(md) + pr;
   const pe = pkgEdge(off, opk, dpk), se = styleEdge(off, def, o), m = clamp(M[off][def] + pe + se + dc + (side ? SIDE_EDGE[off][def] || 0 : 0), -3, 3);
-  const OP = OFF_PKGS[opk] || {}, compMul = (OP.comp || {})[off] || 1;
+  const OP = OFF_PKGS[opk] || {}, compMul = (OP.comp || {})[off] || 1, fumMul = masteryMul(mo, .008);
   // Missed tackles: weak tackling means more big plays
   const tklAbs = unitAvg((D.LB || []).concat(dbsOf(D)), { tkl: .7, spd: .3 }), bigMul = clamp(1 - .012 * (tklAbs - REF), .7, 1.8);
   let y = 0, time = 0, fumble = false, int = false, sack = false, inc = false, oob = false, scr = false;
@@ -200,10 +215,10 @@ function rollPlay(off, def, opk, dpk, side) {
       if (!P.noBig && rand() < Math.max(.005, P.big + .025 * m + .02 * T.car + .01 * T.blk) * bigMul * (side ? .5 : 1)) y += ri(12, 45);
       if (side && y > 2) y = Math.max(2, Math.round(y * .8));
     }
-    fumble = rand() < P.fum * (m <= -2 ? 2 : 1) * fumLvl(c);
+    fumble = rand() < P.fum * (m <= -2 ? 2 : 1) * fumLvl(c) * fumMul;
     oob = rand() < (side ? (y > 0 ? .75 : .3) : P.oob);
     time = P.short ? ri(3, 5) : ri(4, 7);
-    return { y, time, fumble, int, sack, inc, oob, scr, m, pe, se, x };
+    return { y, time, fumble, int, sack, inc, oob, scr, m, pe, se, x, mo, md, pr };
   }
   const q = x.qb, t = x.tgt.p, cv = x.cov;
   const covAbs = unitAvg(dbsOf(D), { cov: .8, spd: .2 });
@@ -212,7 +227,7 @@ function rollPlay(off, def, opk, dpk, side) {
   if (rand() < sackP) {
     // A quick quarterback slips some sacks and takes off
     if (rand() < clamp(.04 + .012 * (q.r.spd - unitAvg(D.DL, { spd: 1 })), 0, .55)) scr = "rush";
-    else { sack = true; y = -ri(3, 9); fumble = rand() < .08 * clamp(fumLvl(q), .7, 1.6); time = ri(5, 8); }
+    else { sack = true; y = -ri(3, 9); fumble = rand() < .08 * clamp(fumLvl(q), .7, 1.6) * fumMul; time = ri(5, 8); }
   }
   if (P.hail && !sack && !scr) {
     // A jump ball in the end zone: the longer the throw, the less likely anyone comes down with it,
@@ -240,7 +255,7 @@ function rollPlay(off, def, opk, dpk, side) {
       const bigE = Math.max(0, m + .8 * T.spd);
       if (rand() < (.07 * bigE + .02 * (bigMul - 1)) * bigMul * (side ? .5 : 1)) y += P.noBig ? ri(1, 4) : ri(10, 35);
       if (side) y = Math.max(P.min, Math.round(y * .8));
-      fumble = rand() < .008 * clamp(fumLvl(t), .7, 1.6); oob = rand() < (side ? .85 : .2);
+      fumble = rand() < .008 * clamp(fumLvl(t), .7, 1.6) * fumMul; oob = rand() < (side ? .85 : .2);
       time = ri(5, 9);
     } else if (rand() < clamp(.02 + .005 * (q.r.spd - 45), 0, .22)) scr = "open"; // nobody open: a runner tucks it and goes
     else { inc = true; time = ri(4, 7); }
@@ -248,11 +263,11 @@ function rollPlay(off, def, opk, dpk, side) {
   if (scr) {
     y = Math.max(-2, Math.round(normal(3 + .08 * (q.r.spd - 50), 4)));
     if (rand() < .04 * bigMul * clamp(q.r.spd / 60, .5, 1.6)) y += ri(10, 35);
-    fumble = rand() < .012 * clamp(fumLvl(q), .7, 1.6);
+    fumble = rand() < .012 * clamp(fumLvl(q), .7, 1.6) * fumMul;
     oob = rand() < (side ? .8 : .35);
     time = ri(5, 9);
   }
-  return { y, time, fumble, int, sack, inc, oob, scr, m, pe, se, x };
+  return { y, time, fumble, int, sack, inc, oob, scr, m, pe, se, x, mo, md, pr };
 }
 
 /* ---------- Player stats ---------- */
@@ -295,7 +310,7 @@ function doScrimmage() {
   st.plays++;
   const r = { read: null, m, fromX: fx(o, from), tone: "", sub: "" };
   let { y, time, fumble, int, sack, inc, oob, scr } = roll, text = "";
-  Object.assign(r, { mc: M[off][def], pe: roll.pe, sp: styleParts(off, def, o), opk: S.offPkg, dpk: S.defPkg, side: !!S.offSide && sideOn(off), T: x.T, kind: P.kind, scr });
+  Object.assign(r, { mc: M[off][def], pe: roll.pe, sp: styleParts(off, def, o), opk: S.offPkg, dpk: S.defPkg, side: !!S.offSide && sideOn(off), T: x.T, kind: P.kind, scr, mo: roll.mo, md: roll.md, pr: roll.pr });
   tick(time);
   r.oob = oob;
   const qb = x.qb, tg = x.tgt ? x.tgt.p : null, cov = x.cov, pass = P.kind === "pass", D = x.D;
@@ -343,6 +358,7 @@ function doScrimmage() {
   const tk = td || inc ? null : sack ? pickBy(["ab", "zb", "rb", "blk"].includes(def) ? D.DL.concat(D.LB || [], D.LB || []) : D.DL.concat(D.DL, D.LB || []), p => p.r.prs + p.r.spd * .4)
     : pickTackler(D, pass && !scr ? "pass" : "run", y, pass && !scr ? cov : null);
   if (tk && !(oob && rand() < .5)) { pstat(tk, "tk"); if (y < 0 && !sack) pstat(tk, "tfl"); }
+  r.carId = holder ? holder.id : null; r.tklId = tk ? tk.id : null;
 
   // Base narration and the stats that go with it
   if (sack) {
@@ -441,12 +457,14 @@ const penLvl = aw => clamp(1 + .011 * (REF - aw), .7, 1.7);
 const offOnField = () => onField(S.poss, OFF_PKGS[S.offPkg] ? S.offPkg : "p11");
 const defOnField = () => onField(1 - S.poss, DEF_PKGS[S.defPkg] ? S.defPkg : "nickel");
 // Fouls before the snap (the play never runs)
+// A play still being learned draws more flags on the side running it (masteryMul)
+const flagMuls = (off, def) => [masteryMul(masteryOf(S.poss, off), .009), masteryMul(masteryOf(1 - S.poss, def), .009)];
 function rollPreSnap(def) {
-  const L = offOnField(), D = defOnField(), q = (L.QB || [])[0];
+  const L = offOnField(), D = defOnField(), q = (L.QB || [])[0], [mo, md] = flagMuls(S.offCall, def);
   // A play changed at the line is more likely to end in confusion: a false start or the play clock running out
-  const w = { fs: (.008 + (S.aud ? .009 : 0)) * penLvl(unitAvg(L.OL, { awr: 1 })), dg: (.003 + (S.aud ? .007 : 0)) * penLvl(q ? q.r.awr : 50) };
+  const w = { fs: (.008 + (S.aud ? .009 : 0)) * penLvl(unitAvg(L.OL, { awr: 1 })) * mo, dg: (.003 + (S.aud ? .007 : 0)) * penLvl(q ? q.r.awr : 50) * mo };
   // High school: a defender who jumps into the neutral zone kills the play before the snap
-  if (penOf("enc")) w.enc = (.004 + (def === "rb" ? .005 : def === "ab" || def === "blk" ? .008 : def === "zb" ? .006 : 0)) * penLvl(unitAvg(D.DL, { awr: 1 }));
+  if (penOf("enc")) w.enc = (.004 + (def === "rb" ? .005 : def === "ab" || def === "blk" ? .008 : def === "zb" ? .006 : 0)) * penLvl(unitAvg(D.DL, { awr: 1 })) * md;
   return pickFrom(w);
 }
 // Fouls during the play depend on the matchup and on each side's awareness
@@ -467,6 +485,9 @@ function rollLive(off, def, r) {
   if (thrown) w.rtp = (def === "ab" ? .012 : def === "zb" ? .007 : def === "rb" ? .004 : .0015) * dlAw;
   w.fm = (P.kind === "run" ? .004 : complete ? .002 : 0) * dbAw;
   if (S.offPkg === "jumbo" && thrown) w.idf = .015 * olAw;
+  // Fouls by the side still learning its call
+  const [mo, md] = flagMuls(off, def);
+  Object.keys(w).forEach(k => { const p = R().pen[k]; if (p) w[k] *= p.on === "off" ? mo : md; });
   // Only the fouls this level has
   const pen = R().pen;
   Object.keys(w).forEach(k => { if (!pen[k] || pen[k].pre) delete w[k]; });
@@ -581,7 +602,7 @@ function choosePenalty(accept) {
     let untimed = false;
     // A period can't end on an accepted foul (in the pros, a defensive one): one untimed down
     if ((pen.on === "def" || R().untimed === "any") && P.periodOver && S.clock === 0) { S.periodOver = false; untimed = true; }
-    r = { offId: r.offId, defId: r.defId, opk: r.opk, dpk: r.dpk, team: r.team, aud: r.aud, audNote: r.audNote, m: null, accepted: true, pen: true, penClock: true, penBy: P.offender, penStop: P.playStop,
+    r = { offId: r.offId, defId: r.defId, opk: r.opk, dpk: r.dpk, team: r.team, aud: r.aud, audNote: r.audNote, injNote: r.injNote, m: null, accepted: true, pen: true, penClock: true, penBy: P.offender, penStop: P.playStop,
       head: "Flag", tone: pen.on === "off" ? "bad" : "good", s: pen.on === "off" ? -2 : 2, fromX: r.fromX, toX: fx(S.poss, S.spot),
       read: { c: pen.on === "off" ? "d" : "o", t: pen.on === "off" ? "A flag on the offense wipes out the play." : P.endOfPlay ? `A flag on the defense adds ${P.accYds} yards to the gain.` : "A flag on the defense hands the offense free yards." },
       text: P.endOfPlay ? `${P.r.text} Flag on the play: ${call}. Penalty accepted, and the gain stands.` : `${P.r.text} Flag on the play: ${call}. Penalty accepted, so the play doesn't count.`,

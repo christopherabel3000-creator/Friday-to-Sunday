@@ -3,7 +3,7 @@
   "private": true,
   "description": "Tests for Friday to Sunday. The game itself needs no build step or packages.",
   "scripts": {
-    "test": "node tests/lint.js && node tests/rules.js && node tests/season.js && node tests/dom.js && node tests/balance.js 200"
+    "test": "node tests/lint.js && node tests/rules.js && node tests/practice.js && node tests/season.js && node tests/dom.js && node tests/balance.js 200"
   },
   "devDependencies": {
     "jsdom": "^24.1.3",

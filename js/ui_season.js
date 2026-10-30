@@ -27,7 +27,7 @@ function gameKind(gm, n) {
   return gm.dist ? "District game" : "Non-district game";
 }
 const schemeText = s => `${OFF_STYLES[s.off].name} offense, ${DEF_STYLES[s.def].name} defense`;
-const talentText = r => `Starters rate ${r.off} on offense and ${r.def} on defense.`;
+const talentText = r => `Starters rate ${Math.round(r.off)} on offense and ${Math.round(r.def)} on defense.`;
 // "4-1, 2-0 in district" (the district part once district play has started)
 function recLine(id, upTo) {
   const r = recordOf(id, upTo), n = upTo == null ? SEASON.week : upTo;
@@ -99,6 +99,7 @@ function vSeason() {
       <div class="choices"><button class="btn" data-a="playgame">${confirming === "playgame" ? "Tap again to leave the exhibition" : "Play the game"}</button><button class="btn ghost" data-a="simgame">${confirming === "simgame" ? "Tap again to leave the exhibition" : "Sim the game"}</button></div>
       <div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="sroster" data-t="${r}">${esc(opp.mascot)} roster</button></div>
     </section>
+    ${practicePanel()}
     <section class="panel">
       <h3>Your schemes</h3>
       ${styleSegs(me.off, me.def)}
@@ -139,6 +140,18 @@ function vSeason() {
       ${more.length > 1 ? `<div class="choices">${more.join("")}</div>` : more.join("")}
     </section>
     ${simBtn && !live ? `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>` : ""}`;
+}
+// This week's practice: the plan or the report, and who's hurt
+function practicePanel() {
+  const done = practiced(), P = SEASON.practice, plan = SEASON.plan, pre = presetOf(plan), hurt = mySchool().players.filter(p => p.inj);
+  const planText = `${pre ? PRESETS[pre].name : "Your own"} plan, in ${CONTACT[plan.contact].name.toLowerCase()}`;
+  return `<section class="panel">
+      <h3>Practice</h3>
+      <p>${done ? `Done for the week: ${planText}. ${P.prep ? `The scouting report is ready.` : "No film study this week."}` : `This week: ${planText}. Practice happens before kickoff if you don't hold it first.`}</p>
+      ${hurt.length ? `<p>Injured: ${esc(andList(hurt.map(p => `${p.last}, ${injText(p.inj)}`)))}.</p>` : ""}
+      <div class="choices"><button class="btn ghost" data-a="practice">Practice plan</button>${done ? `<button class="btn ghost" data-a="preport">Practice report</button>` : `<button class="btn ghost" data-a="hold">Hold practice</button>`}</div>
+      ${done && P.film ? `<button class="btn ghost" data-a="scout">Scouting report</button>` : ""}
+    </section>`;
 }
 // Offensive and defensive style buttons. The current one is pressed.
 function styleSegs(off, def) {
@@ -201,10 +214,22 @@ function vWeek() {
     </div>
     ${box ? `<button class="btn ghost" data-a="boxscore">Box score and play-by-play</button>` : ""}
     ${news.length ? `<section class="panel"><h3>News</h3>${list(news)}</section>` : ""}
+    ${injuryPanel(n)}
     <section class="panel"><h3>${playoffs ? weekName(n) : `District ${SEASON.district}`}</h3>${list(nearby.map(scoreText))}</section>
     ${!playoffs && n >= DISTRICT_START ? `<section class="panel"><h3>Standings</h3>${standingsTable(SEASON.district, n, true)}</section>` : ""}
     ${around ? `<details><summary>Scores around the state</summary><div class="statwrap">${around}</div></details>` : ""}
     ${APP.weekFrom === "schedule" ? `<button class="btn ghost" data-a="back">Back to the schedule</button>` : `<button class="btn" data-a="season">Continue</button>`}`;
+}
+
+// Your injury news for the week just played: who got hurt in the game, and who's back
+function injuryPanel(n) {
+  const L = (SEASON.injLog || {})[n], s = mySchool();
+  if (!L || n !== weeksDone()) return "";
+  const who = id => playerById(s, id), list = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  const hurt = (L.game || []).map(who).filter(Boolean).map(p => `${fullName(p)}, ${p.inj ? injTextNext(p.inj) : "back for next week"}`);
+  const back = (L.back || []).map(who).filter(p => p && !(L.game || []).includes(p.id)).map(fullName);
+  if (!hurt.length && !back.length) return "";
+  return `<section class="panel"><h3>Injuries</h3>${hurt.length ? `<p>Hurt in the game:</p>${list(hurt)}` : ""}${back.length ? `<p>Back from injury: ${esc(andList(back))}.</p>` : ""}</section>`;
 }
 
 /* ---------- Your schedule and season stats ---------- */

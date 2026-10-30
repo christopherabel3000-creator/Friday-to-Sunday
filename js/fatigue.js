@@ -1,5 +1,5 @@
-// Friday to Sunday: fatigue and rotation during a game
-// Every player starts a game fresh (energy 100). Each snap on the field costs energy, more for
+// Friday to Sunday: fatigue, rotation and injuries during a game
+// Every player starts a game fresh (energy 100, a little less after a hard week of practice). Each snap on the field costs energy, more for
 // linemen than for quarterbacks, less for players with good stamina. Players recover on the bench,
 // between quarters, at halftime and during timeouts. Two-way starters rarely leave the field, so they
 // wear down the most. A tired player plays below his ratings, and before each snap a coach's rotation
@@ -34,8 +34,8 @@ function fatView(p) {
 }
 const baseOf = p => p && p.base ? p.base : p;
 // A new game: everyone fresh, nobody resting
-function freshGame(team, rot) {
-  team.players.forEach(p => { p.en = 100; p.rest = false; });
+function freshGame(team, rot, fresh) {
+  team.players.forEach(p => { p.en = fresh || 100; p.rest = false; });
   team.rot = ROTATION[rot] ? rot : "normal";
 }
 // After a scrimmage snap: the players on the field tire, everyone else catches his breath
@@ -99,3 +99,34 @@ function rotationNote(notes) {
   if (backs.length) parts.push(`${andList(backs)} ${backs.length > 1 ? "are" : "is"} back in`);
   return parts.length ? capFirst(parts.join(". ")) + "." : "";
 }
+
+/* ---------- Injuries ---------- */
+// Each team has a small chance on every scrimmage snap that somebody on the field gets hurt: about one
+// player in three games for each team. The ball carrier and the tackler are the likeliest, then a
+// tired player, then one with poor health. Most injured players are out for the rest of the game;
+// some miss weeks (practice.js has the lengths, and heals them week by week).
+const GAME_INJ_RATE = .0028;
+function injurySnap(r) {
+  if (!S || !S.teams || r.preSnap || !S.snap) return "";
+  const notes = [], hot = new Set([r.carId, r.tklId, r.tgtId, r.covId].filter(Boolean)), watching = S.teams[0].cpu && S.teams[1].cpu;
+  [0, 1].forEach(t => {
+    if (rand() >= GAME_INJ_RATE) return;
+    const isOff = t === S.snap.poss, pk = isOff ? (OFF_PKGS[S.offPkg] ? S.offPkg : "p11") : (DEF_PKGS[S.defPkg] ? S.defPkg : "nickel");
+    const lu = onField(t, pk), team = S.teams[t];
+    const p = pickBy(lineupPlayers(lu).map(baseOf), q => (hot.has(q.id) ? 2.5 : 1) * (1 + (100 - (q.en == null ? 100 : q.en)) / 60) * healthMul(q));
+    if (!p || p.inj) return;
+    const pos = Object.keys(lu).find(k => lu[k].some(q => baseOf(q).id === p.id));
+    p.inj = { w: injuryLength(GAME_INJ, rand), at: "game" };
+    p.rest = false;
+    team.dver = (team.dver || 0) + 1;
+    const next = pos ? depthOrder(team, pos).find(q => q.id !== p.id && !q.inj) : null;
+    const who = watching || team.cpu ? `${team.name}' ${p.last}` : p.last;
+    notes.push(`${who} is hurt on the play and won't return.${next && (!team.cpu || watching) ? ` ${next.last} comes in at ${slotName(pos)}.` : ""}`);
+  });
+  return notes.join(" ");
+}
+// A game's injuries go with the players back to their school
+function keepInjuries(gameTeam, school) {
+  gameTeam.players.forEach(p => { if (!p.inj) return; const q = playerById(school, p.id); if (q && !q.inj) q.inj = clone(p.inj); });
+}
+

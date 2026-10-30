@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: building Milestone 1, one high school season. Steps 1 to 3 of the build plan below are done: a full 1A season, from picking your school through the state championship, with every game played snap by snap or simmed, plus the exhibition game.
+Status: building Milestone 1, one high school season. Steps 1 to 4 of the build plan below are done: a full 1A season, from picking your school through the state championship, with weekly practice, playbook mastery, scouting reports, player growth and injuries, every game played snap by snap or simmed, plus the exhibition game.
 
 ## The pitch
 
@@ -51,7 +51,7 @@ Build steps, each one playable and tested before the next:
 1. **Done:** an exhibition game between two generated 1A schools, with rated rosters, an automatic depth chart, ratings driving every snap, high school rules and overtime, player stats, and VoiceOver support.
 2. **Done:** the depth chart: moving players, changes for the next game only, substitutions during a game, fatigue and rotation, and dual-threat quarterbacks.
 3. **Done:** the season: the district, the schedule, standings, the state playoffs, and quick sims of the games you aren't in.
-4. Practice: the weekly plan, playbook installs and mastery, opponent prep and scouting reports, growth, and injuries.
+4. **Done:** practice: the weekly plan, playbook installs and mastery, opponent prep and scouting reports, growth, and injuries.
 5. The career: creating your coach, cloud save codes, export and import, and the season summary.
 
 Milestone 1 is done when:
@@ -201,6 +201,16 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 - The practice report lists only what changed: who improved, new injuries, and mastery gains.
 - Growth depends on the player's potential and work ethic, your Development rating, and practice time. Nobody grows past their potential.
 
+How it's built (step 4):
+
+- The blocks are shared out by weight: none 0, light 1, normal 2, heavy 3. Giving one area more takes time from the rest, and every plan is valid. A plan with nothing in it is a week of rest. The balanced preset gives each of the six fundamentals units 0.8 blocks, install and opponent prep 1.7 each, and conditioning and recovery 0.8 each.
+- The fundamentals units: quarterbacks (accuracy, arm, awareness), running backs and receivers (elusiveness, ball security, hands, route running, blocking for tight ends, a little speed), the offensive line (run and pass blocking, strength, awareness), the defensive front (pass rush, run stopping and strength for linemen; tackling, coverage and awareness for linebackers), the secondary (coverage, tackling) and kickers (leg, accuracy). A player trains at his own two positions and wherever the depth chart has him starting or first off the bench. Injured players sit out.
+- Each week a rating gains 0.3 times the unit's blocks to the 0.75 power (more time helps, with diminishing returns), times the rating's weight in that unit, work ethic (0.6 to 1.4), year (freshmen 1.15 down to seniors 0.9), your Development rating (1 at 42), contact, and a random factor from 0.5 to 1.5. Progress builds up between practices, and a rating goes up a point at a time. Growth slows over the last four points before a player's potential and stops there.
+- Over a balanced season a player gains about 3 points at his position as a freshman, 3 as a sophomore, 2.4 as a junior and 1.6 as a senior, and a team's starters about 2.5 points on each side of the ball. Conditioning adds about 4 points of stamina a season.
+- Contact: shorts grow players at 0.85 of the usual rate with 0.3 of the usual practice injuries, shells are the usual, and full pads grow at 1.12 with 2.1 times the injuries. A team starts the game at 100 percent energy, minus 0.25, 0.55 or 0.9 for each block on the field (fundamentals and conditioning) in shorts, shells or pads, plus 3 for each block of recovery, kept between 86 and 100.
+- Practice injuries: about two a season in shells on a balanced week. Most cost one game. Recovery cuts the risk by up to a quarter, and heals players faster.
+- Computer schools practice a balanced week all season. Schools outside your district practice on paper when they're rebuilt (with their own seeded dice, and no injuries), and their quick-sim ratings grow 0.175 a week, about what a balanced week does.
+
 ## Playbook and mastery
 
 - The plays are Gridiron Duel's. On offense: Inside Run, Outside Zone, Draw, Screen, Quick Game, Mesh, Deep Shot and Play-Action, plus QB Sneak, Hail Mary and Tackle Eligible in their situations. On defense: Run Blitz, Base 4-3, Man Coverage, Cover 2 Zone, Cover 3, Prevent, All-Out Blitz and Zone Blitz.
@@ -210,6 +220,15 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 - From Milestone 2, mastery fades some each offseason as seniors graduate.
 - New plays can join later, starting with designed quarterback runs, like a QB draw and a read option, and trick plays.
 
+How it's built (step 4):
+
+- A school's core plays come from its schemes: Balanced runs Inside Run, Outside Zone, Quick Game and Play-Action; Air Raid Quick Game, Mesh, Deep Shot and Screen; Ground & Pound Inside Run, Outside Zone, Draw and Play-Action; West Coast Screen, Quick Game, Mesh and Inside Run. On defense, Balanced plays Base 4-3, Man, Cover 2 and Cover 3; Blitz-Happy Run Blitz, All-Out Blitz, Zone Blitz and Man; No-Fly Zone Cover 2, Cover 3, Man and Prevent; Run Stuffers Run Blitz, Base 4-3, Cover 3 and Zone Blitz. Core plays start around 72, the rest around 32, the sneak around 66, the Hail Mary around 44 and the tackle-eligible trick around 26.
+- The edge on a snap, on the play-call scale, is (mastery minus 70) times 0.006 above 70 and 0.009 below, for the offense's play minus the defense's call: a mastered play is worth up to about +0.18, a brand-new one about −0.5.
+- Flags and fumbles are multiplied by 1 minus 0.009 (fumbles 0.008) times (mastery minus 60), between 0.75 and 1.5. Centered at 60, about what the average call is worth once the plays a team doesn't know are mixed in, so totals stay where the engine was tuned.
+- The computer weights each play by 0.3 plus 0.7 times (mastery / 100) to the 1.4 power, so it calls its core plays about twice as often as new ones. Its audibles count mastery too.
+- Install: 20 points times install blocks to the 0.75 power, times how fast the team learns (starters' awareness and your Development rating). Up to three focus plays share 70 percent and the rest of the playbook shares 30; with no focus it's spread evenly. Each play gains its share times (1 minus mastery / 100), so it slows near 100. A normal week takes a focus play from about 45 to 57.
+- The call sheet shows each play as mastered (85 and up), solid (65), learning (40) or new.
+
 ## Game day
 
 - Play every snap or sim the game. A key-moments mode, which sims until the game is close and late, comes later.
@@ -217,7 +236,15 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 - You can change the lineup between plays (see Depth chart and personnel).
 - The opposing coach is computer-controlled, with its own ratings and scheme.
 - Scouting lasts all season. Opposing coaches chart your habits across games, and your opponent prep shows theirs.
+
+How it's built (step 4):
+
+- Film study: the opponent's coordinator is asked to call plays 60 times in each of short, medium and long yardage (down and distance only, before it knows your habits), against your usual personnel, and the calls are tallied. The report shows as much as your opponent prep earned: a light week gives their run and blitz rates and favorite calls; a full week gives each situation's run or blitz rate and top two calls, and what beats their favorites; a heavy week adds personnel, disguises and the top three calls.
+- Prep edge: on a snap when they run a call you studied (their top two overall for a light week, top two in that situation for a full week, top three for a heavy one), your side gets 0.05, 0.09 or 0.13 on the play-call scale, times 0.8 plus 0.4 times your Scouting rating out of 100.
+- Your film: after each game, the calls you made by situation go into the season's film (older games count 0.6 each week). Before the next game, the other coach starts with that film, at 0.6 times (his Scouting rating minus 25) out of 60, so a good scout counters your habits from the first snap.
 - After the game: the final score, box score, player stats and a short summary.
+- Injuries (step 4): each team has a 0.28 percent chance on every scrimmage snap that a player on the field gets hurt, about 0.36 injuries a team a game. Ball carriers, tacklers, targets and covering defenders are 2.5 times likelier, and so are tired players and players with poor health. 45 percent are out for the rest of the game, 27 percent miss the next game, 15 percent two or three, 9 percent four to six, and 4 percent the season. An injured player stays on the depth chart and the next healthy player behind him plays. Injuries go home with the schools that keep their rosters and heal a game at a time at the end of each week.
+- Carries: the feature back is spelled on 15 percent of carries, and more often once he has 18 in a game, so even a run-first team spreads the load.
 
 ## Rules by level
 
@@ -341,13 +368,13 @@ Take a coordinator job and call one side of the ball while a computer head coach
   - players.js: player generation and ratings. Growth, fatigue and injuries join it in later steps.
   - team.js: schools, rosters, depth charts, and who's on the field for each package.
   - season.js: the state's schools, the schedule, standings and tiebreakers, the playoff bracket, quick sims, full games nobody's watching, your games, and the news.
-  - practice.js (step 4): practice plans, growth and mastery.
+  - practice.js: the practice plan, growth, installs, conditioning and recovery, practice injuries and healing, and film study.
   - coach.js: coach ratings, and later XP and perks.
-  - fatigue.js: energy during a game, and rotation.
+  - fatigue.js: energy during a game, rotation, and injuries in games.
   - save.js (step 5): cloud saves, and export and import. Device saves are in ui.js for now.
   - rules.js: one rules profile per level. Everything that differs by level, from the clock to kickoffs, tries, penalties and overtime, is read from here. High school is in; the pros profile holds Gridiron Duel's NFL rules so the engine stays general; college comes with Milestone 4.
   - util.js and data.js: helpers, the seeded random numbers, and the name lists.
-  - ui_game.js, ui_depth.js, ui_season.js and ui.js: the screens (the game; rosters and the depth chart; the season; and the main menu, the exhibition, help and screen reader support), split further as they grow.
+  - ui_game.js, ui_depth.js, ui_practice.js, ui_season.js and ui.js: the screens (the game; rosters and the depth chart; practice and scouting reports; the season; and the main menu, the exhibition, help and screen reader support), split further as they grow.
 - A seeded random number generator, so a world and its rosters can be rebuilt from a seed.
 - A headless test hook like Gridiron Duel's, plus a tests folder with scripts that play full seasons and check balance.
 - Hosting: GitHub Pages while building, and itch.io when it's ready.

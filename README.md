@@ -4,7 +4,7 @@ A single-player football coaching career. Start as the head coach of a tiny high
 
 ## Status
 
-Building Milestone 1, one high school season (see [DESIGN.md](DESIGN.md)). Steps 1 to 3 are playable: a full season at a made-up 1A school, from picking your school to the state championship, under high school rules, with every player rated, a depth chart you can change, and players who tire as the game goes on. An exhibition game is on the main menu too.
+Building Milestone 1, one high school season (see [DESIGN.md](DESIGN.md)). Steps 1 to 4 are playable: a full season at a made-up 1A school, from picking your school to the state championship, under high school rules, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, and a depth chart you can change. An exhibition game is on the main menu too.
 
 ## What's in it so far
 
@@ -14,6 +14,11 @@ Building Milestone 1, one high school season (see [DESIGN.md](DESIGN.md)). Steps
 - Standings for all eight districts, with real tiebreakers (head-to-head, overall record, then point differential), your schedule with every result, season stats for your players, and the playoff bracket.
 - Games between schools in your district are played out on the full game engine behind the scenes. The rest of the state is simmed from team ratings, fit so those scores look like the engine's.
 - Sim to the playoffs or to the end of the season, a week at a time.
+- Practice: ten blocks a week shared out over fundamentals for each unit, installing plays, opponent prep, conditioning and recovery, with presets and a contact level (shorts, shells or full pads). The practice report lists who got better, who got hurt, and the plays your team learned.
+- Players grow from practice, faster when they're young, hard-working and getting time, and never past their potential.
+- A playbook your team has to learn: every play has a mastery from 0 to 100, shown on the call sheet. Known plays are an edge; new ones cost edge and draw flags and fumbles. Pick up to three plays to install each week. The computer calls what its team knows, too.
+- Scouting reports from film study: the opponent's habits in short, medium and long yardage, their favorite calls, what beats them, players to watch, and where to attack. Your team gets a small edge when they run a call you studied, and every coach you face has watched your film.
+- Injuries in games and in practice: a player may be out for the rest of a game or for weeks, the next player on the depth chart steps in, and rosters say who's hurt and for how long.
 - Two generated small-town schools, each with about 30 players, a coach with ratings, an offensive and defensive scheme, and a depth chart that sets itself from the ratings. Most starters play both ways.
 - Every player is rated 1 to 100 in speed, strength, awareness and the skills for each position, with an overall rating at every position. Small-school starters mostly rate in the 30s to 50s.
 - The ratings drive every snap, on top of Gridiron Duel's play-call matchups: the line against the front, protection against the pass rush, passer and receiver against the coverage, ball carrier against the tacklers. A quick quarterback escapes some sacks and scrambles. A kicker's leg sets his range.
@@ -43,13 +48,14 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `players.js`: ratings, positions, overall ratings, player generation, and how a player reads aloud
 - `team.js`: schools, depth charts, who's on the field for each package, unit ratings
 - `coach.js`: coach ratings, and how they turn into the computer's play calling
-- `fatigue.js`: energy, how it runs down and comes back, and rotation
+- `fatigue.js`: energy, how it runs down and comes back, rotation, and injuries in games
 - `engine.js`: Gridiron Duel's game flow, clock, overtime, coin toss and audibles
 - `sim.js`: the snap, rolled from the players on the field, plus penalties, kicking and tries
 - `ai.js`: scouting, the computer coordinator, and simming a game
+- `practice.js`: the practice plan, player growth, installs, conditioning, recovery, practice injuries, and film study
 - `season.js`: the state's schools, the schedule, standings, the playoffs, quick sims and the news
 - `sound.js`: crowd and horn, synthesized in the browser
-- `ui_game.js`, `ui_depth.js`, `ui_season.js` and `ui.js`: the screens (the game; rosters and the depth chart; the season; the main menu, the exhibition, help and screen reader support)
+- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js` and `ui.js`: the screens (the game; rosters and the depth chart; practice and scouting reports; the season; the main menu, the exhibition, help and screen reader support)
 
 ## Tests
 
@@ -57,6 +63,7 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 
 - `node tests/lint.js`: top-level names are unique and safe
 - `node tests/rules.js`: high school rules, rosters, depth charts, fatigue and rotation, checked against the real engine
+- `node tests/practice.js`: playbook mastery in the snap, the computer's calls, a season of growth against potential, installs, contact and recovery, injuries in games and practice, film study and the prep edge
 - `node tests/season.js`: the state, the schedule, standings and tiebreakers (clinching checked against every possible finish), the bracket, quick sims against the full engine, your games, whole simmed seasons, and saves mid-season
-- `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a season from picking a school to the state champion, with focus checks and reloads
+- `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a season from picking a school to the state champion, with practice, installs and scouting reports, focus checks and reloads
 - `node tests/balance.js 300`: plays 300 computer games and prints the numbers to tune against
