@@ -17,7 +17,7 @@ const POS_IDS = ["QB", "RB", "WR", "TE", "OL", "DL", "LB", "CB", "S", "K", "P"];
 const OFF_POS = ["QB", "RB", "WR", "TE", "OL"], DEF_POS = ["DL", "LB", "CB", "S"];
 // skills: the two ratings shown for the position. w: how the overall rating is mixed.
 const POS_INFO = {
-  QB: { name: "quarterback", group: "Quarterbacks", skills: ["acc", "arm"], w: { acc: .38, arm: .24, awr: .22, spd: .1, str: .06 } },
+  QB: { name: "quarterback", group: "Quarterbacks", skills: ["acc", "arm"], w: { acc: .45, arm: .27, awr: .16, spd: .08, str: .04 } },
   RB: { name: "running back", group: "Running backs", skills: ["elu", "bsc"], w: { elu: .28, spd: .3, bsc: .14, str: .16, awr: .12 } },
   WR: { name: "receiver", group: "Receivers", skills: ["hnd", "rte"], w: { hnd: .26, rte: .28, spd: .34, awr: .12 } },
   TE: { name: "tight end", group: "Tight ends", skills: ["hnd", "blk"], w: { hnd: .24, blk: .3, str: .2, spd: .14, awr: .12 } },
@@ -43,21 +43,23 @@ const posName = pos => POS_INFO[pos] ? POS_INFO[pos].name : pos;
 
 /* ---------- Generation ---------- */
 // How common each skill is: a player's ratings start from his general ability, minus this
-const ATTR_BASE = { spd: 0, str: 0, awr: 0, acc: -14, arm: -10, elu: -6, bsc: -4, hnd: -6, rte: -8, blk: -8, rbk: -10, pbk: -10, prs: -8, rst: -6, tkl: -4, cov: -6, leg: -22, kac: -22 };
+const ATTR_BASE = { spd: 0, str: 0, awr: 0, acc: -18, arm: -13, elu: -6, bsc: -4, hnd: -6, rte: -8, blk: -8, rbk: -10, pbk: -10, prs: -8, rst: -6, tkl: -4, cov: -6, leg: -22, kac: -22 };
 // Body types and the skills that come with them. pref: the positions this kind of player is
 // usually put at, as a bonus when the depth chart is built.
 const ARCHETYPES = {
-  passer: { add: { acc: 10, arm: 8, awr: 6, str: -3, elu: -2, hnd: -3, rte: -6, cov: -2, tkl: -4 }, pref: { QB: 8, S: 1, LB: 0 } },
+  passer: { add: { acc: 14, arm: 11, awr: 6, str: -3, elu: -2, hnd: -3, rte: -6, cov: -2, tkl: -4 }, pref: { QB: 8, S: 1, LB: 0 } },
+  // A dual threat: a little less of a passer, a lot more of a runner
+  dual: { add: { acc: 9, arm: 8, awr: 4, spd: 9, elu: 8, bsc: 3, str: -2, hnd: -3, rte: -5, cov: -2, tkl: -3 }, pref: { QB: 8, S: 2, RB: 1 } },
   runner: { add: { elu: 10, spd: 6, bsc: 6, str: 3, hnd: -2, rte: -4, cov: -3, tkl: 1 }, pref: { RB: 6, LB: 2, S: 2, CB: 0 } },
   speed: { add: { spd: 10, hnd: 6, rte: 6, cov: 3, elu: 3, tkl: -4, str: -6 }, pref: { WR: 6, CB: 4, S: 0 } },
   bigath: { add: { str: 6, blk: 8, hnd: 4, tkl: 3, rst: 3, rbk: 3, spd: -3 }, pref: { TE: 6, LB: 2, DL: 2 } },
   lineman: { add: { str: 10, rbk: 8, pbk: 7, prs: 5, rst: 7, spd: -16, elu: -22, hnd: -18, rte: -25, cov: -25, acc: -20, arm: -12, tkl: 0 }, pref: { OL: 5, DL: 5 } },
   backer: { add: { tkl: 10, str: 5, awr: 4, rst: 5, spd: 1, cov: 1, elu: -3 }, pref: { LB: 6, RB: 1, TE: 1, S: 1 } },
   dback: { add: { cov: 10, spd: 6, tkl: 3, hnd: 2, rte: -3, str: -6 }, pref: { CB: 5, S: 5, WR: 1 } },
-  kicker: { add: { leg: 25, kac: 24, str: -8, tkl: -14, spd: -4, rbk: -14, pbk: -14, prs: -14, rst: -14 }, pref: { K: 12, P: 10 } }
+  kicker: { add: { leg: 25, kac: 24, str: -8, tkl: -14, spd: -4, rbk: -14, pbk: -14, prs: -14, rst: -14, acc: -8, arm: -4 }, pref: { K: 12, P: 10 } }
 };
 // Roster recipe for a small school: about 30 players, most of them playing both ways
-const ROSTER_1A = [["passer", 2], ["runner", 3], ["speed", 5], ["bigath", 3], ["lineman", 10], ["backer", 3], ["dback", 4], ["kicker", 1]];
+const ROSTER_1A = [["passer", 1], ["dual", 1], ["runner", 3], ["speed", 5], ["bigath", 3], ["lineman", 10], ["backer", 3], ["dback", 4], ["kicker", 1]];
 const YEAR_MEAN = { 9: -10, 10: -5, 11: 0, 12: 4 };
 // level: the average ability of a junior at this kind of school
 function genPlayer(g, opts) {
@@ -99,11 +101,12 @@ function genRoster(g, schoolId, level) {
   const lasts = g.shuffle(LAST_NAMES), archs = [], players = [];
   const recipe = ROSTER_1A.map(([a, n]) => [a, n]);
   // Not every small school has a full roster: drop a few players at random
-  for (let drop = g.i(0, 4); drop > 0; drop--) { const k = g.pick(recipe.filter(x => x[1] > (x[0] === "lineman" ? 8 : 1) && x[0] !== "kicker" && x[0] !== "passer")); if (k) k[1]--; }
+  for (let drop = g.i(0, 4); drop > 0; drop--) { const k = g.pick(recipe.filter(x => x[1] > (x[0] === "lineman" ? 8 : 1) && !["kicker", "passer", "dual"].includes(x[0]))); if (k) k[1]--; }
   recipe.forEach(([arch, n]) => { for (let i = 0; i < n; i++) archs.push(arch); });
   const used = new Set();
   archs.forEach((arch, i) => {
-    const yr = +g.w({ 9: 22, 10: 24, 11: 27, 12: 27 });
+    // The kid who's been groomed to play quarterback is usually an upperclassman
+    const yr = +g.w(arch === "passer" ? { 9: 8, 10: 20, 11: 34, 12: 38 } : { 9: 22, 10: 24, 11: 27, 12: 27 });
     const p = genPlayer(g, { id: `${schoolId}p${i + 1}`, arch, yr, level, last: lasts[i] });
     p.num = jerseyFor(g, p.pos, used);
     players.push(p);

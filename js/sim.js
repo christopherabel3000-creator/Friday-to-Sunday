@@ -11,17 +11,19 @@ const REF = 75;
 // About 0.05 of edge per rating point of difference, capped at 2 each way, for each part of a play
 const TALENT_K = .05, TALENT_CAP = 2;
 const tEdge = (o, d) => clamp(TALENT_K * (o - d), -TALENT_CAP, TALENT_CAP);
-// Lineups are worked out once per team and package, until the depth chart changes (team.dver)
+// The players on the field for a team in a package, each as he plays right now (fatigue.js). Worked
+// out once per snap: until the depth chart changes (team.dver) or anyone's energy does (S.fe).
 const LINEUPS = new WeakMap();
 function onField(t, pk) {
   const team = S.teams[t];
   let c = LINEUPS.get(team);
-  if (!c || c.v !== team.dver) { c = { v: team.dver, m: {} }; LINEUPS.set(team, c); }
-  return c.m[pk] || (c.m[pk] = lineupFor(team, pk));
+  if (!c || c.v !== team.dver || c.e !== S.fe) { c = { v: team.dver, e: S.fe, m: {} }; LINEUPS.set(team, c); }
+  if (!c.m[pk]) { const lu = lineupFor(team, pk), out = {}; for (const pos in lu) out[pos] = lu[pos].map(fatView); c.m[pk] = out; }
+  return c.m[pk];
 }
 const kickerOf = t => onField(t, "fgu").K[0];
 const punterOf = t => onField(t, "punt").P[0];
-const returnerOf = (t, slot) => depthList(S.teams[t], slot)[0];
+const returnerOf = (t, slot) => starterAt(S.teams[t], slot);
 // A random player from a list, weighted
 function pickBy(list, wf) {
   list = (list || []).filter(Boolean); if (!list.length) return null;
@@ -35,7 +37,11 @@ const dbsOf = D => (D.CB || []).concat(D.S || []);
 function pickCarrier(t, L) {
   const rbs = L.RB || [];
   if (rbs.length > 1 && rand() < .22) return rbs[1];
-  if (rbs.length === 1 && rand() < .16) { const b = depthList(S.teams[t], "RB").find(p => p !== rbs[0] && !lineupPlayers(L).includes(p)); if (b) return b; }
+  // Now and then the second back comes in for a carry (tired backs also rotate out, fatigue.js)
+  if (rbs.length === 1 && rand() < .08) {
+    const on = new Set(lineupPlayers(L).map(p => p.id)), b = depthOrder(S.teams[t], "RB").find(p => !on.has(p.id) && !p.rest);
+    if (b) return fatView(b);
+  }
   return rbs[0] || (L.QB || [])[0];
 }
 // Who each pass play looks for
@@ -865,6 +871,7 @@ function resolveTwo() {
     return;
   }
   const res = rollPlay(off, def, S.offPkg, S.defPkg), m = res.m, x = res.x;
+  tireSnap(o, S.offPkg, S.defPkg);
   // The end zone squeezes everything: some completions in open field are broken up here, and some
   // runs that would have made it are stuffed at the goal line
   const need = 100 - spot;

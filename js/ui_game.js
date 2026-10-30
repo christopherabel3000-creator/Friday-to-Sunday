@@ -64,10 +64,13 @@ function liveField() {
     `<div class="legend" aria-hidden="true"><span><i style="background:#3E8EEA"></i>Line of scrimmage</span>${S.spot + S.toGo >= 100 ? "" : '<span><i style="background:var(--firstdown)"></i>First-down line</span>'}<span>${esc(tname(0))} drive left to right</span></div>`;
 }
 const bannerHtml = () => S.banner ? `<p class="banner">${esc(S.banner)}</p>` : "";
-// The players a package puts on the field, by last name: "QB Reyes · RB Hill · WR Banks, Tate"
+// The players a package puts on the field, by last name: "QB Reyes · RB Hill, tired · WR Banks, Tate"
 function onFieldLine(t, pk) {
   const lu = onField(t, pk), order = ["QB", "RB", "TE", "WR", "OL", "DL", "LB", "CB", "S", "K", "P"];
-  return order.filter(pos => lu[pos] && lu[pos].length && pos !== "OL").map(pos => `${pos} ${lu[pos].map(p => p.last).join(", ")}`).join(" · ");
+  const nm = p => p.en != null && p.en < 65 ? `${p.last} (${energyWord(p.en)})` : p.last;
+  const tiredLine = (lu.OL || []).filter(p => p.en != null && p.en < 65).map(nm);
+  return order.filter(pos => lu[pos] && lu[pos].length && pos !== "OL").map(pos => `${pos} ${lu[pos].map(nm).join(", ")}`)
+    .concat(tiredLine.length ? [`OL ${tiredLine.join(", ")}`] : []).join(" · ");
 }
 
 /* ---------- Calling a play ---------- */
@@ -126,7 +129,7 @@ function vCall() {
     ${regIds.length > 1 || stIds.length ? `<div class="pkgs ${isOff && regIds.length > 1 ? "" : "two"}">${regIds.map(pkgBtn).join("")}</div>` : ""}
     ${stIds.length ? `<p class="sechead">Special teams unit</p>${fgNote ? `<p class="muted pkdesc">${fgNote}</p>` : ""}<div class="pkgs two">${stIds.map(pkgBtn).join("")}</div>` : ""}
     <p class="muted pkdesc">${esc(pkgBook[pk].desc)}${isOff && S.down === 4 && !S.twoPt && stIds.length ? " The defense sees who runs onto the field before they call it." : ""}</p>
-    ${!kickUnit ? `<p class="muted onfield">On the field: ${esc(onFieldLine(t, pk))}.</p>` : ""}`;
+    ${!kickUnit ? `<p class="muted onfield">On the field: ${esc(onFieldLine(t, pk))}.</p><button class="linkbtn" data-a="lineup">Change the lineup</button>` : ""}`;
   const theirPkg = !isOff && S.offPkg ? `<p class="banner">${esc(tname(S.poss))} ${isST(S.offPkg)
       ? `sent out the <b>${ST_PKGS[S.offPkg].name.toLowerCase()}</b> (${ST_PKGS[S.offPkg].who}). They're lining up to kick, but it could be a fake.`
       : `are in <b>${OFF_PKGS[S.offPkg].name}</b> (${OFF_PKGS[S.offPkg].who}).${S.down === 4 && !S.twoPt && !hsOT() ? " They kept the offense on the field: they're going for it." : ""} Their play is hidden.`}</p>` : "";
@@ -173,6 +176,7 @@ function vCall() {
   const selName = S.sel ? (S.sel === "punt" ? "Punt" : S.sel === "fg" ? "Field goal" : S.sel === "kneel" ? "Kneel down" : S.sel === "fp" ? "Fake punt" : S.sel === "ffg" ? "Fake field goal" : book[S.sel].name) : "";
   return `${board()}
     ${S.locked && !isOff && !bothHuman() ? "" : bannerHtml()}
+    ${S.subNote ? `<p class="banner">${esc(S.subNote)}</p>` : ""}
     <div style="--team:${tm.color};display:grid;gap:14px">
       <div class="callhead" data-focus tabindex="-1">
         <p class="eyebrow">${esc(tm.name)} · ${isOff ? "Offense" : "Defense"}</p>
@@ -248,6 +252,7 @@ function vResult() {
       <p class="narr">${esc(r.text)}</p>
       ${r.audNote ? `<p class="audnote">${esc(r.audNote)}</p>` : ""}
       ${r.sub ? `<p class="next">${esc(r.sub)}</p>` : ""}
+      ${r.subNote ? `<p class="audnote">${esc(r.subNote)}</p>` : ""}
       </div>
       ${r.tmw ? `<p class="banner">Two-minute warning. The clock is stopped.</p>` : ""}
       ${r.runNote ? `<p class="banner">Running clock: with a lead of ${R().runClock.margin} or more in the second half, the clock keeps running for the rest of the game.</p>` : ""}
@@ -528,7 +533,7 @@ function vExtras() {
     </li>`).join("")}</ol></details>` : "";
   const live = S.phase !== "final";
   const foot = `<div class="foot">
-    <button class="linkbtn" data-a="roster" data-t="${t[0].cpu && !t[1].cpu ? 1 : 0}">Rosters</button>
+    ${t[0].cpu && t[1].cpu ? `<button class="linkbtn" data-a="roster" data-t="0">Rosters</button>` : `<button class="linkbtn" data-a="lineup">Lineup and subs</button>`}
     ${live ? `<button class="linkbtn ${S.confirmSim ? "warn" : ""}" data-a="sim">${S.confirmSim ? "Tap again to sim to the end" : "Sim to the end"}</button>
     <button class="linkbtn ${S.confirmEnd ? "warn" : ""}" data-a="end">${S.confirmEnd ? "Tap again to end this game" : "End game"}</button>` : ""}
   </div>`;

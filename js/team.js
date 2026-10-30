@@ -51,6 +51,8 @@ function autoDepth(team) {
   [OFF_POS, DEF_POS].forEach(side => {
     side.forEach(pos => { d[pos] = []; });
     const taken = new Set(), cands = [];
+    // The quarterback comes first: the best one plays there, even if he'd also be a good tight end
+    if (side === OFF_POS) { const qv = p => ovr(p, "QB") + (p.pos === "QB" ? 1 : 0), qb = ps.slice().sort((a, b) => qv(b) - qv(a))[0]; if (qb) { d.QB.push(qb.id); taken.add(qb.id); } }
     ps.forEach(p => side.forEach(pos => cands.push({ p, pos, v: ovr(p, pos) + bonus(p, pos) })));
     cands.sort((a, b) => b.v - a.v);
     cands.forEach(c => { if (!taken.has(c.p.id) && d[c.pos].length < DEPTH_SIZE[c.pos]) { d[c.pos].push(c.p.id); taken.add(c.p.id); } });
@@ -64,7 +66,13 @@ function autoDepth(team) {
   });
   return d;
 }
-const playerById = (team, id) => team.players.find(p => p.id === id);
+// Looking players up by id, through a map built once per roster
+const ROSTER_MAPS = new WeakMap();
+function playerById(team, id) {
+  let m = ROSTER_MAPS.get(team.players);
+  if (!m || m.size !== team.players.length) { m = new Map(team.players.map(p => [p.id, p])); ROSTER_MAPS.set(team.players, m); }
+  return m.get(id);
+}
 // Where a player is on the depth chart: { starts: [slots], backs: [slots] }
 function depthRoles(team, p) {
   const starts = [], backs = [];
@@ -75,11 +83,19 @@ function depthRoles(team, p) {
   });
   return { starts, backs };
 }
-// Players at a slot in depth order, then everyone else who could fill in, best first
-function depthList(team, pos) {
+// The players listed at a slot, in depth order, with anyone resting (fatigue.js) moved to the back
+function depthOrder(team, pos) {
   const listed = (team.depth[pos] || []).map(id => playerById(team, id)).filter(p => p && !p.inj);
-  const rest = team.players.filter(p => !p.inj && !listed.includes(p)).sort((a, b) => slotRating(b, pos) - slotRating(a, pos));
-  return listed.concat(rest);
+  return listed.some(p => p.rest) ? listed.filter(p => !p.rest).concat(listed.filter(p => p.rest)) : listed;
+}
+// Everyone not listed at a slot, best first: who fills in when the list runs out
+function fillIns(team, pos, skip) {
+  return team.players.filter(p => !p.inj && !skip.has(p.id)).sort((a, b) => (a.rest ? 1 : 0) - (b.rest ? 1 : 0) || slotRating(b, pos) - slotRating(a, pos));
+}
+// The listed players, then everyone else who could fill in
+function depthList(team, pos) {
+  const listed = depthOrder(team, pos);
+  return listed.concat(fillIns(team, pos, new Set(listed.map(p => p.id))));
 }
 
 /* ---------- Who is on the field ---------- */
@@ -104,12 +120,13 @@ function lineupFor(team, pk) {
   const need = PKG_NEEDS[pk] || PKG_NEEDS.p11, used = new Set(), out = {};
   need.forEach(([pos, n]) => {
     out[pos] = [];
-    const list = depthList(team, pos);
-    for (const p of list) { if (out[pos].length >= n) break; if (!used.has(p.id)) { out[pos].push(p); used.add(p.id); } }
+    const take = list => { for (const p of list) { if (out[pos].length >= n) break; if (!used.has(p.id)) { out[pos].push(p); used.add(p.id); } } };
+    take(depthOrder(team, pos));
+    if (out[pos].length < n) take(fillIns(team, pos, used));
   });
   return out;
 }
-const starterAt = (team, pos) => depthList(team, pos)[0];
+const starterAt = (team, pos) => depthOrder(team, pos)[0] || fillIns(team, pos, new Set())[0];
 const lineupPlayers = lu => Object.values(lu).flat();
 
 /* ---------- Unit ratings ---------- */

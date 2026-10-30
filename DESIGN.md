@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: building Milestone 1, one high school season. Step 1 of the build plan below is done: an exhibition game between two rated 1A schools under high school rules.
+Status: building Milestone 1, one high school season. Steps 1 and 2 of the build plan below are done: an exhibition game between two rated 1A schools under high school rules, with a depth chart you can change and fatigue.
 
 ## The pitch
 
@@ -49,7 +49,7 @@ Not in this milestone: graduation and more seasons, program activities that brin
 Build steps, each one playable and tested before the next:
 
 1. **Done:** an exhibition game between two generated 1A schools, with rated rosters, an automatic depth chart, ratings driving every snap, high school rules and overtime, player stats, and VoiceOver support.
-2. The depth chart: moving players, changes for one game, substitutions during a game, fatigue and rotation.
+2. **Done:** the depth chart: moving players, changes for the next game only, substitutions during a game, fatigue and rotation, and dual-threat quarterbacks.
 3. The season: the district, the schedule, standings, the state playoffs, and quick sims of the games you aren't in.
 4. Practice: the weekly plan, playbook installs and mastery, opponent prep and scouting reports, growth, and injuries.
 5. The career: creating your coach, cloud save codes, export and import, and the season summary.
@@ -112,6 +112,7 @@ Each player is one sentence a screen reader can get through in a breath, for exa
 - You can substitute during a game: between plays, put a different player in at any position. A substitute stays in until you change it back, or until fatigue or injury moves the depth chart along.
 - Gridiron Duel's personnel packages pull players from the depth chart: 10, 11, 12, 21, 13 and Jumbo on offense, and Base, Nickel, Dime and Goal Line on defense. A package that needs a weak fourth receiver or third corner plays weaker.
 - Fatigue builds with every snap and recovers on the bench. Two-way players tire faster. Tired starters come out automatically when a backup is ready, based on a rotation setting.
+- How it's built: a player starts each game at 100 energy. A snap costs about 1 point for a lineman, a little less at the skill spots and about half that for a quarterback, scaled by stamina. Each snap on the bench gives back about 1.2, and quarter breaks, halftime and timeouts give back more. Two-way starters end up in the 50s and 60s late in a half, one-way starters stay close to fresh. A player at 50 energy plays at about 88 percent of his ratings. Rotation settings: Keep starters in (sit below 30, back at 55), Normal (below 55, back at 78) and Rotate often (below 70, back at 88). A starter only sits when a backup listed behind him at that position is fresh and isn't already starting elsewhere on the same side of the ball.
 
 ## How ratings change a snap
 
@@ -328,10 +329,11 @@ Take a coordinator job and call one side of the ball while a computer head coach
   - season.js (step 3): the league, schedule, standings, playoffs, and simulating other games.
   - practice.js (step 4): practice plans, growth and mastery.
   - coach.js: coach ratings, and later XP and perks.
+  - fatigue.js: energy during a game, and rotation.
   - save.js (step 5): cloud saves, and export and import. Device saves are in ui.js for now.
   - rules.js: one rules profile per level. Everything that differs by level, from the clock to kickoffs, tries, penalties and overtime, is read from here. High school is in; the pros profile holds Gridiron Duel's NFL rules so the engine stays general; college comes with Milestone 4.
   - util.js and data.js: helpers, the seeded random numbers, and the name lists.
-  - ui_game.js and ui.js: the screens, split further as they grow.
+  - ui_game.js, ui_depth.js and ui.js: the screens (the game, rosters and the depth chart, and everything else), split further as they grow.
 - A seeded random number generator, so a world and its rosters can be rebuilt from a seed.
 - A headless test hook like Gridiron Duel's, plus a tests folder with scripts that play full seasons and check balance.
 - Hosting: GitHub Pages while building, and itch.io when it's ready.

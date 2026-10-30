@@ -170,6 +170,68 @@ function checkScreen(page, label) {
   tap(page2, "resume");
   ok(page2.w.eval("APP.screen") === "game", "back in the game");
 
+  // ---- The depth chart, before a game ----
+  const p3 = await openPage(), d3 = p3.d, w3 = p3.w;
+  const school = () => w3.eval("APP.ex.schools[0]");
+  const said = async () => { await new Promise(r => setTimeout(r, 120)); return d3.getElementById("sr").textContent; };
+  tap(p3, "roster", 0);
+  ok(btn(d3, "dmode", "always").getAttribute("aria-pressed") === "true", "your roster: changes apply to every game unless you say otherwise");
+  ok(btn(d3, "rot", "normal").getAttribute("aria-pressed") === "true", "rotation starts at normal");
+  tap(p3, "rot", "often");
+  ok(w3.eval("APP.ex.rot") === "often" && /Rotation: Rotate often/.test(await said()), "pick a rotation, and hear it");
+  tap(p3, "dedit", "QB");
+  ok(focused(d3) && focused(d3).tagName === "H2" && /Quarterbacks/.test(focused(d3).textContent), "the quarterbacks screen opens on its heading");
+  checkScreen(p3, "edit quarterbacks");
+  const qb = school().depth.QB.slice();
+  tap(p3, "dsel", qb[1]);
+  ok(btn(d3, "dsel", qb[1]).getAttribute("aria-pressed") === "true" && d3.querySelector(".dacts"), "picking a player shows what you can do with him");
+  ok(focused(d3) === btn(d3, "dsel", qb[1]), "focus stays on the player you picked");
+  tap(p3, "dmove", "start");
+  ok(school().depth.QB[0] === qb[1], "start the backup quarterback");
+  ok(/is the starter at quarterback/.test(await said()), "the change is announced");
+  ok(focused(d3) === btn(d3, "dsel", qb[1]), "focus follows the player to his new spot");
+  ok(/^1\. Starter\./.test(btn(d3, "dsel", qb[1]).textContent), "he's listed first now");
+  tap(p3, "dmove", "down");
+  ok(school().depth.QB[0] === qb[0] && focused(d3) === btn(d3, "dsel", qb[1]), "move him back down; focus stays with him");
+  tap(p3, "ddone");
+  ok(focused(d3) === btn(d3, "dedit", "QB"), "done: focus returns to the Change quarterbacks button");
+  // Next game only
+  tap(p3, "dmode", "next");
+  tap(p3, "dedit", "QB");
+  tap(p3, "dsel", qb[1]); tap(p3, "dmove", "start");
+  tap(p3, "ddone"); tap(p3, "back");
+  ok(school().depth.QB[0] === qb[0], "a next-game change leaves the every-game chart alone");
+  tap(p3, "kickoff");
+  ok(w3.eval("S.teams[0].depth.QB[0]") === qb[1] && w3.eval("S.teams[0].rot") === "often", "the game starts with the next-game lineup and your rotation");
+  checkScreen(p3, "kickoff with changes");
+
+  // ---- Substitutions during a game ----
+  // Play on until you're calling an offensive play: results move on as usual, and the computer makes
+  // your other decisions along the way
+  for (let i = 0; i < 400; i++) {
+    const S = w3.eval("S");
+    if (S.phase === "call" && S.side === "off") break;
+    w3.eval(S.phase === "result" ? "cont(); render();" : "S.teams[0].cpu = true; autoStep(); S.teams[0].cpu = false; render();");
+  }
+  ok(w3.eval("S.phase") === "call" && btn(d3, "lineup"), "the call sheet has a way to change the lineup");
+  tap(p3, "lineup");
+  ok(/Lineup and substitutions/.test(d3.body.textContent) && /this game only/.test(d3.body.textContent), "the lineup screen says changes last for this game");
+  ok(!btn(d3, "dmode"), "no every-game choice in the middle of a game");
+  const rb = w3.eval("S.teams[0].depth.RB.slice()");
+  tap(p3, "dedit", "RB"); tap(p3, "dsel", rb[1]); tap(p3, "dmove", "start"); tap(p3, "ddone");
+  tap(p3, "back");
+  ok(w3.eval("APP.screen") === "game" && w3.eval("S.phase") === "call", "back on the call sheet");
+  const sub = w3.eval(`playerById(S.teams[0], "${rb[1]}").last`);
+  w3.eval("S.teams[0].players.forEach(p => p.rest = false); S.teams[0].dver++; render();");
+  ok(new RegExp(`RB ${sub}`).test(d3.querySelector(".onfield").textContent), `the substitute is on the field: ${d3.querySelector(".onfield").textContent}`);
+  ok(school().depth.RB[0] === rb[0], "the school's depth chart is unchanged");
+  checkScreen(p3, "after a substitution");
+  // Finish the game: the next one is back to the every-game chart
+  tap(p3, "sim"); tap(p3, "sim");
+  tap(p3, "rematch");
+  ok(w3.eval("S.teams[0].depth.QB[0]") === qb[0], "after that game, the depth chart goes back to the every-game one");
+  ok(p3.errors.length === 0, "no script errors in the depth chart screens: " + p3.errors.slice(0, 2).join(" | "));
+
   console.log(`${checks - fails}/${checks} checks passed`);
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.log("FAIL: " + (e.stack || e)); process.exit(1); });

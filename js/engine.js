@@ -226,11 +226,16 @@ function gameTeam(s, cpu, styles) {
     coach: clone(s.coach), cp: coachParams(s.coach), players: clone(s.players), depth: clone(s.depth), dver: 0,
     score: 0, st: newTeamStats() };
 }
-// cfg: { level, cpu: [home, away], styles: [home, away], aud, title }. schools[0] is the home team.
+// cfg: { level, cpu: [home, away], styles: [home, away], rot: [home, away], depth: [home, away], aud,
+// title }. schools[0] is the home team. depth: a depth chart for this game only (or null).
 function initGame(cfg, schools) {
   const Rl = RULES[cfg.level] || RULES.hs, qLen = cfg.qLen || Rl.qLen;
   const t0 = gameTeam(schools[0], cfg.cpu[0], cfg.styles && cfg.styles[0]), t1 = gameTeam(schools[1], cfg.cpu[1], cfg.styles && cfg.styles[1]);
   if (t1.abbr === t0.abbr) t1.abbr = schoolAbbr(t1.school, t0.abbr);
+  [t0, t1].forEach((t, i) => {
+    if (cfg.depth && cfg.depth[i]) t.depth = clone(cfg.depth[i]);
+    freshGame(t, cfg.rot && cfg.rot[i]);
+  });
   const recv = rand() < .5 ? 0 : 1;
   S = { v: 1, cfg: { level: Rl.id, qLen, aud: cfg.aud !== false, title: !!cfg.title }, teams: [t0, t1], ps: {},
     quarter: 1, clock: qLen, poss: recv, spot: 35, down: 1, toGo: 10, firstRecv: recv,
@@ -241,7 +246,7 @@ function initGame(cfg, schools) {
   tossNext();
 }
 const matchupLine = () => `${S.teams[1].school} ${tname(1)} at ${S.teams[0].school} ${tname(0)}.`;
-function startDrive(team, spot) { if (team !== S.poss) otTurn(team); S.poss = team; S.spot = clamp(spot, 1, 99); S.down = 1; S.toGo = Math.min(10, 100 - S.spot); }
+function startDrive(team, spot) { if (team !== S.poss) { otTurn(team); restAll("change"); } S.poss = team; S.spot = clamp(spot, 1, 99); S.down = 1; S.toGo = Math.min(10, 100 - S.spot); }
 // kickTD: the last kickoff was returned for a touchdown. kickEnded: the kickoff after a score ended
 // the game (a return touchdown in pro overtime), so that score's result keeps the kickoff in its text.
 let kickTD = false, kickEnded = false;
@@ -394,6 +399,7 @@ function finishClock(r, stopped) {
 //   S.ot = { kind: "hs", n: period, ser: 1 or 2, first: team with the first series, toss: toss winner }
 function hsotStart(lead) {
   S.quarter = 5; S.clock = 0; S.runClock = false; S.ot = null;
+  restAll("quarter");
   S.tos = [R().ot.tos, R().ot.tos];
   startToss(true, `${lead} Each team gets a series from the 10. There's no clock, and the defense can't score.`);
 }
@@ -563,6 +569,10 @@ function kneelBase() {
 const kneelAvailable = () => !!S.kneelSeries && kneelBase();
 function startPlay() {
   if (S.down === 1) S.kneelSeries = !S.twoPt && kneelBase();
+  // Tired starters sit and rested ones come back. The coach hears about his own team's changes
+  // (both teams' when the computer coaches both).
+  const notes = [rotate(0), rotate(1)], watching = S.teams[0].cpu && S.teams[1].cpu;
+  S.subNote = [0, 1].filter(t => notes[t].length && (watching || !S.teams[t].cpu)).map(t => (watching ? `${tname(t)}: ` : "") + rotationNote(notes[t])).join(" ");
   S.scoutNote = null; S.toUsed = false;
   S.offCall = null; S.defCall = null; S.sel = null; S.offSide = false; S.selSide = false; S.locked = false; S.aud = null; S.look = null; S.audSel = null; S.disgOn = false; S.disgSel = null; S.disg = null;
   S.snap = { total: S.teams[0].score + S.teams[1].score, poss: S.poss, spot: S.spot, down: S.down, toGo: S.toGo, sit: S.twoPt ? "Two-point try" : `${downText()} at the ${spotText(S.poss, S.spot)}`, q: S.quarter, clock: S.clock, ot: S.ot ? { a: S.ot.a, ph: S.ot.ph } : null };
@@ -695,6 +705,8 @@ function resolve() {
   else if (S.offCall === "kneel") r = doKneel();
   else if (FAKE_IDS.includes(S.offCall)) r = doFake(S.offCall);
   else r = doScrimmage();
+  // The players on the field tire (kicks and fouls before the snap don't count)
+  if (!r.preSnap && S.offCall !== "punt" && S.offCall !== "fg") tireSnap(S.snap.poss, S.offPkg, S.defPkg);
   r.offId = S.offCall; r.defId = S.defCall; r.team = S.snap.poss; r.aud = S.aud;
   if (!r.opk) { r.opk = S.offPkg; r.dpk = S.defPkg; }
   if (r.m != null && !r.preSnap) { r.s = playScore(r, S.snap); r.read = verdict(r, S.snap); }
@@ -733,6 +745,8 @@ function finalize(r) {
   }
   otTail(r);
   chartSnap(r);
+  if (S.subNote && S.teams[0].cpu && S.teams[1].cpu) r.subNote = S.subNote;
+  S.subNote = "";
   r.id = S.playId = (S.playId || 0) + 1;
   S.last = r; S.phase = "result"; S.banner = "";
   S.log.unshift({ q: S.snap.q, clock: S.snap.clock, team: S.snap.poss, sit: S.snap.sit,
@@ -806,6 +820,7 @@ function doSpike() {
 function callTimeout(t) {
   if (!S.clockRunning || !S.tos || S.tos[t] <= 0 || S.toUsed) return false;
   S.tos[t]--; S.oobRestart = false; S.spikeNext = false; S.noHuddle = false; S.toUsed = true;
+  restAll("timeout");
   // A running clock starts again when the ball is ready for play
   if (S.runClock) { S.oobRestart = true; S.readyWhy = "to"; } else S.clockRunning = false;
   S.toNote = `Timeout, ${tname(t)}. ${S.tos[t]} left this ${S.quarter >= 5 ? "overtime" : "half"}.`;
@@ -845,8 +860,8 @@ function cpuNoHuddle() {
 function endPeriod() {
   S.periodOver = false; S.clockRunning = false; S.oobRestart = false; S.spikeNext = false; S.toNote = "";
   const q = S.quarter, Rl = R();
-  if (q === 1 || q === 3) { S.quarter++; S.clock = S.cfg.qLen; S.banner = `End of the ${q === 1 ? "1st" : "3rd"} quarter.`; }
-  else if (q === 2) { S.quarter = 3; S.clock = S.cfg.qLen; S.tos = [Rl.timeouts, Rl.timeouts]; const r = 1 - S.firstRecv; S.banner = `Halftime. ${tname(r)} receive the second-half kickoff. ${kickoff(r, false)}`; S.halftimeShow = !(S.teams[0].cpu && S.teams[1].cpu); }
+  if (q === 1 || q === 3) { S.quarter++; S.clock = S.cfg.qLen; restAll("quarter"); S.banner = `End of the ${q === 1 ? "1st" : "3rd"} quarter.`; }
+  else if (q === 2) { S.quarter = 3; S.clock = S.cfg.qLen; S.tos = [Rl.timeouts, Rl.timeouts]; restAll("half"); const r = 1 - S.firstRecv; S.banner = `Halftime. ${tname(r)} receive the second-half kickoff. ${kickoff(r, false)}`; S.halftimeShow = !(S.teams[0].cpu && S.teams[1].cpu); }
   else if (S.teams[0].score === S.teams[1].score) startOT(q === 4 ? "Tied after regulation. On to overtime." : "Still tied after overtime. On to another overtime period.");
   // NFL playoff rule: the clock running out doesn't take away the second team's guaranteed possession
   else if (q >= 5 && S.ot && S.ot.ph === 2) startOT(`${tname(1 - S.ot.a)} are guaranteed an overtime possession, so the game goes on.`);

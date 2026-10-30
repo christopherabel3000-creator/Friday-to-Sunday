@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 1;
+const BUILD = 2;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -19,12 +19,16 @@ function newExhibition() {
   APP.ex = { seed, schools: [h, v], you: 0, styles: { off: h.off, def: h.def } };
 }
 function startExhibition() {
-  const ex = APP.ex, you = ex.you;
-  initGame({ level: "hs", cpu: [you !== 0, you !== 1], styles: [you === 0 ? ex.styles : null, you === 1 ? ex.styles : null] }, ex.schools);
+  const ex = APP.ex, you = ex.you, mine = i => you === i;
+  const next = i => mine(i) && ex.nextDepth && ex.nextDepth.team === i ? ex.nextDepth.depth : null;
+  initGame({ level: "hs", cpu: [!mine(0), !mine(1)], styles: [mine(0) ? ex.styles : null, mine(1) ? ex.styles : null],
+    rot: [mine(0) ? ex.rot : "normal", mine(1) ? ex.rot : "normal"], depth: [next(0), next(1)] }, ex.schools);
+  // A depth chart for the next game only is used up by this game
+  ex.nextDepth = null; ex.depthMode = "always";
   APP.screen = "game";
 }
-// The team a roster screen shows: during a game, the game's own copy
-const rosterTeam = i => APP.view && APP.view.back === "game" && S && S.teams ? S.teams[i] : APP.ex.schools[i];
+// A school as the home screen shows it: with your changes for the next game, if any
+const homeTeam = i => APP.ex.nextDepth && APP.ex.nextDepth.team === i ? Object.assign({}, APP.ex.schools[i], { depth: APP.ex.nextDepth.depth }) : APP.ex.schools[i];
 const teamTown = tm => tm.town || tm.school;
 const teamMascot = tm => tm.mascot || tm.name;
 
@@ -32,7 +36,15 @@ const teamMascot = tm => tm.mascot || tm.name;
 // The whole app saves on the device after every tap, game and all
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, build: BUILD, app: APP, game: S })); } catch (e) {} }
 function loadSaved() {
-  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); return s && s.v === 1 && s.app && s.app.ex ? s : null; } catch (e) { return null; }
+  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); return s && s.v === 1 && s.app && s.app.ex ? upgradeSave(s) : null; } catch (e) { return null; }
+}
+// A save from an older version gets what's new since then
+function upgradeSave(s) {
+  // Version 2: fatigue and rotation in a game in progress
+  const g = s.game;
+  if (g && g.teams) g.teams.forEach(t => { if (!t.rot) t.rot = "normal"; t.players.forEach(p => { if (p.en == null) p.en = 100; if (p.rest == null) p.rest = false; }); });
+  s.build = BUILD;
+  return s;
 }
 
 /* ---------- Home ---------- */
@@ -57,7 +69,7 @@ function matchupTable(a, b) {
     <tbody>${rows.map(([l, k]) => `<tr><th scope="row">${l}</th><td>${ua[k]}</td><td>${ub[k]}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function vHome() {
-  const ex = APP.ex, [h, v] = ex.schools, inGame = S && S.teams && S.phase !== "final";
+  const ex = APP.ex, [h, v] = [homeTeam(0), homeTeam(1)], inGame = S && S.teams && S.phase !== "final";
   const card = (s, i) => `<section class="panel teamcard" style="--team:${s.color}" aria-label="${esc(teamTown(s))} ${esc(s.mascot)}">
       <p class="eyebrow">${i ? "Visitors" : "Home"} · Class ${s.cls}</p>
       <h3>${esc(s.town)} ${esc(s.mascot)}</h3>
@@ -92,83 +104,6 @@ function vHome() {
     </section>`;
 }
 
-/* ---------- Rosters ---------- */
-// "Starter. Marcus Hill, junior, linebacker 39. Also starts at running back. Sure tackler."
-// A backup: "Damian Blackwell, senior, linebacker 37. Also running back 40."
-function slotLine(team, p, pos, starter, level) {
-  const roles = depthRoles(team, p), elsewhere = roles.starts.filter(x => x !== pos && OFF_POS.concat(DEF_POS).includes(x));
-  const also = elsewhere.length ? `Also starts at ${andList(elsewhere.map(slotName))}.`
-    : (() => { const x = [p.pos, p.pos2].filter(q => q && q !== pos && POS_INFO[q]).map(q => `${posName(q)} ${ovr(p, q)}`); return x.length ? `Also ${x.join(" and ")}.` : ""; })();
-  const st = strengths(p, level).map(a => ATTR_PRAISE[a]);
-  return `${starter ? "Starter. " : ""}${fullName(p)}, ${YEAR_NAMES[p.yr]}, ${slotName(pos)} ${slotRating(p, pos)}.${also ? " " + also : ""}${st.length ? ` ${capFirst(st.join(", "))}.` : ""}`;
-}
-// "Starts at quarterback and linebacker. Backs up at tight end."
-function rolesLine(team, p) {
-  const r = depthRoles(team, p), out = [];
-  if (r.starts.length) out.push(`Starts at ${andList(r.starts.map(slotName))}.`);
-  if (r.backs.length) out.push(`Backs up at ${andList(r.backs.map(slotName))}.`);
-  return out.length ? out.join(" ") : "Not on the depth chart.";
-}
-function vRoster() {
-  const i = APP.view.team, tm = rosterTeam(i), level = tm.level, other = rosterTeam(1 - i);
-  const sec = ([title, slots]) => `<section class="panel"><h3>${title}</h3>${slots.map(pos => {
-    const ids = (tm.depth[pos] || []).slice(0, DEPTH_SIZE[pos]);
-    return `<p class="sechead" role="heading" aria-level="4">${slotGroup(pos)}</p><ol class="roster">${ids.map((id, k) => {
-      const p = playerById(tm, id); if (!p) return "";
-      return `<li><button class="rowbtn" data-a="player" data-v="${p.id}">${esc(slotLine(tm, p, pos, k < STARTERS[pos], level))}</button></li>`;
-    }).join("")}</ol>`;
-  }).join("")}</section>`;
-  return `
-    <div class="masthead" style="--team:${tm.color}">
-      <p class="eyebrow">Roster and depth chart</p>
-      <h2 data-focus tabindex="-1">${esc(teamTown(tm))} ${esc(teamMascot(tm))}</h2>
-      <p class="muted">${plural(tm.players.length, "player")}. The depth chart is set from the ratings: starters first, then the backups in order. Tap a player for all of his ratings.</p>
-    </div>
-    <div class="choices"><button class="btn ghost" data-a="back">Back</button><button class="btn ghost" data-a="rteam" data-t="${1 - i}">${esc(teamMascot(other))} roster</button></div>
-    ${DEPTH_GROUPS.map(sec).join("")}
-    <button class="btn ghost" data-a="back">Back</button>`;
-}
-const ATTR_GROUPS = [["Athletic", ["spd", "str", "awr"]], ["Passing", ["acc", "arm"]], ["Running", ["elu", "bsc"]], ["Receiving", ["hnd", "rte"]],
-  ["Blocking", ["blk", "rbk", "pbk"]], ["Defense", ["prs", "rst", "tkl", "cov"]], ["Kicking", ["leg", "kac"]]];
-function vPlayer() {
-  const tm = rosterTeam(APP.view.team), p = playerById(tm, APP.view.player);
-  if (!p) return vRoster();
-  const fits = POS_IDS.map(pos => [pos, ovr(p, pos)]).sort((a, b) => b[1] - a[1]);
-  const shown = [p.pos, p.pos2].filter(Boolean);
-  const others = fits.filter(([pos]) => !shown.includes(pos)).slice(0, 3);
-  const st = S && S.ps && APP.view.back === "game" ? S.ps[p.id] : null;
-  return `
-    <div class="masthead" style="--team:${tm.color}">
-      <p class="eyebrow">${esc(teamTown(tm))} ${esc(teamMascot(tm))} · Number ${p.num}</p>
-      <h2 data-focus tabindex="-1">${esc(fullName(p))}</h2>
-      <p class="muted">${capFirst(YEAR_NAMES[p.yr])}. ${esc(rolesLine(tm, p))}</p>
-    </div>
-    <section class="panel">
-      <h3>Overall</h3>
-      <ul class="hlist">${shown.map(pos => `<li>${capFirst(posName(pos))} ${ovr(p, pos)}</li>`).join("")}
-        <li>Next best fits: ${others.map(([pos, v]) => `${posName(pos)} ${v}`).join(", ")}</li></ul>
-      <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}.</p>
-    </section>
-    ${st ? `<section class="panel"><h3>This game</h3>${playerGameLine(st)}</section>` : ""}
-    <section class="panel">
-      <h3>Ratings</h3>
-      ${ATTR_GROUPS.map(([g, list]) => `<p class="sechead" role="heading" aria-level="4">${g}</p><ul class="hlist ratings">${list.map(a => `<li>${ATTR_NAMES[a]} ${p.r[a]}</li>`).join("")}</ul>`).join("")}
-    </section>
-    <button class="btn ghost" data-a="back">Back to the roster</button>`;
-}
-function playerGameLine(s) {
-  const bits = [];
-  if (s.pa) bits.push(`${s.pc || 0} of ${s.pa} passing for ${yd(s.py || 0)}`);
-  if (s.ru) bits.push(`${plural(s.ru, "carry", "carries")} for ${yd(s.ry || 0)}`);
-  if (s.rec) bits.push(`${plural(s.rec, "catch", "catches")} for ${yd(s.rcy || 0)}`);
-  if (s.tk) bits.push(plural(s.tk, "tackle"));
-  if (s.sck) bits.push(plural(s.sck, "sack"));
-  if (s.int) bits.push(plural(s.int, "interception"));
-  if (s.fga || s.xpa) bits.push(`${s.fgm || 0} of ${s.fga || 0} field goals, ${s.xpm || 0} of ${s.xpa || 0} extra points`);
-  if (s.pu) bits.push(`${plural(s.pu, "punt")}`);
-  return `<p>${bits.length ? capFirst(bits.join(", ")) + "." : "No stats yet."}</p>`;
-}
-
 /* ---------- How to play ---------- */
 let helpOpen = false;
 function vHelp() {
@@ -193,6 +128,13 @@ function vHelp() {
       "The depth chart decides who's on the field for each personnel package. Spread sets put your fourth receiver out there; heavy sets bring in tight ends and a fullback.",
       "On every snap the players matter: the line against the front on runs, the protection against the rush, the passer and receiver against the coverage, the ball carrier against the tacklers.",
       "A quick quarterback slips some sacks and takes off when nobody's open. Kickers have a range set by their leg."
+    ]))}
+    ${sec("Depth chart and fatigue", ul([
+      "Change the depth chart from your roster: pick a position, pick a player, then start him, move him up or down, or take him off. Reset to automatic puts everyone back by the ratings.",
+      "Before a game, changes can apply to every game or to the next game only. After that game, the depth chart goes back to how it was.",
+      "During a game, Change the lineup on the call sheet makes substitutions for the rest of that game.",
+      "Players tire with every snap and recover on the bench, between quarters, at halftime and in timeouts. Two-way starters wear down the most, and a tired player plays below his ratings.",
+      "Your rotation setting decides when tired starters take a breather: Keep starters in, Normal, or Rotate often. They only come out when a fresh backup is listed behind them."
     ]))}
     ${sec("Winning the call", ul([
       "Every play has calls it beats and calls that beat it. Inside Run gashes Cover 2 but runs into a Run Blitz; Deep Shot burns Man Coverage but dies against Prevent.",
@@ -243,7 +185,7 @@ const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, p
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
-  return { home: vHome, roster: vRoster, player: vPlayer }[APP.screen] || vHome;
+  return { home: vHome, roster: vRoster, player: vPlayer, depth: vDepthEdit }[APP.screen] || vHome;
 }
 function render() {
   if (typeof document === "undefined") return;
@@ -267,7 +209,7 @@ function render() {
 let lastKey = null, srTimer = null;
 function screenKey(view) {
   const g = APP.screen === "game" && S ? [S.phase, S.side, S.playId || 0, S.toss ? S.toss.step : "", S.pen ? S.pen.code : "", S.twoPt ? 1 : 0, S.locked ? 1 : 0] : [];
-  return [view.name, APP.screen, APP.view ? APP.view.team : "", APP.view ? APP.view.player : "", APP.ex ? APP.ex.seed : ""].concat(g).join("|");
+  return [view.name, APP.screen, APP.view ? APP.view.team : "", APP.view ? APP.view.player : "", APP.view ? APP.view.edit : "", APP.ex ? APP.ex.seed : ""].concat(g).join("|");
 }
 function focusSig(app) {
   const el = document.activeElement;
@@ -276,10 +218,13 @@ function focusSig(app) {
   const b = el.closest("[data-a]");
   return b ? { a: b.dataset.a, v: b.dataset.v, t: b.dataset.t, c: b.dataset.c } : null;
 }
+// An action can name the control that should have focus after the redraw (focusNext)
+let focusNext = null;
 function placeFocus(app, key, prev) {
   const changed = lastKey !== null && key !== lastKey;
   lastKey = key;
   let el = null;
+  if (focusNext) { prev = focusNext; focusNext = null; if (changed) { const f = [...app.querySelectorAll("[data-a]")].find(b => b.dataset.a === prev.a && b.dataset.v === prev.v); if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} return; } } }
   if (!changed) {
     if (!prev) return;
     if (prev.id) el = document.getElementById(prev.id);
@@ -357,10 +302,30 @@ function act(a, ds) {
     case "kickoff": startExhibition(); scrollTop(); break;
     case "resume": if (S && S.teams) APP.screen = "game"; scrollTop(); break;
     case "gohome": APP.screen = "home"; scrollTop(); break;
-    case "roster": APP.view = { team: +ds.t || 0, back: APP.screen === "game" ? "game" : "home" }; APP.screen = "roster"; scrollTop(); break;
+    case "roster": APP.view = { team: ds.t != null ? +ds.t || 0 : Math.max(0, myTeam()), back: APP.screen === "game" ? "game" : "home" }; APP.screen = "roster"; scrollTop(); break;
     case "rteam": APP.view.team = +ds.t || 0; scrollTop(); break;
     case "player": APP.view.player = ds.v; APP.screen = "player"; scrollTop(); break;
-    case "back": APP.screen = APP.screen === "player" ? "roster" : (APP.view && APP.view.back === "game" && S && S.teams ? "game" : "home"); scrollTop(); break;
+    case "back": APP.screen = APP.screen === "player" || APP.screen === "depth" ? "roster" : (APP.view && APP.view.back === "game" && S && S.teams ? "game" : "home"); scrollTop(); break;
+    // The depth chart
+    case "dmode": if (ds.v === "next" || ds.v === "always") APP.ex.depthMode = ds.v; break;
+    case "dnextoff": APP.ex.nextDepth = null; announce("Next-game changes dropped."); break;
+    case "rot": {
+      if (!ROTATION[ds.v] || !canEdit(APP.view.team)) break;
+      if (inGameView()) { S.teams[APP.view.team].rot = ds.v; } else APP.ex.rot = ds.v;
+      announce(`Rotation: ${ROTATION[ds.v].name}.`); break;
+    }
+    case "dreset": if (canEdit(APP.view.team)) { resetDepth(APP.view.team); announce("The depth chart is back to automatic."); } break;
+    case "dedit": if (canEdit(APP.view.team)) { APP.view.edit = ds.v; APP.view.sel = null; APP.screen = "depth"; scrollTop(); } break;
+    case "dsel": APP.view.sel = APP.view.sel === ds.v ? null : ds.v; break;
+    case "dmove": {
+      if (!canEdit(APP.view.team)) break;
+      const said = depthMove(APP.view.team, APP.view.edit, ds.t, ds.v);
+      if (said) announce(said);
+      focusNext = { a: "dsel", v: ds.t };
+      break;
+    }
+    case "ddone": focusNext = { a: "dedit", v: APP.view.edit }; APP.screen = "roster"; break;
+    case "lineup": APP.view = { team: Math.max(0, myTeam()), back: "game" }; APP.screen = "roster"; scrollTop(); break;
     // The game
     case "audpick": if (inGame && S.phase === "los") S.audSel = S.audSel === ds.v ? null : ds.v; break;
     case "audible": if (inGame && S.phase === "los") { audible(S.audSel); scrollTop(); } break;

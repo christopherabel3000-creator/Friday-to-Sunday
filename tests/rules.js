@@ -1,5 +1,5 @@
 // High school rules checks: clock, kicks, tries, penalties, the running clock and overtime, plus
-// rosters and depth charts. Each check sets up a game state and runs the real engine.
+// rosters, depth charts, fatigue and rotation. Each check sets up a game state and runs the real engine.
 // Usage: node tests/rules.js
 const { load } = require("./load.js");
 let fails = 0, checks = 0;
@@ -152,7 +152,8 @@ function plain(g, extra) {
     plain(g, { spot: 1, down: 2, toGo: 10 });
     g(`S.offPkg = "p11"; S.defPkg = "base"; S.offCall = "dp"; S.defCall = "ab"; S.snap = { total: 0, poss: 0, spot: 1, down: 2, toGo: 10, q: 1, clock: 600 };`);
     const r = g(`doScrimmage()`);
-    if (r.head === "Safety") { safeties++; if (!/free kick from their own 20/.test(r.sub || "") || g("S.teams[1].score") !== 2) safetyBad++; }
+    // (2 points, or 8 when the free kick comes back for a touchdown)
+    if (r.head === "Safety") { safeties++; const pts = g("S.teams[1].score"); if (!/free kick from their own 20/.test(r.sub || "") || !(pts === 2 || (pts === 8 && /all the way/.test(r.sub)))) safetyBad++; }
   }
   ok(safeties > 0 && safetyBad === 0, `a safety is followed by a free kick from the 20 (${safeties})`);
 }
@@ -281,6 +282,129 @@ function plain(g, extra) {
   ok(otGames >= 30, `played overtime games (${otGames})`);
   ok(bad.length === 0, "overtime rules: " + [...new Set(bad)].join("; "));
   ok(choiceChecks > 0 && choiceSwitch === choiceChecks, `the first choice alternates each period (${choiceSwitch} of ${choiceChecks})`);
+}
+
+// ---- Fatigue ----
+{
+  const { g } = game(false);
+  plain(g);
+  ok(g("fatigueMul(100)") === 1 && Math.abs(g("fatigueMul(50)") - .876) < .01, "fresh players play at their ratings; at half energy, about 88 percent");
+  const qb = g(`starterAt(S.teams[0], "QB").id`);
+  g(`playerById(S.teams[0], "${qb}").en = 50; S.fe++`);
+  const v = g(`onField(0, "p11").QB[0]`), base = g(`playerById(S.teams[0], "${qb}")`);
+  ok(v.id === base.id && Math.abs(v.r.acc - base.r.acc * g("fatigueMul(50)")) < .001, "a tired player's ratings drop on the field, and his stats still count for him");
+  ok(g(`onField(0, "fgu").K[0].r.leg`) === g(`starterAt(S.teams[0], "K").r.leg`), "kicking doesn't tire");
+  // One snap: the players on the field tire, the bench recovers
+  g(`S.teams.forEach(t => t.players.forEach(p => { p.en = 80; p.rest = false; })); S.teams.forEach(t => t.dver++);`);
+  const onIds = g(`lineupPlayers(lineupFor(S.teams[0], "p11")).map(p => p.id)`);
+  const benchId = g(`S.teams[0].players.find(p => !${JSON.stringify(onIds)}.includes(p.id) && !lineupPlayers(lineupFor(S.teams[1], "base")).includes(p)).id`);
+  g(`tireSnap(0, "p11", "base")`);
+  const after = g(`Object.fromEntries(S.teams[0].players.map(p => [p.id, p.en]))`);
+  ok(onIds.every(id => after[id] < 80), "players on the field lose energy each snap");
+  ok(after[benchId] > 80, "players on the bench get it back");
+  g(`restAll("half")`);
+  ok(g(`S.teams[0].players.every(p => p.en >= 100 || p.en >= 80 + 39)`), "halftime brings everyone most of the way back");
+  // Over whole games, two-way starters wear down more than one-way starters
+  let two = [], one = [];
+  for (let i = 0; i < 12; i++) {
+    const G = game(true);
+    const tw = G.g(`twoWayStarters(S.teams[0]).map(p => p.id)`), on = G.g(`lineupPlayers(lineupFor(S.teams[0], "p11")).map(p => p.id)`).filter(id => !tw.includes(id));
+    let n = 0, low = {};
+    while (G.g("S.phase") !== "final" && n < 6000) { G.F.autoStep(); n++; if (G.g("S.quarter") === 4) G.g("S.teams[0].players").forEach(p => { low[p.id] = Math.min(low[p.id] ?? 100, p.en); }); }
+    tw.forEach(id => two.push(low[id] ?? 100)); on.forEach(id => one.push(low[id] ?? 100));
+  }
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  ok(mean(two) < mean(one) - 15, `two-way starters tire more (lowest in the 4th quarter: ${mean(two).toFixed(0)} against ${mean(one).toFixed(0)})`);
+}
+
+// ---- Rotation ----
+{
+  const { g } = game(true);
+  plain(g);
+  g(`S.teams.forEach(t => t.players.forEach(p => { p.en = 100; p.rest = false; }))`);
+  const rb1 = g(`S.teams[0].depth.RB[0]`), rb2 = g(`S.teams[0].depth.RB[1]`);
+  g(`S.teams[0].rot = "normal"; playerById(S.teams[0], "${rb1}").en = 50; playerById(S.teams[0], "${rb2}").en = 95;`);
+  // The second back must not start anywhere else on offense for this check
+  g(`["QB", "WR", "TE", "OL"].forEach(pos => { S.teams[0].depth[pos] = S.teams[0].depth[pos].filter(id => id !== "${rb2}"); })`);
+  const notes = g(`rotate(0)`);
+  ok(g(`playerById(S.teams[0], "${rb1}").rest`) === true, "a tired starter sits when a fresh backup is ready");
+  ok(notes.length && /breather/.test(g(`rotationNote(${JSON.stringify(notes)})`)), "the coach hears about it");
+  g(`S.fe++`);
+  ok(g(`onField(0, "p11").RB[0].id`) === rb2, "the backup is on the field");
+  g(`playerById(S.teams[0], "${rb1}").en = 80; rotate(0); S.fe++`);
+  ok(g(`playerById(S.teams[0], "${rb1}").rest`) === false && g(`onField(0, "p11").RB[0].id`) === rb1, "he comes back once he's recovered");
+  // Keep starters in: only exhaustion takes him out
+  g(`S.teams[0].rot = "keep"; playerById(S.teams[0], "${rb1}").en = 40; rotate(0)`);
+  ok(g(`playerById(S.teams[0], "${rb1}").rest`) === false, "keep starters in: a tired starter stays in");
+  g(`playerById(S.teams[0], "${rb1}").en = 25; rotate(0)`);
+  ok(g(`playerById(S.teams[0], "${rb1}").rest`) === true, "keep starters in: an exhausted starter sits");
+  // No fresh backup on the list: he plays on
+  // (and not listed anywhere else, where a backup could spell him)
+  g(`playerById(S.teams[0], "${rb1}").rest = false; S.teams[0].rot = "often"; Object.keys(S.teams[0].depth).forEach(pos => { S.teams[0].depth[pos] = S.teams[0].depth[pos].filter(id => id !== "${rb1}"); }); S.teams[0].depth.RB = ["${rb1}"]; playerById(S.teams[0], "${rb1}").en = 40; rotate(0)`);
+  ok(g(`playerById(S.teams[0], "${rb1}").rest`) === false, "nobody listed behind him: a tired starter plays on");
+  // The rotation note reaches the coach's call screen
+  const G = game(false);
+  plain(G.g);
+  const r1 = G.g(`S.teams[0].depth.RB[0]`), r2 = G.g(`S.teams[0].depth.RB[1]`);
+  G.g(`S.teams[0].players.forEach(p => p.en = 100); ["QB", "WR", "TE", "OL"].forEach(pos => { S.teams[0].depth[pos] = S.teams[0].depth[pos].filter(id => id !== "${r2}"); }); playerById(S.teams[0], "${r1}").en = 40; startPlay();`);
+  ok(/breather/.test(G.g("S.subNote")), "the call screen tells you who came out");
+}
+
+// ---- Editing the depth chart ----
+{
+  const { g, F } = game(false);
+  g(`S = null; APP.screen = "home"; APP.ex.you = 0; APP.ex.depthMode = "always"; APP.view = { team: 0, back: "home" };`);
+  const school = () => g("APP.ex.schools[0]");
+  const qb = school().depth.QB.slice();
+  let said = g(`depthMove(0, "QB", "${qb[1]}", "start")`);
+  ok(school().depth.QB[0] === qb[1] && school().depth.QB[1] === qb[0], "start: the backup quarterback starts, the old starter backs him up");
+  ok(/is the starter at quarterback\. .+ moves to backup\./.test(said), "the change is announced: " + said);
+  g(`depthMove(0, "QB", "${qb[1]}", "down")`);
+  ok(school().depth.QB[0] === qb[0], "move down");
+  g(`depthMove(0, "QB", "${qb[1]}", "up")`);
+  ok(school().depth.QB[0] === qb[1], "move up");
+  g(`depthMove(0, "QB", "${qb[0]}", "off")`);
+  ok(!school().depth.QB.includes(qb[0]) && school().depth.QB.length === 1, "take a player off");
+  const wr = school().depth.WR.slice(), outsider = g(`APP.ex.schools[0].players.find(p => !APP.ex.schools[0].depth.WR.includes(p.id)).id`);
+  g(`depthMove(0, "WR", "${outsider}", "start")`);
+  ok(school().depth.WR.indexOf(outsider) === 2 && school().depth.WR[3] === wr[2], "start a new receiver: he's the third starter, the old third starter is the first backup");
+  for (let i = 0; i < 6; i++) { const id = g(`APP.ex.schools[0].players.filter(p => !APP.ex.schools[0].depth.WR.includes(p.id))[0].id`); g(`depthMove(0, "WR", "${id}", "add")`); }
+  ok(school().depth.WR.length === g("depthMax('WR')"), "a list can't grow past its limit");
+  g(`resetDepth(0)`);
+  ok(JSON.stringify(school().depth) === JSON.stringify(g("autoDepth(APP.ex.schools[0])")) && !school().manual, "reset to automatic");
+  // Next game only: used by the next kickoff, then gone
+  const before = JSON.stringify(school().depth), qb2 = school().depth.QB[1];
+  g(`APP.ex.depthMode = "next"; depthMove(0, "QB", "${qb2}", "start")`);
+  ok(JSON.stringify(school().depth) === before, "a next-game change leaves the every-game depth chart alone");
+  ok(g("APP.ex.nextDepth.depth.QB[0]") === qb2, "it's saved for the next game");
+  g(`startExhibition()`);
+  ok(g("S.teams[0].depth.QB[0]") === qb2, "the next kickoff uses it");
+  ok(g("APP.ex.nextDepth") === null && JSON.stringify(school().depth) === before, "then it's used up, and the every-game chart is unchanged");
+  // During a game: changes last for this game only, and take effect on the next snap
+  g(`APP.view = { team: 0, back: "game" }; APP.screen = "roster";`);
+  const rb = g("S.teams[0].depth.RB.slice()"), dv = g("S.teams[0].dver");
+  g(`depthMove(0, "RB", "${rb[1]}", "start")`);
+  ok(g("S.teams[0].depth.RB[0]") === rb[1] && g("S.teams[0].dver") > dv, "a substitution changes this game's depth chart");
+  ok(school().depth.RB[0] === rb[0], "and not the school's");
+  g(`S.teams[0].players.forEach(p => { p.en = 100; p.rest = false; }); S.fe++`);
+  ok(g(`onField(0, "p11").RB[0].id`) === rb[1], "the substitute is on the field for the next snap");
+  F.act("rot", { v: "often" });
+  ok(g("S.teams[0].rot") === "often", "the rotation setting can change during a game");
+  // The best quarterback starts at quarterback
+  let bad = 0;
+  for (let i = 0; i < 40; i++) { g("newExhibition()"); for (const k of [0, 1]) { const s = g(`APP.ex.schools[${k}]`); const q = g(`ovr(playerById(APP.ex.schools[${k}], APP.ex.schools[${k}].depth.QB[0]), "QB")`); const best = g(`Math.max(...APP.ex.schools[${k}].players.map(p => ovr(p, "QB")))`); if (q < best - 1) bad++; void s; } }
+  ok(bad === 0, `the automatic depth chart starts the best quarterback (${bad} misses)`);
+}
+
+// ---- Saves ----
+{
+  // A game saved by version 1 (before fatigue) loads and plays to the end
+  const { g, F } = game(false);
+  g(`S.teams.forEach(t => { delete t.rot; t.players.forEach(p => { delete p.en; delete p.rest; }); }); localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, build: 1, app: APP, game: S }));`);
+  g(`S = null; APP = null; start(); S.teams[0].cpu = true;`);
+  let n = 0;
+  while (g("S.phase") !== "final" && n < 6000) { F.autoStep(); n++; }
+  ok(g("S.phase") === "final" && g(`S.teams.every(t => t.rot && t.players.every(p => Number.isFinite(p.en)))`), "an older save is upgraded and plays on");
 }
 
 // ---- Whole games ----
