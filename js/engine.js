@@ -182,7 +182,11 @@ const identityText = t => `${OFF_STYLES[offStyleOf(t)].name} offense, ${DEF_STYL
 // coach's ratings into the same numbers, per team (CP), for the computer's play calling and for the
 // execution edge every coach gets from their Offense and Defense ratings.
 const CP = t => S.teams[t].cp;
-const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD : 0;
+// Home field: the home team (team 0) plays a little sharper on both sides of the ball, except at a
+// neutral site
+const HOME_EDGE = .06;
+const homeEdge = o => S && S.teams && !S.neutral ? (o === 0 ? HOME_EDGE : -HOME_EDGE) : 0;
+const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o) : 0;
 // Sharpen or flatten a set of play-call weights, by the coach making the call
 function sharpen(w, t, isOff) { const k = isOff ? CP(t).sharpO : CP(t).sharpD; if (k !== 1) Object.keys(w).forEach(id => { w[id] = Math.pow(Math.max(0, w[id]), k); }); return w; }
 
@@ -227,7 +231,8 @@ function gameTeam(s, cpu, styles) {
     score: 0, st: newTeamStats() };
 }
 // cfg: { level, cpu: [home, away], styles: [home, away], rot: [home, away], depth: [home, away], aud,
-// title }. schools[0] is the home team. depth: a depth chart for this game only (or null).
+// title, neutral }. schools[0] is the home team. depth: a depth chart for this game only (or null).
+// title: a state championship game (no running clock). neutral: played at a neutral site.
 function initGame(cfg, schools) {
   const Rl = RULES[cfg.level] || RULES.hs, qLen = cfg.qLen || Rl.qLen;
   const t0 = gameTeam(schools[0], cfg.cpu[0], cfg.styles && cfg.styles[0]), t1 = gameTeam(schools[1], cfg.cpu[1], cfg.styles && cfg.styles[1]);
@@ -237,7 +242,7 @@ function initGame(cfg, schools) {
     freshGame(t, cfg.rot && cfg.rot[i]);
   });
   const recv = rand() < .5 ? 0 : 1;
-  S = { v: 1, cfg: { level: Rl.id, qLen, aud: cfg.aud !== false, title: !!cfg.title }, teams: [t0, t1], ps: {},
+  S = { v: 1, cfg: { level: Rl.id, qLen, aud: cfg.aud !== false, title: !!cfg.title }, neutral: !!cfg.neutral, teams: [t0, t1], ps: {},
     quarter: 1, clock: qLen, poss: recv, spot: 35, down: 1, toGo: 10, firstRecv: recv,
     offCall: null, defCall: null, sel: null, side: "off", phase: "", banner: "", log: [], last: null,
     needPAT: false, patTeam: 0, periodOver: false, gameOver: false, runClock: false,

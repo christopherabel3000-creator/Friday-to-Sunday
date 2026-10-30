@@ -2,29 +2,43 @@
 "use strict";
 
 /* ---------- Which depth chart ---------- */
-// The team you coach (0 or 1), or -1 when you're just watching
-const myTeam = () => APP.ex.you === "watch" ? -1 : APP.ex.you;
-// A roster screen opened from a game shows that game's teams: their own copy of the depth chart,
-// with everyone's energy
-const inGameView = () => !!(APP.view && APP.view.back === "game" && S && S.teams);
-// The team a roster screen shows, with the depth chart that applies:
-//   during a game, the game's copy (changes last for this game only)
-//   before a game, your school's chart for every game, or the one for the next game only
-function depthTeam(i) {
-  if (inGameView()) return S.teams[i];
-  const s = APP.ex.schools[i], nd = APP.ex.nextDepth;
-  if (i === myTeam() && APP.ex.depthMode === "next") return Object.assign({}, s, { depth: nd && nd.team === i ? nd.depth : s.depth });
+// A roster screen shows one team, from one of three places (APP.view.ctx):
+//   "game": a team in the game being played (APP.view.team is 0 or 1), with the game's own copy of
+//     the depth chart (changes last for this game only) and everyone's energy
+//   "ex": a school in the exhibition matchup (0 or 1)
+//   "season": a school in the season (its id)
+// Outside a game, your school's depth chart applies to every game, or there's one for the next game
+// only. The exhibition and the season each keep their own (depthHome).
+const viewCtx = () => (APP.view && APP.view.ctx) || "ex";
+const inGameView = () => viewCtx() === "game" && !!(S && S.teams);
+const depthHome = () => viewCtx() === "season" ? SEASON : APP.ex;
+// The team you coach in the game being played (0 or 1), or -1 when you're just watching
+const myGameTeam = () => S && S.teams ? S.teams.findIndex(t => !t.cpu) : -1;
+function isMine(ref) {
+  const c = viewCtx();
+  if (c === "game") return ref === myGameTeam();
+  if (c === "season") return !!SEASON && ref === SEASON.myId;
+  return ref === APP.ex.you;
+}
+// The school a roster screen names, outside a game
+const baseSchool = ref => viewCtx() === "season" ? seasonSchool(ref) : APP.ex.schools[ref];
+// The team a roster screen shows, with the depth chart that applies
+function depthTeam(ref) {
+  if (inGameView()) return S.teams[ref];
+  const s = baseSchool(ref), h = depthHome();
+  if (isMine(ref) && h.depthMode === "next") return Object.assign({}, s, { depth: pendingNext(ref) ? h.nextDepth.depth : s.depth });
   return s;
 }
-const canEdit = i => i === myTeam() && (!inGameView() || !S.teams[i].cpu);
+const canEdit = ref => isMine(ref) && (!inGameView() || !S.teams[ref].cpu);
 // Stores an edited depth chart where it belongs
-function setDepth(i, depth) {
-  if (inGameView()) { S.teams[i].depth = depth; S.teams[i].dver = (S.teams[i].dver || 0) + 1; return; }
-  if (APP.ex.depthMode === "next") APP.ex.nextDepth = { team: i, depth };
-  else { APP.ex.schools[i].depth = depth; APP.ex.schools[i].manual = true; }
+function setDepth(ref, depth) {
+  if (inGameView()) { S.teams[ref].depth = depth; S.teams[ref].dver = (S.teams[ref].dver || 0) + 1; return; }
+  const h = depthHome();
+  if (h.depthMode === "next") h.nextDepth = { team: ref, depth };
+  else { const s = baseSchool(ref); s.depth = depth; s.manual = true; }
 }
-// The depth chart your next kickoff will use
-const pendingNext = i => APP.ex.nextDepth && APP.ex.nextDepth.team === i;
+// Whether your next kickoff has its own depth chart
+const pendingNext = ref => { const h = depthHome(); return !!(h.nextDepth && h.nextDepth.team === ref); };
 // How long a position's list can get
 const depthMax = pos => DEPTH_SIZE[pos] + 3;
 const ORD_WORDS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
@@ -65,7 +79,7 @@ function depthMove(i, pos, pid, how) {
 function resetDepth(i) {
   const tm = depthTeam(i), d = autoDepth(tm);
   setDepth(i, d);
-  if (!inGameView() && APP.ex.depthMode !== "next") APP.ex.schools[i].manual = false;
+  if (!inGameView() && depthHome().depthMode !== "next") baseSchool(i).manual = false;
 }
 
 /* ---------- Reading players ---------- */
@@ -99,10 +113,10 @@ function rolesLine(team, p) {
 /* ---------- The roster screen ---------- */
 function rosterControls(i) {
   const tm = depthTeam(i), game = inGameView();
-  const rot = game ? tm.rot : (APP.ex.rot || "normal");
+  const rot = game ? tm.rot : (depthHome().rot || "normal");
   const seg = (a, list, cur, label) => `<div style="display:grid;gap:6px" role="group" aria-label="${label}"><span class="eyebrow" aria-hidden="true">${label}</span><div class="seg">
     ${list.map(([v, l]) => `<button data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div></div>`;
-  const mode = APP.ex.depthMode === "next" ? "next" : "always";
+  const mode = depthHome().depthMode === "next" ? "next" : "always";
   const modeNote = game ? "Changes here last for this game only."
     : mode === "next" ? "Changes here apply to the next game only. After it, the depth chart goes back to how it is for every game."
     : pendingNext(i) ? "Changes here apply to every game. Your next game has its own changes too: switch to Next game only to see them." : "Changes here apply to every game.";
@@ -116,7 +130,8 @@ function rosterControls(i) {
   </section>`;
 }
 function vRoster() {
-  const i = APP.view.team, tm = depthTeam(i), level = tm.level, other = depthTeam(1 - i), edit = canEdit(i), game = inGameView();
+  const i = APP.view.team, tm = depthTeam(i), level = tm.level, edit = canEdit(i), game = inGameView();
+  const other = (APP.view.pair || [0, 1]).find(x => x !== i);
   const sec = ([title, slots]) => `<section class="panel"><h3>${title}</h3>${slots.map(pos => {
     const ids = (tm.depth[pos] || []).slice(0, depthMax(pos));
     return `<p class="sechead" role="heading" aria-level="4">${slotGroup(pos)}</p><ol class="roster">${ids.map((id, k) => {
@@ -125,16 +140,17 @@ function vRoster() {
     }).join("")}</ol>${edit ? `<button class="btn ghost slim" data-a="dedit" data-v="${pos}">Change ${slotGroup(pos).toLowerCase()}</button>` : ""}`;
   }).join("")}</section>`;
   const intro = game ? `${plural(tm.players.length, "player")}, with how fresh each one is.` : `${plural(tm.players.length, "player")}. Starters first, then the backups in order. Tap a player for all of his ratings.`;
+  const back = game ? "Back to the game" : "Back";
   return `
     <div class="masthead" style="--team:${tm.color}">
-      <p class="eyebrow">${edit ? (game ? "Lineup and substitutions" : "Roster and depth chart") : "Roster and depth chart"}</p>
+      <p class="eyebrow">${edit && game ? "Lineup and substitutions" : "Roster and depth chart"}</p>
       <h2 data-focus tabindex="-1">${esc(teamTown(tm))} ${esc(teamMascot(tm))}</h2>
       <p class="muted">${intro}</p>
     </div>
-    <div class="choices"><button class="btn ghost" data-a="back">${game ? "Back to the game" : "Back"}</button><button class="btn ghost" data-a="rteam" data-t="${1 - i}">${esc(teamMascot(other))} roster</button></div>
+    <div class="choices"><button class="btn ghost" data-a="back">${back}</button>${other != null ? `<button class="btn ghost" data-a="rteam" data-t="${other}">${esc(teamMascot(depthTeam(other)))} roster</button>` : ""}</div>
     ${edit ? rosterControls(i) : ""}
     ${DEPTH_GROUPS.map(sec).join("")}
-    <button class="btn ghost" data-a="back">${game ? "Back to the game" : "Back"}</button>`;
+    <button class="btn ghost" data-a="back">${back}</button>`;
 }
 
 /* ---------- Changing one position ---------- */
@@ -143,7 +159,7 @@ function vDepthEdit() {
   const i = APP.view.team, pos = APP.view.edit, tm = depthTeam(i), sel = APP.view.sel, n = STARTERS[pos];
   const listed = (tm.depth[pos] || []).map(id => playerById(tm, id)).filter(Boolean);
   const others = tm.players.filter(p => !listed.includes(p)).sort((a, b) => slotRating(b, pos) - slotRating(a, pos));
-  const where = inGameView() ? "Changes last for this game only." : APP.ex.depthMode === "next" ? "Changes apply to the next game only." : "Changes apply to every game.";
+  const where = inGameView() ? "Changes last for this game only." : depthHome().depthMode === "next" ? "Changes apply to the next game only." : "Changes apply to every game.";
   const elsewhere = p => { const s = depthRoles(tm, p).starts.filter(x => x !== pos && !["KR", "PR"].includes(x)); return s.length ? ` Also starts at ${andList(s.map(slotName))}.` : ""; };
   const text = (p, k) => `${k != null ? `${k + 1}. ${k < n ? "Starter" : "Backup"}. ` : ""}${fullName(p)}, ${YEAR_NAMES[p.yr]}, ${slotName(pos)} ${slotRating(p, pos)}: ${keyRatings(p, pos)}.${elsewhere(p)}${energyLine(p)}${p.inj ? " Injured." : ""}`;
   const act = (how, label, p) => `<button class="btn ghost slim" data-a="dmove" data-v="${how}" data-t="${p.id}">${label}</button>`;
@@ -185,6 +201,8 @@ function vPlayer() {
   const shown = [p.pos, p.pos2].filter(Boolean);
   const others = fits.filter(([pos]) => !shown.includes(pos)).slice(0, 3);
   const st = inGameView() ? S.ps[p.id] : null;
+  // Season totals for your own players
+  const mineInSeason = SEASON && SEASON.myId && (viewCtx() === "season" ? APP.view.team === SEASON.myId : inGameView() && S.season && S.teams[APP.view.team].id === SEASON.myId);
   return `
     <div class="masthead" style="--team:${tm.color}">
       <p class="eyebrow">${esc(teamTown(tm))} ${esc(teamMascot(tm))} · Number ${p.num}</p>
@@ -198,6 +216,7 @@ function vPlayer() {
       <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}.</p>
     </section>
     ${st ? `<section class="panel"><h3>This game</h3>${playerGameLine(st)}</section>` : ""}
+    ${mineInSeason ? `<section class="panel"><h3>This season</h3>${playerSeasonLine(SEASON.stats[p.id])}</section>` : ""}
     <section class="panel">
       <h3>Ratings</h3>
       ${ATTR_GROUPS.map(([g, list]) => `<p class="sechead" role="heading" aria-level="4">${g}</p><ul class="hlist ratings">${list.map(a => `<li>${ATTR_NAMES[a]} ${p.r[a]}</li>`).join("")}</ul>`).join("")}

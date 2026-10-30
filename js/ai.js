@@ -272,3 +272,29 @@ function cpuTry(c) {
   const wantTwo = cpuPAT() === "two", p2 = Math.max(.15, TWO_P + .02 - (R().tryTwo - c.spot) * .025);
   return wantTwo && p2 >= .25 ? "two" : "kick";
 }
+
+/* ---------- Simming ---------- */
+// One step of a game in which the computer makes every decision (sims, and games nobody watches)
+function autoStep() {
+  switch (S.phase) {
+    case "call": if (S.side === "off") startPlay(); else defStep(); break;
+    case "los": cpuAudible(); resolve(); break;
+    case "pat": doPAT(cpuPAT()); break;
+    case "trychoice": { const c = S.tryChoice; S.tryChoice = null; S.patTeam = c.team; if (cpuTry(c) === "two") startTwo(c.spot); else doPAT("kick", xpDist(c.spot)); break; }
+    case "kickchoice": doKickChoice(cpuWantsOnside(S.kickChoice.team) ? "onside" : "deep"); break;
+    case "penalty": { const P = S.pen; if (P.two) chooseTwoPenalty(penOf(P.code).on === "off" ? P.good : !P.good); else choosePenalty(stateValue(P.acc, P.chooser) > stateValue(P.post, P.chooser)); break; }
+    case "toss": tossNext(); break;
+    case "halftime": startPlay(); break;
+    default: cont();
+  }
+}
+// Sim to the end: every remaining decision goes to the computer, using each team's own coach
+function simToEnd() {
+  if (!S || S.phase === "final") return;
+  const keep = [S.teams[0].cpu, S.teams[1].cpu];
+  S.teams[0].cpu = S.teams[1].cpu = true;
+  S.halftimeShow = false;
+  for (let i = 0; i < 5000 && S.phase !== "final"; i++) autoStep();
+  S.teams[0].cpu = keep[0]; S.teams[1].cpu = keep[1];
+  S.simmed = true;
+}

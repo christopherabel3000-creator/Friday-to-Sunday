@@ -260,3 +260,10 @@ th[scope="row"] { font-family: var(--body); font-size: 14px; color: var(--ink); 
 .dacts { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0 4px; }
 .dacts .btn.slim { margin-top: 0; flex: 1 1 auto; }
 .rowbtn[aria-pressed="true"] { border-color: var(--team, var(--ink)); box-shadow: inset 0 0 0 2px var(--team, var(--ink)); }
+/* The season */
+.stand th[scope="row"] { white-space: normal; min-width: 9em; }
+tr.me th, tr.me td, li.me { font-weight: 700; }
+.sched { padding: 10px 12px; border: 1.5px dashed var(--line); border-radius: 8px; font-size: 15px; line-height: 1.35; }
+.simbar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.simbar i { display: block; height: 100%; background: var(--turf); transition: width .2s; }
+@media (prefers-reduced-motion: reduce) { .simbar i { transition: none; } }

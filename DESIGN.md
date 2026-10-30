@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: building Milestone 1, one high school season. Steps 1 and 2 of the build plan below are done: an exhibition game between two rated 1A schools under high school rules, with a depth chart you can change and fatigue.
+Status: building Milestone 1, one high school season. Steps 1 to 3 of the build plan below are done: a full 1A season, from picking your school through the state championship, with every game played snap by snap or simmed, plus the exhibition game.
 
 ## The pitch
 
@@ -50,7 +50,7 @@ Build steps, each one playable and tested before the next:
 
 1. **Done:** an exhibition game between two generated 1A schools, with rated rosters, an automatic depth chart, ratings driving every snap, high school rules and overtime, player stats, and VoiceOver support.
 2. **Done:** the depth chart: moving players, changes for the next game only, substitutions during a game, fatigue and rotation, and dual-threat quarterbacks.
-3. The season: the district, the schedule, standings, the state playoffs, and quick sims of the games you aren't in.
+3. **Done:** the season: the district, the schedule, standings, the state playoffs, and quick sims of the games you aren't in.
 4. Practice: the weekly plan, playbook installs and mastery, opponent prep and scouting reports, growth, and injuries.
 5. The career: creating your coach, cloud save codes, export and import, and the season summary.
 
@@ -278,6 +278,20 @@ Each level uses its real overtime rules. The details get checked against the cur
 - Each week ends with scores from around the league, the standings and a few lines of news. Only what changed is read aloud.
 - District champions and the next-best finishers make the state playoffs.
 
+How it's built (step 3):
+
+- Class 1A has 8 districts of 8 schools, each district with one school in each color family, so district games never clash. Your district's schools are saved with their full rosters. Everyone else is saved as a summary (town, mascot, colors, tradition, coach, ratings) plus the seed that rebuilds the whole school, exactly, whenever you play them or open their roster.
+- A new season puts you in a random district and lets you pick any of its eight schools. You take over the coach's job. Until you create your own coach in step 5, your coach ratings are the class average (42).
+- The schedule: weeks 1 to 3 are against three other districts (district d meets d XOR w, so every week brings a different district), and weeks 4 to 10 are a district round robin made with the circle method. Home games are handed out to keep things even: every school gets three or four district home games, and almost always four to six in all.
+- Standings: district record first. Ties go to head-to-head among the tied schools, then the overall record, then point differential in district games (capped at 14 a game), then a coin flip from the season's seed.
+- Clinching is called only when it's certain: a school has the title when nobody can reach its district wins, a playoff spot when at most one school can, and is out when two schools already have more wins than it can reach. A tie could break either way, so a tie is never counted as clinched.
+- The playoffs: the top two in each district make a 16-team bracket. District champions host runners-up from another district in the first round, and a district's two schools start in opposite halves, so they can only meet in the final. After the first round the better record hosts, then a district champion over a runner-up. The state championship is at a neutral site, with no home edge and no running clock.
+- Home field: the home team plays about 0.06 sharper on both sides of the ball (home teams win about 56 percent of games between equal teams, by about 2 points).
+- Games between two schools in your district run on the full engine in the background, with the computer coaching both sides. Every other game is a quick sim: expected points of 9.56 + 1.196 times the offense's starter rating, minus 0.961 times the defense's, plus 2 at home (1 each at a neutral site), plus 0.147 per point of coaching edge. The points come from 14 drives that end in a touchdown now and then, or once in a while a field goal (12 percent of scores). A touchdown is worth 7 about half the time, 6 about three times in eight (a missed kick or a failed two) and 8 the rest, as in the engine, so the scores look like football scores. A tie goes to overtime series until somebody wins.
+- That fit came from 800 full-engine games: about 20 points per team with a spread of about 12, and the quick sim matches the engine's averages, spread, shutouts, overtime rate (about 3 percent) and how often the favorite wins at each predicted margin.
+- Your game each week: play it snap by snap or sim it with your coach calling the plays. Your players' stats go into season totals either way. The finished game stays open for its box score until the next one starts.
+- News after each week: upsets (a team favored by 9 or more losing), overtime games, unbeaten teams in your district, who clinched what, the district title, and the state champion. At most five lines, the most important first.
+
 ## Later milestones
 
 ### Milestone 2: more seasons
@@ -326,14 +340,14 @@ Take a coordinator job and call one side of the ball while a computer head coach
   - ai.js: the computer coordinator, driven by coach ratings.
   - players.js: player generation and ratings. Growth, fatigue and injuries join it in later steps.
   - team.js: schools, rosters, depth charts, and who's on the field for each package.
-  - season.js (step 3): the league, schedule, standings, playoffs, and simulating other games.
+  - season.js: the state's schools, the schedule, standings and tiebreakers, the playoff bracket, quick sims, full games nobody's watching, your games, and the news.
   - practice.js (step 4): practice plans, growth and mastery.
   - coach.js: coach ratings, and later XP and perks.
   - fatigue.js: energy during a game, and rotation.
   - save.js (step 5): cloud saves, and export and import. Device saves are in ui.js for now.
   - rules.js: one rules profile per level. Everything that differs by level, from the clock to kickoffs, tries, penalties and overtime, is read from here. High school is in; the pros profile holds Gridiron Duel's NFL rules so the engine stays general; college comes with Milestone 4.
   - util.js and data.js: helpers, the seeded random numbers, and the name lists.
-  - ui_game.js, ui_depth.js and ui.js: the screens (the game, rosters and the depth chart, and everything else), split further as they grow.
+  - ui_game.js, ui_depth.js, ui_season.js and ui.js: the screens (the game; rosters and the depth chart; the season; and the main menu, the exhibition, help and screen reader support), split further as they grow.
 - A seeded random number generator, so a world and its rosters can be rebuilt from a seed.
 - A headless test hook like Gridiron Duel's, plus a tests folder with scripts that play full seasons and check balance.
 - Hosting: GitHub Pages while building, and itch.io when it's ready.
@@ -346,6 +360,7 @@ Take a coordinator job and call one side of the ball while a computer head coach
 - Rules: every level follows its real rules exactly, NFHS for high school, NCAA for college and NFL for the pros, checked against current sources before each level is built. Where high school rules vary by state, the fictional state uses the most common choice.
 - Overtime: each level's real rules. High school and college overtime have no clock. The pro regular season has one 10-minute period with fourth-quarter timing, two timeouts each, and ties possible. The pro playoffs use NFL playoff overtime, which Gridiron Duel now matches.
 - Depth chart: automatic if you want it, with changes for a single game and substitutions during a game.
+- The season: an 8-school district, three non-district games, and a 16-team state playoff for the top two in each district. Games in your district run on the full engine; the rest of the state is quick-simmed from ratings fit to the engine.
 - Difficulty: Normal only to start.
 
 ## Open questions

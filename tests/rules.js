@@ -353,7 +353,7 @@ function plain(g, extra) {
 // ---- Editing the depth chart ----
 {
   const { g, F } = game(false);
-  g(`S = null; APP.screen = "home"; APP.ex.you = 0; APP.ex.depthMode = "always"; APP.view = { team: 0, back: "home" };`);
+  g(`S = null; APP.screen = "home"; APP.ex.you = 0; APP.ex.depthMode = "always"; APP.view = { ctx: "ex", team: 0, back: "exhibition" };`);
   const school = () => g("APP.ex.schools[0]");
   const qb = school().depth.QB.slice();
   let said = g(`depthMove(0, "QB", "${qb[1]}", "start")`);
@@ -381,7 +381,7 @@ function plain(g, extra) {
   ok(g("S.teams[0].depth.QB[0]") === qb2, "the next kickoff uses it");
   ok(g("APP.ex.nextDepth") === null && JSON.stringify(school().depth) === before, "then it's used up, and the every-game chart is unchanged");
   // During a game: changes last for this game only, and take effect on the next snap
-  g(`APP.view = { team: 0, back: "game" }; APP.screen = "roster";`);
+  g(`APP.view = { ctx: "game", team: 0, back: "game" }; APP.screen = "roster";`);
   const rb = g("S.teams[0].depth.RB.slice()"), dv = g("S.teams[0].dver");
   g(`depthMove(0, "RB", "${rb[1]}", "start")`);
   ok(g("S.teams[0].depth.RB[0]") === rb[1] && g("S.teams[0].dver") > dv, "a substitution changes this game's depth chart");

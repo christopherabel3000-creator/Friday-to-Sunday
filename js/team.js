@@ -18,12 +18,17 @@ function schoolAbbr(town, other) {
   if (other && a === other) a = (words.length > 1 ? words[0].slice(0, 2) + words[words.length - 1][0] : words[0].slice(0, 2) + words[0][words[0].length - 1]);
   return a;
 }
+// A school. opts: id, cls, mascot, and optionally town, color ([hex, name, family]) and trad
+// (tradition, 1 to 100). Given those, everything else comes from g alone, so a school can be rebuilt
+// from its seed: genSchool(dice(seed), opts).
 function genSchool(g, opts) {
-  const level = CLASS_LEVEL[opts.cls] + (opts.boost || 0) + Math.round(g.n(0, 3));
-  const town = townName(g, opts.towns), id = opts.id;
+  // Programs with a winning tradition tend to have a little more talent
+  const trad = opts.trad != null ? opts.trad : clamp(Math.round(g.n(45, 18)), 5, 95);
+  const level = CLASS_LEVEL[opts.cls] + (opts.boost || 0) + Math.round((trad - 50) * .06 + g.n(0, 2.5));
+  const town = opts.town || townName(g, opts.towns), id = opts.id;
   const col = opts.color || g.pick(SCHOOL_COLORS.filter(c => !opts.colorsTaken || !opts.colorsTaken.has(c[2])));
   if (opts.colorsTaken) opts.colorsTaken.add(col[2]);
-  const s = { id, town, mascot: opts.mascot, cls: opts.cls, level, color: col[0], colorName: col[1],
+  const s = { id, town, mascot: opts.mascot, cls: opts.cls, level, trad, color: col[0], colorName: col[1],
     enroll: g.i(80, 190), coach: genCoach(g, opts.cls), players: genRoster(g, id, level) };
   s.abbr = schoolAbbr(town, opts.otherAbbr);
   s.off = s.coach.off_style; s.def = s.coach.def_style;
@@ -31,6 +36,8 @@ function genSchool(g, opts) {
   return s;
 }
 const schoolName = s => `${s.town} ${s.mascot}`;
+// How a school's tradition reads
+const tradWord = t => t >= 80 ? "a proud winning tradition" : t >= 62 ? "a winning tradition" : t >= 40 ? "a middle-of-the-pack program" : t >= 22 ? "a losing tradition" : "years of losing";
 
 /* ---------- Depth chart ---------- */
 // How many players each position lists. The first ones start; the rest are the backups in order.

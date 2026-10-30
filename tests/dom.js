@@ -57,13 +57,18 @@ function checkScreen(page, label) {
 }
 
 (async () => {
-  // ---- Home, rosters and a player ----
+  // ---- The main menu, the exhibition, rosters and a player ----
   let page = await openPage();
   let d = page.d;
-  ok(d.querySelector("h1") && /Friday to/i.test(d.querySelector("h1").textContent), "the home screen shows the title");
-  ok(d.querySelectorAll(".teamcard").length === 2, "two schools on the home screen");
+  ok(d.querySelector("h1") && /Friday to/i.test(d.querySelector("h1").textContent), "the main menu shows the title");
+  ok(btn(d, "season") && /Start a season/.test(btn(d, "season").textContent) && btn(d, "exhibition"), "the main menu offers a season and an exhibition");
+  ok(!btn(d, "gohome"), "no Home button on the main menu");
+  checkScreen(page, "main menu");
+  tap(page, "exhibition");
+  ok(focused(d) && focused(d).tagName === "H2" && / at /.test(focused(d).textContent), "the exhibition screen opens on its heading");
+  ok(d.querySelectorAll(".teamcard").length === 2, "two schools in the exhibition");
   ok(d.querySelector('table[aria-label="Matchup by unit"] th[scope="row"]'), "the matchup table has row headers");
-  checkScreen(page, "home");
+  checkScreen(page, "exhibition");
   tap(page, "roster", 0);
   ok(/Roster and depth chart/.test(d.body.textContent), "the roster screen opens");
   ok(focused(d) && focused(d).tagName === "H2", "focus moves to the roster heading");
@@ -79,7 +84,7 @@ function checkScreen(page, label) {
   ok(/Roster and depth chart/.test(d.body.textContent), "back to the roster");
   tap(page, "rteam");
   tap(page, "back");
-  ok(d.querySelector(".teamcard"), "back home");
+  ok(d.querySelector(".teamcard") && btn(d, "kickoff"), "back to the exhibition");
   // Pick the away team and a style, then kick off
   tap(page, "you", 1);
   ok(btn(d, "you", 1).getAttribute("aria-pressed") === "true", "you coach the away team");
@@ -174,6 +179,7 @@ function checkScreen(page, label) {
   const p3 = await openPage(), d3 = p3.d, w3 = p3.w;
   const school = () => w3.eval("APP.ex.schools[0]");
   const said = async () => { await new Promise(r => setTimeout(r, 120)); return d3.getElementById("sr").textContent; };
+  tap(p3, "exhibition");
   tap(p3, "roster", 0);
   ok(btn(d3, "dmode", "always").getAttribute("aria-pressed") === "true", "your roster: changes apply to every game unless you say otherwise");
   ok(btn(d3, "rot", "normal").getAttribute("aria-pressed") === "true", "rotation starts at normal");
@@ -231,6 +237,112 @@ function checkScreen(page, label) {
   tap(p3, "rematch");
   ok(w3.eval("S.teams[0].depth.QB[0]") === qb[0], "after that game, the depth chart goes back to the every-game one");
   ok(p3.errors.length === 0, "no script errors in the depth chart screens: " + p3.errors.slice(0, 2).join(" | "));
+
+  // ---- A season ----
+  const p4 = await openPage(), d4 = p4.d, w4 = p4.w;
+  const ev = x => w4.eval(x);
+  const heading = () => { const f = focused(d4); return f && (f.hasAttribute("data-focus") || /^H[12]$/.test(f.tagName)) ? f.textContent : null; };
+  tap(p4, "season");
+  ok(ev("APP.screen") === "pick" && /Pick your school/.test(heading() || ""), "a new season opens on picking your school");
+  ok(d4.querySelectorAll(".teamcard").length === 8 && d4.querySelectorAll('[data-a="takejob"]').length === 8, "eight schools to pick from");
+  checkScreen(p4, "pick your school");
+  const pickId = btn(d4, "takejob").dataset.v;
+  tap(p4, "sroster", pickId);
+  ok(ev("APP.screen") === "roster" && !btn(d4, "dedit") && !btn(d4, "rteam"), "a school's roster can be read before you pick, but not changed");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "pick", "back to picking");
+  tap(p4, "takejob", pickId);
+  ok(ev("SEASON.myId") === pickId && ev("APP.screen") === "season", "take the job");
+  ok(heading() === ev("nameOf(SEASON.myId)"), "the season screen opens on your school's name");
+  ok(btn(d4, "playgame") && btn(d4, "simgame") && /On paper/.test(d4.body.textContent), "this week's game: play it or sim it, and who's favored");
+  ok(d4.querySelector('table.stand th[scope="row"]') && /\(you\)/.test(d4.querySelector("table.stand").textContent), "your district's standings, with your school marked");
+  checkScreen(p4, "the week ahead");
+  // Your schemes carry into your games
+  tap(p4, "ostyle", "wc");
+  ok(ev("mySchool().off") === "wc" && focused(d4) === btn(d4, "ostyle", "wc"), "change your offensive style; focus stays put");
+  // Your roster: changes for the next game only
+  tap(p4, "sroster", ev("SEASON.myId"));
+  ok(btn(d4, "dedit", "QB") && btn(d4, "rteam"), "your roster can be changed, and the opponent's is a tap away");
+  tap(p4, "dmode", "next");
+  const sqb = ev("mySchool().depth.QB.slice()");
+  tap(p4, "dedit", "QB"); tap(p4, "dsel", sqb[1]); tap(p4, "dmove", "start"); tap(p4, "ddone");
+  ok(ev("SEASON.nextDepth.depth.QB[0]") === sqb[1] && ev("mySchool().depth.QB[0]") === sqb[0], "a next-game change is saved for the season's next game");
+  tap(p4, "rteam");
+  ok(!btn(d4, "dedit") && /roster/i.test(btn(d4, "rteam").textContent), "the opponent's roster");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "season", "back to the week ahead");
+  // Sim week 1
+  tap(p4, "simgame");
+  ok(ev("APP.screen") === "week" && ev("SEASON.week") === 2 && /^You (beat|lost to) the /.test(heading() || ""), `sim the game: the week's results open on yours (${heading()})`);
+  ok(ev("S.season.week") === 1 && ev(`S.teams.find(t => t.id === SEASON.myId).depth.QB[0]`) === sqb[1] && ev("S.teams.find(t => t.id === SEASON.myId).off") === "wc", "the game used your next-game lineup and your scheme");
+  ok(ev("SEASON.nextDepth") === null, "the next-game lineup is used up");
+  ok(btn(d4, "boxscore") && /District \d/.test(d4.body.textContent), "box score link and your district's scores");
+  checkScreen(p4, "week 1 results");
+  tap(p4, "boxscore");
+  ok(ev("APP.screen") === "game" && btn(d4, "weekdone") && /Week 1 results/.test(btn(d4, "weekdone").textContent) && !btn(d4, "rematch"), "the box score of a season game leads back to the week, not a rematch");
+  tap(p4, "weekdone");
+  ok(ev("APP.screen") === "week" && ev("SEASON.week") === 2, "back to week 1's results, without playing another week");
+  tap(p4, "season");
+  ok(ev("APP.screen") === "season" && /Week 2/.test(d4.querySelector(".masthead .eyebrow").textContent), "on to week 2");
+  ok(btn(d4, "week", 1), "last week's results are a tap away");
+  // Play week 2 by tapping a little, step away, then sim the rest
+  tap(p4, "playgame");
+  ok(ev("APP.screen") === "game" && ev("isMyGame()") && ev("S.season.week") === 2, "play your week 2 game");
+  for (let i = 0; i < 12; i++) { const S = ev("S"); if (S.phase === "result") tap(p4, "cont"); else if (S.phase === "toss") tap(p4, "toss", S.toss.step === "call" ? "heads" : (btn(d4, "toss", "receive") ? "receive" : "defense")); else ev("S.teams.forEach(t => t.cpu = true); autoStep(); S.teams.forEach(t => t.cpu = t.id !== SEASON.myId); render();"); }
+  ok(!btn(d4, "end"), "a season game can't be thrown away");
+  tap(p4, "gohome");
+  ok(/Your season game is in progress/.test(d4.body.textContent) && btn(d4, "resume"), "the main menu offers to go back to your season game");
+  tap(p4, "exhibition");
+  ok(!btn(d4, "kickoff") && btn(d4, "resume"), "no exhibition while your season game is in progress");
+  tap(p4, "newmatch");
+  ok(ev("isMyGame()") && ev("S.phase") !== "final", "a new exhibition matchup leaves your season game alone");
+  tap(p4, "resume");
+  tap(p4, "sim"); tap(p4, "sim");
+  ok(ev("S.phase") === "final" && ev("played(myGameIn(2))"), "sim to the end: the result is in the books");
+  tap(p4, "weekdone");
+  ok(ev("APP.screen") === "week" && ev("APP.weekView") === 2 && ev("SEASON.week") === 3, "week 2 results");
+  tap(p4, "season");
+  // A reload in the middle of the season
+  const store4 = {}; for (let i = 0; i < w4.localStorage.length; i++) { const k = w4.localStorage.key(i); store4[k] = w4.localStorage.getItem(k); }
+  const p5 = await openPage(store4);
+  ok(p5.w.eval("SEASON.week") === 3 && p5.w.eval("APP.screen") === "season" && p5.w.eval("JSON.stringify(SEASON.weeks)") === ev("JSON.stringify(SEASON.weeks)"), "the season picks up where it left off after a reload");
+  ok(p5.errors.length === 0, "no errors after reloading the season");
+  // Standings, schedule and stats
+  tap(p4, "standings");
+  ok(d4.querySelectorAll("table.stand").length === 8 && /Standings/.test(heading() || ""), "standings for all eight districts");
+  checkScreen(p4, "standings");
+  tap(p4, "back");
+  tap(p4, "schedule");
+  ok(d4.querySelectorAll('.roster [data-a="week"]').length === 2 && d4.querySelectorAll(".sched").length === 8, "your schedule: two results to open, eight games to go");
+  ok(d4.querySelector(".statwrap, table caption"), "season stats tables");
+  checkScreen(p4, "schedule");
+  tap(p4, "week", 1);
+  ok(ev("APP.weekView") === 1 && btn(d4, "back") && /schedule/.test(btn(d4, "back").textContent), "an old week's results, with the way back to the schedule");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "schedule", "back to the schedule");
+  tap(p4, "back");
+  // Sim to the playoffs (two taps), a week at a time
+  tap(p4, "simseason");
+  ok(/Tap again/.test(btn(d4, "simseason").textContent) && ev("APP.screen") === "season", "sim to the playoffs asks for a second tap");
+  tap(p4, "simseason");
+  ok(ev("APP.screen") === "simming" && /Simming/.test(heading() || ""), "the sim shows its progress");
+  for (let i = 0; i < 400 && ev("APP.screen") === "simming"; i++) await new Promise(r => setTimeout(r, 25));
+  ok(ev("APP.screen") === "season" && ev("SEASON.week") === 11 && ev("SEASON.phase") === "playoffs", "the regular season is done");
+  ok(heading() === ev("nameOf(SEASON.myId)"), "focus goes back to the season screen's heading");
+  ok(btn(d4, "bracket"), "the playoff bracket is up");
+  tap(p4, "bracket");
+  ok(d4.querySelectorAll(".panel h3").length === 1 && d4.querySelectorAll(".panel li").length === 8, "the first round: eight games");
+  checkScreen(p4, "bracket");
+  tap(p4, "back");
+  tap(p4, "simseason"); tap(p4, "simseason");
+  for (let i = 0; i < 400 && ev("APP.screen") === "simming"; i++) await new Promise(r => setTimeout(r, 25));
+  ok(ev("SEASON.phase") === "over" && ev("SEASON.champion") && /state champions/i.test(d4.body.textContent), "the season ends with a state champion");
+  checkScreen(p4, "season over");
+  tap(p4, "newseason");
+  ok(/Tap again/.test(btn(d4, "newseason").textContent), "starting over asks for a second tap");
+  tap(p4, "newseason");
+  ok(ev("APP.screen") === "pick" && ev("SEASON.myId") === null, "a new season");
+  ok(p4.errors.length === 0, "no script errors in the season: " + p4.errors.slice(0, 2).join(" | "));
 
   console.log(`${checks - fails}/${checks} checks passed`);
   process.exit(fails ? 1 : 0);

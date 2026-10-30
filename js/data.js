@@ -43,7 +43,11 @@ const TOWNS = ["Harlan", "Corbin", "Delmar", "Avalon", "Bristow", "Calloway", "D
 const MASCOTS = ["Panthers", "Eagles", "Wildcats", "Tigers", "Bulldogs", "Hornets", "Mustangs", "Rams", "Falcons", "Hawks", "Cougars", "Bobcats", "Lions", "Bears",
   "Knights", "Spartans", "Trojans", "Vikings", "Pirates", "Raiders", "Pioneers", "Cardinals", "Blue Jays", "Owls", "Badgers", "Wolverines", "Wolves", "Coyotes",
   "Broncos", "Chargers", "Comets", "Rockets", "Mavericks", "Huskies", "Lumberjacks", "Miners", "Bison", "Longhorns", "Golden Bears", "Blue Devils", "Yellow Jackets",
-  "Gators", "Hurricanes", "Cyclones", "Bearcats", "Greyhounds", "Jaguars", "Stallions", "Rattlers", "Scorpions", "Grizzlies", "Thunderbirds", "Ravens", "Jackrabbits"];
+  "Gators", "Hurricanes", "Cyclones", "Bearcats", "Greyhounds", "Jaguars", "Stallions", "Rattlers", "Scorpions", "Grizzlies", "Thunderbirds", "Ravens", "Jackrabbits",
+  "Golden Eagles", "Red Hawks", "Black Hawks", "Silver Foxes", "Blue Knights", "Red Raiders", "Lancers", "Patriots", "Rangers", "Colts", "Wranglers", "Outlaws",
+  "Bandits", "Gladiators", "Titans", "Generals", "Admirals", "Mariners", "Clippers", "Ospreys", "Herons", "Pelicans", "Bruins", "Cubs", "Antelopes", "Elks",
+  "Mountaineers", "Hilltoppers", "Rebounders", "Cowboys", "Ramblers", "Travelers", "Pilots", "Dragons", "Phantoms", "Warhawks", "Firebirds", "Bobwhites",
+  "Muskies", "Catamounts", "Timberwolves", "Foxes", "Hounds", "Beavers", "Otters", "Wolfhounds", "Leopards", "Pumas", "Saints", "Statesmen", "Bluebirds"];
 // School colors: [hex, name, family]. Dark enough for white text on top. Two teams in a game never
 // share a family, so they're easy to tell apart.
 const SCHOOL_COLORS = [["#A3242F", "Crimson", "red"], ["#22407D", "Navy", "blue"], ["#C95A17", "Orange", "orange"], ["#5A3990", "Purple", "purple"],

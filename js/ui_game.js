@@ -441,7 +441,7 @@ function vHalftime() {
     const r = halfReport(i);
     const tips = r.tips.map(x => x.text);
     return `<section class="panel" style="--team:${t[i].color}" aria-label="${esc(tname(i))} first half">
-      <p class="eyebrow">${esc(t[i].school)} ${esc(t[i].name)} · ${esc(coach(i))}</p>
+      <p class="eyebrow">${esc(t[i].school)} ${esc(t[i].name)}${t[i].coach.you ? "" : ` · ${esc(coach(i))}`}</p>
       <h3>${esc(identityText(i))}</h3>
       ${lines(leaderLines(i))}
       <p class="sechead">On offense</p>${lines(r.off)}
@@ -505,13 +505,13 @@ function vFinal() {
   const lines = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
   return `${board()}
     <section class="panel final handoff" style="--team:${tie ? "var(--ink)" : S.teams[w].color}">
-      <p class="eyebrow">Final${S.quarter === 5 ? " · Overtime" : S.quarter > 5 ? ` · ${S.quarter - 4} overtimes` : ""}</p>
+      <p class="eyebrow">Final${S.quarter === 5 ? " · Overtime" : S.quarter > 5 ? ` · ${S.quarter - 4} overtimes` : ""}${S.season ? ` · ${weekName(S.season.week)}` : ""}</p>
       <h2>${tie ? "It ends in a tie" : `<span>${esc(S.teams[w].name)}</span> win ${S.teams[w].score}-${S.teams[1 - w].score}`}</h2>
       ${[w, 1 - w].map(i => `<p class="sechead">${esc(S.teams[i].school)} ${esc(S.teams[i].name)}</p>${lines(leaderLines(i))}`).join("")}
-      <div class="choices">
+      ${S.season ? `<button class="btn" data-a="weekdone">${weekName(S.season.week)} results</button>` : `<div class="choices">
         <button class="btn" data-a="rematch">Play again</button>
         <button class="btn ghost" data-a="newmatch">New matchup</button>
-      </div>
+      </div>`}
     </section>`;
 }
 
@@ -534,8 +534,8 @@ function vExtras() {
   const live = S.phase !== "final";
   const foot = `<div class="foot">
     ${t[0].cpu && t[1].cpu ? `<button class="linkbtn" data-a="roster" data-t="0">Rosters</button>` : `<button class="linkbtn" data-a="lineup">Lineup and subs</button>`}
-    ${live ? `<button class="linkbtn ${S.confirmSim ? "warn" : ""}" data-a="sim">${S.confirmSim ? "Tap again to sim to the end" : "Sim to the end"}</button>
-    <button class="linkbtn ${S.confirmEnd ? "warn" : ""}" data-a="end">${S.confirmEnd ? "Tap again to end this game" : "End game"}</button>` : ""}
+    ${live ? `<button class="linkbtn ${confirming === "sim" ? "warn" : ""}" data-a="sim">${confirming === "sim" ? "Tap again to sim to the end" : "Sim to the end"}</button>` : ""}
+    ${live && !S.season ? `<button class="linkbtn ${confirming === "end" ? "warn" : ""}" data-a="end">${confirming === "end" ? "Tap again to end this game" : "End game"}</button>` : ""}
   </div>`;
   return box + players + log + foot;
 }
