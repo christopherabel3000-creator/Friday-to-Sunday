@@ -3,18 +3,22 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 4;
+const BUILD = 5;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
-//   screen: "home" (the main menu), "exhibition", "pick", "season", "week", "standings", "schedule",
-//     "bracket", "simming", "roster", "player", "depth" or "game"
+//   screen: "home" (the main menu), "exhibition", "newcoach", "coach", "pick", "season", "week",
+//     "standings", "schedule", "bracket", "summary", "simming", "roster", "player", "depth", "practice",
+//     "install", "preport", "scout", "saves" or "game"
 //   ex: the exhibition matchup { seed, schools: [home, away], you: 0, 1 or "watch", styles: { off, def } }
 //   view: what the roster screens show { ctx, team, pair, player, back, edit, sel } (ui_depth.js)
 //   weekView, weekFrom: the week the results screen shows, and the screen that opened it
 //   reportNext: "kickoff" when the practice report leads straight into the game
 //   scoutBack: the screen the scouting report goes back to
-// S (engine.js) is the game being played, and SEASON (season.js) the season.
+//   coachDraft: the coach being created (ui_career.js), coachBack: the screen your coach's page goes back to
+//   cloud: this game's cloud save { key, ver, at } (cloud.js)
+// S (engine.js) is the game being played, SEASON (season.js) the season, and CAREER (career.js) your
+// coach and the seasons you've finished.
 let APP = null;
 function newExhibition() {
   const seed = newSeed(), g = dice(seed), towns = new Set(), colors = new Set(), mascots = g.shuffle(MASCOTS);
@@ -42,7 +46,8 @@ const liveSeasonGame = () => liveGame() && !!S.season;
 
 /* ---------- Saving ---------- */
 // The whole app saves on the device after every tap: the season, and the game in progress
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, build: BUILD, app: APP, game: S, season: SEASON })); } catch (e) {} }
+const currentSave = () => ({ v: 1, build: BUILD, app: APP, game: S, season: SEASON, career: CAREER });
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(currentSave())); } catch (e) {} }
 function loadSaved() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); return s && s.v === 1 && s.app && s.app.ex ? upgradeSave(s) : null; } catch (e) { return null; }
 }
@@ -67,25 +72,41 @@ function upgradeSave(s) {
     const me = se.myId && se.schools[se.myId];
     if (me && me.players) me.players.forEach(p => { if (p.o0 == null) p.o0 = ovr(p, p.pos); });
   }
+  // Version 5: your career. A season already under way keeps its unnamed coach, who can be named on
+  // his page; a season still waiting for its school is dropped, to start with a new coach.
+  if (!s.career && (s.build || 0) < 5) {
+    const me = se && se.myId && se.schools && se.schools[se.myId];
+    if (me && me.coach) { me.coach.you = true; s.career = { v: 1, coach: me.coach, seasons: [] }; }
+    else if (se) { s.season = null; if (["pick", "season"].includes(s.app.screen)) s.app.screen = "home"; }
+  }
   s.build = BUILD;
   return s;
 }
 
 /* ---------- The main menu ---------- */
 function vHome() {
-  const live = liveGame(), me = SEASON && SEASON.myId ? mySchool() : null;
-  const season = me ? `<section class="panel teamcard" style="--team:${me.color}">
-      <span class="eyebrow">Season · ${SEASON.phase === "over" ? "Over" : weekName(Math.min(SEASON.week, LAST_WEEK))}</span>
+  const live = liveGame(), me = SEASON && SEASON.myId ? mySchool() : null, c = CAREER && CAREER.coach;
+  const restart = `<button class="btn ghost" data-a="newcareer">${confirming === "newcareer" ? "Tap again to start over" : "Start a new career"}</button>`;
+  let season;
+  if (me) season = `<section class="panel teamcard" style="--team:${me.color}">
+      <span class="eyebrow">${esc(coachFullName(c))} · ${SEASON.phase === "over" ? "Season over" : weekName(Math.min(SEASON.week, LAST_WEEK))}</span>
       <h2 class="h2small">${esc(nameOf(me.id))}</h2>
       <p class="muted">${esc(seasonStatus())}</p>
-      <button class="btn" data-a="season">${SEASON.phase === "over" ? "See how it ended" : "Continue the season"}</button>
-      <button class="btn ghost" data-a="newseason">${confirming === "newseason" ? "Tap again to start over" : "Start a new season"}</button>
-    </section>`
-    : `<section class="panel">
-      <span class="eyebrow">Season</span>
+      <button class="btn" data-a="${SEASON.phase === "over" ? "summary" : "season"}">${SEASON.phase === "over" ? "Season summary" : "Continue the season"}</button>
+      <div class="choices"><button class="btn ghost" data-a="coach">Your coach</button>${restart}</div>
+    </section>`;
+  else if (c && SEASON) season = `<section class="panel">
+      <span class="eyebrow">${esc(coachFullName(c))}</span>
+      <h2 class="h2small">Looking for a job</h2>
+      <p class="muted">Eight schools in District ${SEASON.district} need a head coach.</p>
+      <button class="btn" data-a="season">Pick your school</button>
+      <div class="choices"><button class="btn ghost" data-a="coach">Your coach</button>${restart}</div>
+    </section>`;
+  else season = `<section class="panel">
+      <span class="eyebrow">Career</span>
       <h2 class="h2small">Your first head coaching job</h2>
-      <p class="muted">Take over a small 1A school. Play a ten-game schedule, win your district, and make a run in the state playoffs.</p>
-      <button class="btn" data-a="season">${SEASON ? "Pick your school" : "Start a season"}</button>
+      <p class="muted">Create your coach and take over a small 1A school. Play a ten-game schedule, win your district, and make a run in the state playoffs.</p>
+      <button class="btn" data-a="career">${APP.coachDraft ? "Finish creating your coach" : "Start a career"}</button>
     </section>`;
   return `
     <div class="masthead">
@@ -99,6 +120,11 @@ function vHome() {
       <span class="eyebrow">Exhibition</span>
       <p class="muted">One game between two made-up schools, to try a scheme or just watch.</p>
       <button class="btn ghost" data-a="exhibition">Exhibition game</button>
+    </section>
+    <section class="panel">
+      <span class="eyebrow">Saves</span>
+      <p class="muted">The game saves on this device as you play. Save to the cloud or keep a save code to play on another device.</p>
+      <button class="btn ghost" data-a="saves">Cloud saves and save codes</button>
     </section>`;
 }
 
@@ -181,14 +207,24 @@ function vHelp() {
       "On every snap the players matter: the line against the front on runs, the protection against the rush, the passer and receiver against the coverage, the ball carrier against the tacklers.",
       "A quick quarterback slips some sacks and takes off when nobody's open. Kickers have a range set by their leg."
     ]))}
+    ${sec("Your coach", ul([
+      "A career starts with your coach: a name, a background and your schemes. Every new head coach starts at 40 in each rating, plus what the background brings.",
+      "Offense and Defense give a small edge on every snap on that side of the ball. Special teams helps field goals, punts and kick coverage. Development speeds up your players' growth in practice. Motivation helps late in close games and in comebacks.",
+      "Game management: at 45 and up, your staff gives the odds of converting on fourth down as a percentage. Below that, you get a rough idea.",
+      "Scouting improves scouting reports and the edge from film study. At 45 and up, the same film time gives a fuller report. At 60 and up, your staff sometimes spots a disguised look at the line.",
+      "A former quarterback's quarterbacks grow faster. A former lineman's linemen grow faster, and that coach's teams run the ball, and stop the run, a little better. A special teams ace's kickers and punters grow faster.",
+      "When you sim a game, your ratings also decide how well your coach calls the plays.",
+      "You bring your schemes to your new school. The team still knows its last coach's playbook, and learns yours in practice."
+    ]))}
     ${sec("The season", ul([
-      "Pick your school from the eight in your district. You take over as head coach.",
+      "Pick your school from the eight in your district. You take over as head coach. Each school's card says what its last coach ran, and how much of your playbook it already knows.",
       "Weeks 1 to 3 are against schools from other districts. Weeks 4 to 10 are the district schedule: you play everyone in your district once.",
       "The top two in each district make the 16-team state playoffs. Ties in the standings go to head-to-head, then the overall record, then point differential in district games, up to 14 points a game.",
       "District champions host the first round. After that the better record hosts, and the state championship is at a neutral site.",
       "Each week, play your game snap by snap or sim it. Your coach calls the plays in a sim, and your players' stats count either way.",
       "Games between schools in your district run on the full game engine behind the scenes. The rest of the state is simmed from each team's ratings.",
-      "Your schemes, rotation and depth chart carry from week to week. A depth chart for the next game only goes back to normal after that game."
+      "Your schemes, rotation and depth chart carry from week to week. A depth chart for the next game only goes back to normal after that game.",
+      "Once there's a state champion, the season summary has your record and finish, the games to remember, your leaders and who improved the most. Then coach another season in a new district, or start a new career."
     ]))}
     ${sec("Practice", ul([
       "Each week has ten practice blocks. Give each area none, light, normal or heavy, and the blocks are shared out by weight. Presets give a quick start: Balanced, Install, Game prep and Rest.",
@@ -252,6 +288,13 @@ function vHelp() {
       "Leading late with the other team out of timeouts, you can kneel to run out the clock.",
       "After your team scores, you can call an onside kick before the kickoff. High school teams don't have to announce one, so a surprise works a lot more often. Trailing in the last two minutes, you're asked every time."
     ]))}
+    ${sec("Saves", ul([
+      "The game saves on this device after every tap.",
+      "Save to the cloud to get a 12-character cloud save code. Enter it on another device to load your game there. Anyone with the code can load or replace that save, so keep it like a password.",
+      "If the cloud save was changed on another device since you last saved or loaded it here, the game asks before replacing it.",
+      "A save code is your whole game as text. Copy it into Notes or an email, or save it as a file, and load it on any device.",
+      "Loading a save, or starting a new career, keeps the game you had as a backup, so you can switch back."
+    ]))}
     ${sec("Tips", ul([
       "Check the matchup table before kickoff. Attack the other team's weakest unit. \"On paper\" says who the ratings favor, and by about how much.",
       "Read the halftime report. It shows each side's habits by down and distance and what beats them.",
@@ -267,7 +310,8 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: vSeason, week: vWeek, standings: vStandings, schedule: vSchedule,
-  bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout };
+  bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
+  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -312,6 +356,7 @@ function placeFocus(app, key, prev) {
   const changed = lastKey !== null && key !== lastKey;
   lastKey = key;
   let el = null;
+  if (focusNext && focusNext.id) { const f = document.getElementById(focusNext.id); focusNext = null; if (f) { try { f.focus({ preventScroll: false }); } catch (e) {} return; } }
   if (focusNext) { prev = focusNext; focusNext = null; if (changed) { const f = [...app.querySelectorAll("[data-a]")].find(b => b.dataset.a === prev.a && b.dataset.v === prev.v); if (f) { try { f.focus({ preventScroll: true }); } catch (e) {} return; } } }
   if (!changed) {
     if (!prev) return;
@@ -378,7 +423,10 @@ function act(a, ds) {
     case "ostyle": case "dstyle": {
       const ids = a === "ostyle" ? OFF_STYLE_IDS : DEF_STYLE_IDS, k = a === "ostyle" ? "off" : "def";
       if (!ids.includes(ds.v)) break;
-      if (APP.screen === "season" && SEASON && SEASON.myId) mySchool()[k] = ds.v; else APP.ex.styles[k] = ds.v;
+      if (APP.screen === "newcoach") (APP.coachDraft = APP.coachDraft || newDraft())[k] = ds.v;
+      // Your schemes are your coach's: they go with him to the next job
+      else if (APP.screen === "season" && SEASON && SEASON.myId) { const me = mySchool(); me[k] = ds.v; me.coach[k + "_style"] = ds.v; }
+      else APP.ex.styles[k] = ds.v;
       break;
     }
     // A new matchup drops an exhibition game, never your season game
@@ -387,11 +435,27 @@ function act(a, ds) {
     case "rematch": if (S && !S.season) { startExhibition(); scrollTop(); } break;
     case "resume": if (S && S.teams) APP.screen = "game"; scrollTop(); break;
     // The season
-    case "season": if (!SEASON) newSeason(); APP.screen = seasonScreen(); scrollTop(); break;
-    case "newseason":
-      if (SEASON && SEASON.myId && !confirmed("newseason")) break;
+    // Your career: creating your coach, then a job
+    case "career": case "season":
+      if (!CAREER || !SEASON) { if (!APP.coachDraft) APP.coachDraft = newDraft(); draftErr = false; APP.screen = "newcoach"; }
+      else APP.screen = seasonScreen();
+      scrollTop(); break;
+    case "cbg": if (BACKGROUNDS[ds.v] && APP.coachDraft) { APP.coachDraft.bg = ds.v; announce(`${BACKGROUNDS[ds.v].name}: ${raisedLine(makeCoach("", "", ds.v))}.`); } break;
+    case "makecoach": if (makeCoachNow()) { APP.screen = "pick"; scrollTop(); } break;
+    case "coach": if (CAREER) { if (APP.screen !== "coach") APP.coachBack = APP.screen; APP.screen = "coach"; scrollTop(); } break;
+    case "summary": if (SEASON && SEASON.phase === "over" && SEASON.myId) { recordCareerSeason(); APP.screen = "summary"; scrollTop(); } break;
+    // Another season with the same coach: a new district and a new school
+    case "nextseason":
+      if (!CAREER || (SEASON && SEASON.myId && SEASON.phase !== "over")) break;
+      recordCareerSeason();
       if (S && S.season) S = null;
       newSeason(); APP.screen = "pick"; scrollTop(); break;
+    case "newcareer":
+      if (!confirmed("newcareer")) break;
+      keepBackup();
+      if (S && S.season) S = null;
+      CAREER = null; SEASON = null; APP.coachDraft = newDraft(); draftErr = false; APP.cloud = null;
+      APP.screen = "newcoach"; scrollTop(); break;
     case "takejob": if (pickSchool(ds.v)) { APP.screen = "season"; scrollTop(); } break;
     case "playgame": case "simgame": {
       if (!SEASON || !SEASON.myId) break;
@@ -452,6 +516,7 @@ function act(a, ds) {
       else if (APP.screen === "scout" && ["game", "preport"].includes(APP.scoutBack)) APP.screen = APP.scoutBack === "game" && !(S && S.teams) ? "season" : APP.scoutBack;
       else if (APP.screen === "roster") { const b = APP.view && APP.view.back; APP.screen = b === "game" && !(S && S.teams) ? "home" : b || "home"; }
       else if (APP.screen === "week" && APP.weekFrom === "schedule") APP.screen = "schedule";
+      else if (APP.screen === "coach") APP.screen = SCREENS[APP.coachBack] && APP.coachBack !== "coach" ? APP.coachBack : "home";
       else APP.screen = seasonScreen();
       scrollTop(); break;
     }
@@ -509,7 +574,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: return;
+    default: if (!savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
@@ -523,7 +588,10 @@ function startScreen() {
   const sc = APP.screen, season = !!(SEASON && SEASON.myId);
   if (sc === "game") return S && S.teams ? sc : "home";
   if (sc === "roster" || sc === "player" || sc === "depth") return APP.view && (APP.view.ctx !== "season" || SEASON) && (APP.view.ctx !== "game" || (S && S.teams)) ? sc : "home";
-  if (sc === "pick") return SEASON && SEASON.phase === "pick" ? sc : "home";
+  if (sc === "pick") return SEASON && SEASON.phase === "pick" && CAREER ? sc : "home";
+  if (sc === "newcoach") return APP.coachDraft ? sc : "home";
+  if (sc === "coach") return CAREER ? sc : "home";
+  if (sc === "summary") return season && SEASON.phase === "over" ? sc : season ? "season" : "home";
   if (sc === "simming") return season ? "season" : "home";
   if (sc === "week") return season && APP.weekView && APP.weekView < SEASON.week ? sc : season ? "season" : "home";
   if (sc === "bracket") return season && SEASON.bracket ? sc : season ? "season" : "home";
@@ -535,19 +603,33 @@ function startScreen() {
 }
 function start() {
   const saved = loadSaved();
-  if (saved) { APP = saved.app; S = saved.game && saved.game.teams ? saved.game : null; SEASON = saved.season || null; }
+  if (saved) { APP = saved.app; S = saved.game && saved.game.teams ? saved.game : null; SEASON = saved.season || null; CAREER = saved.career || null; }
   if (!APP || !APP.ex) { APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); }
+  relinkCareer();
   APP.screen = startScreen();
+  if (APP.screen === "saves") openSaves();
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
+  recordCareerSeason();
+  checkStorage();
   render();
 }
 
 if (typeof document !== "undefined") {
   document.addEventListener("click", e => { const b = e.target.closest("[data-a]"); if (b && !b.disabled) act(b.dataset.a, b.dataset); });
+  // Text boxes keep what's typed without redrawing. Return moves on to the next box, or does the
+  // box's action (data-enter).
+  document.addEventListener("input", e => { const el = e.target; if (el && el.dataset && el.dataset.in) typed(el.dataset.in, el.value); });
+  document.addEventListener("keydown", e => {
+    const el = e.target;
+    if (e.key !== "Enter" || !el || !el.dataset || el.tagName === "TEXTAREA") return;
+    if (el.dataset.next) { const n = document.getElementById(el.dataset.next); if (n) { e.preventDefault(); n.focus(); } }
+    else if (el.dataset.enter) { e.preventDefault(); act(el.dataset.enter, el.dataset); }
+  });
+  document.addEventListener("change", e => { const el = e.target; if (el && el.id === "importfile" && el.files && el.files[0]) openSaveFile(el.files[0]); });
   start();
 } else {
   // Headless test hook (tests/ load the scripts into Node)
-  globalThis.__fts = { act, start, autoStep, simToEnd, initGame, cont, startPlay, newExhibition, startExhibition,
+  globalThis.__fts = { act, start, autoStep, simToEnd, initGame, cont, startPlay, newExhibition, startExhibition, typed,
     get S() { return S; }, set S(v) { S = v; }, get APP() { return APP; }, set APP(v) { APP = v; },
-    get SEASON() { return SEASON; }, set SEASON(v) { SEASON = v; } };
+    get SEASON() { return SEASON; }, set SEASON(v) { SEASON = v; }, get CAREER() { return CAREER; }, set CAREER(v) { CAREER = v; } };
 }

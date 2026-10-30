@@ -47,7 +47,7 @@ function vPractice() {
       <p class="muted styledesc">${focus.length ? `Install focus: ${esc(andList(focus.map(playName)))}.` : "No install focus: install time is spread over the whole playbook."}</p>
       <button class="btn ghost slim" data-a="install">Pick plays to install</button>
       ${row("prep")}
-      <p class="muted styledesc">Film study of this week's opponent: ${PREP_TEXT[prepLevelOf(b.prep)]}, and a small edge when they run the calls you studied.</p>
+      <p class="muted styledesc">Film study of this week's opponent: ${PREP_TEXT[prepLevelFor(b.prep, mySchool().coach)]}, and a small edge when they run the calls you studied.</p>
       ${row("cond")}
       <p class="muted styledesc">Stamina, so players tire more slowly, and a little strength and speed.</p>
       ${row("rec")}

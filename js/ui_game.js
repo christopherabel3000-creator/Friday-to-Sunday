@@ -74,6 +74,17 @@ function onFieldLine(t, pk) {
 }
 
 /* ---------- Calling a play ---------- */
+// Game management: the staff's read on going for it on fourth down. The engine's conversion rate
+// for the distance on third and fourth down (measured over 700 computer games), nudged by your
+// starters against theirs (.0065 a rating point). A coach with Game management 45 or better gets
+// a percentage; below that, a rough idea.
+const CONVERT = [0, .64, .6, .56, .48, .41, .38, .32, .27, .21, .18];
+function fourthDownNote(t) {
+  const c = S.teams[t].coach || {}, gm = c.gm || 42, base = S.toGo <= 10 ? CONVERT[Math.max(1, S.toGo)] : S.toGo <= 15 ? .12 : .07;
+  const p = clamp(base + .0065 * (sideRating(S.teams[t], "off") - sideRating(S.teams[1 - t], "def") + 1), .03, .9);
+  if (gm >= 45) return `Going for it: about ${Math.round(p * 100)} percent to convert from here, by your staff's numbers.`;
+  return `Going for it: ${p >= .6 ? "likely to convert" : p >= .45 ? "about even" : p >= .3 ? "a tough ask" : "a long shot"}, by your staff's read.`;
+}
 // How well your team knows a play, on its card: " · learning 45"
 function masteryTag(t, id) {
   const m = S.teams[t].mastery;
@@ -105,6 +116,7 @@ function vLOS() {
       ${liveField()}
       <p class="banner">${esc(tname(d))} are in <b>${DEF_PKGS[S.defPkg].name}</b> (${DEF_PKGS[S.defPkg].who}).</p>
       <div class="lookcard"><span class="eyebrow">The look</span><span class="lk">${L.name}</span><span class="lh muted">${L.hint} Defenses disguise it sometimes, so it is not a sure thing.</span></div>
+      ${S.look.flag ? `<p class="audnote">Your staff thinks this look is a disguise. They're showing something they aren't playing.</p>` : ""}
       <div class="mycall"><span class="eyebrow">Your call · ${OFF_PKGS[S.offPkg].short}</span><span class="nm">${cur.name}${S.offSide ? " · Sideline" : ""}</span></div>
       ${S.offSide ? `<p class="muted" style="font-size:14px">Checking to a play without a sideline version (Inside Run, Tackle Eligible) drops the sideline call.</p>` : ""}
       <p class="sechead">Check to</p>
@@ -132,10 +144,12 @@ function vCall() {
   const lockNote = S.nhLock && (isOff || !isST(S.offPkg))
     ? `<p class="banner">No huddle. Personnel is locked: ${isOff ? "you stay" : "you're stuck"} in <b>${pkgBook[S.nhLock[isOff ? "off" : "def"]].name}</b>${isOff && stIds.length ? ", unless you send out the kicking unit" : ""}.</p>` : "";
   const fgNote = isOff && S.down < 4 && stIds.includes("fgu") ? (hsOT() ? "In overtime you can kick on any down." : otFgWins() ? "A field goal wins it, so you can send out the field goal unit on any down." : "") : "";
+  const goNote = isOff && S.down === 4 && !S.twoPt ? fourthDownNote(t) : "";
   const pkgPicker = `<p class="sechead">${isOff ? "Personnel" : "Your package"}</p>${lockNote}
     ${regIds.length > 1 || stIds.length ? `<div class="pkgs ${isOff && regIds.length > 1 ? "" : "two"}">${regIds.map(pkgBtn).join("")}</div>` : ""}
     ${stIds.length ? `<p class="sechead">Special teams unit</p>${fgNote ? `<p class="muted pkdesc">${fgNote}</p>` : ""}<div class="pkgs two">${stIds.map(pkgBtn).join("")}</div>` : ""}
     <p class="muted pkdesc">${esc(pkgBook[pk].desc)}${isOff && S.down === 4 && !S.twoPt && stIds.length ? " The defense sees who runs onto the field before they call it." : ""}</p>
+    ${goNote ? `<p class="banner">${esc(goNote)}</p>` : ""}
     ${!kickUnit ? `<p class="muted onfield">On the field: ${esc(onFieldLine(t, pk))}.</p><button class="linkbtn" data-a="lineup">Change the lineup</button>` : ""}`;
   const theirPkg = !isOff && S.offPkg ? `<p class="banner">${esc(tname(S.poss))} ${isST(S.offPkg)
       ? `sent out the <b>${ST_PKGS[S.offPkg].name.toLowerCase()}</b> (${ST_PKGS[S.offPkg].who}). They're lining up to kick, but it could be a fake.`
@@ -449,7 +463,7 @@ function vHalftime() {
     const r = halfReport(i);
     const tips = r.tips.map(x => x.text);
     return `<section class="panel" style="--team:${t[i].color}" aria-label="${esc(tname(i))} first half">
-      <p class="eyebrow">${esc(t[i].school)} ${esc(t[i].name)}${t[i].coach.you ? "" : ` · ${esc(coach(i))}`}</p>
+      <p class="eyebrow">${esc(t[i].school)} ${esc(t[i].name)}${t[i].coach.you && !t[i].coach.last ? "" : ` · ${esc(coach(i))}`}</p>
       <h3>${esc(identityText(i))}</h3>
       ${lines(leaderLines(i))}
       <p class="sechead">On offense</p>${lines(r.off)}

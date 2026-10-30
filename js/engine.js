@@ -186,7 +186,20 @@ const CP = t => S.teams[t].cp;
 // neutral site
 const HOME_EDGE = .06;
 const homeEdge = o => S && S.teams && !S.neutral ? (o === 0 ? HOME_EDGE : -HOME_EDGE) : 0;
-const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o) : 0;
+// Motivation: late in a close game or a comeback (the fourth quarter and overtime, behind by any score
+// or ahead by 8 or less), a team plays to its coach's Motivation: about +0.03 at a 50, +0.11 at a 70,
+// and a little worse than usual under a coach below 42
+const MOT_K = .004;
+function motEdge(t) {
+  if (!S || !S.teams || S.quarter < 4 || S.teams[t].score - S.teams[1 - t].score > 8) return 0;
+  return (((S.teams[t].coach && S.teams[t].coach.mot) || 42) - 42) * MOT_K;
+}
+const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o) + motEdge(o) - motEdge(1 - o) : 0;
+// A coach's specialty: a former lineman's teams run the ball, and stop it, a little better
+const SPEC_RUN = .05;
+const specEdge = (o, off) => OFFP[off] && OFFP[off].kind === "run" ? ((S.teams[o].coach || {}).spec === "run" ? SPEC_RUN : 0) - ((S.teams[1 - o].coach || {}).spec === "run" ? SPEC_RUN : 0) : 0;
+// Special teams: how far a coach's Special teams rating is from a typical small-school coach's
+const stOf = t => (((S.teams[t].coach && S.teams[t].coach.st) || 42) - 42);
 // Sharpen or flatten a set of play-call weights, by the coach making the call
 function sharpen(w, t, isOff) { const k = isOff ? CP(t).sharpO : CP(t).sharpD; if (k !== 1) Object.keys(w).forEach(id => { w[id] = Math.pow(Math.max(0, w[id]), k); }); return w; }
 
@@ -670,6 +683,9 @@ const edgeVs = (off, def) => clamp(M[off][def] + pkgEdge(off, S.offPkg, S.defPkg
 function afterDef() {
   if (!audiblesOn() || !OFFP[S.offCall]) { resolve(); return; }
   S.look = makeLook();
+  // A coach with a sharp eye (Scouting 60 and up) sometimes spots a disguise
+  const sct = ((S.teams[S.poss].coach || {}).sct) || 0;
+  if (S.look.fake && !S.teams[S.poss].cpu && sct >= 60 && rand() < (sct - 50) / 100) S.look.flag = true;
   if (S.teams[S.poss].cpu) { cpuAudible(); resolve(); return; }
   S.audSel = null;
   S.side = "aud"; S.phase = passPhone() ? "handoff" : "los";

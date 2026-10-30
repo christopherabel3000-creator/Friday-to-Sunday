@@ -27,6 +27,11 @@ function gameKind(gm, n) {
   return gm.dist ? "District game" : "Non-district game";
 }
 const schemeText = s => `${OFF_STYLES[s.off].name} offense, ${DEF_STYLES[s.def].name} defense`;
+// How much of your schemes' core your team knows well: "Your team knows 3 of the 4 core plays ..."
+function knownLine(s) {
+  const k = coreKnown(s, s.off, s.def), of = n => n === 4 ? "all 4" : n === 0 ? "none of the 4" : `${n} of the 4`;
+  return `Your team knows ${of(k.off)} core plays of the ${OFF_STYLES[s.off].name} offense and ${of(k.def)} of the ${DEF_STYLES[s.def].name} defense well. Install time teaches the rest.`;
+}
 const talentText = r => `Starters rate ${Math.round(r.off)} on offense and ${Math.round(r.def)} on defense.`;
 // "4-1, 2-0 in district" (the district part once district play has started)
 function recLine(id, upTo) {
@@ -64,20 +69,24 @@ function seasonStatus() {
 function vPick() {
   const d = SEASON.district, str = id => SEASON.schools[id].rating.off + SEASON.schools[id].rating.def;
   const ids = SEASON.districts[d - 1].ids.slice().sort((a, b) => str(b) - str(a));
+  const c = CAREER && CAREER.coach, off = c && c.off_style, def = c && c.def_style, mine = !!(OFF_STYLES[off] && DEF_STYLES[def]);
   const card = id => {
     const s = SEASON.schools[id], seniors = s.players.filter(p => p.yr === 12).length;
+    // What the school ran under its last coach, and how much of your playbook it already knows
+    const k = mine ? coreKnown(s, off, def) : null;
+    const fit = mine ? ` Last coach: ${schemeText(s)}. They know ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense.` : "";
     return `<section class="panel teamcard" style="--team:${s.color}">
       <p class="eyebrow">${esc(s.colorName)} · ${plural(s.players.length, "player")}</p>
       <h3>${esc(nameOf(id))}</h3>
-      <p class="muted">${talentText(s.rating)} ${capFirst(tradWord(s.trad))}. ${plural(seniors, "senior")}.</p>
+      <p class="muted">${talentText(s.rating)} ${capFirst(tradWord(s.trad))}. ${plural(seniors, "senior")}.${esc(fit)}</p>
       <div class="choices"><button class="btn" data-a="takejob" data-v="${id}">Coach the ${esc(s.mascot)}</button><button class="btn ghost" data-a="sroster" data-t="${id}">${esc(s.mascot)} roster</button></div>
     </section>`;
   };
   return `
     <div class="masthead">
-      <p class="eyebrow">New season · Class 1A, District ${d}</p>
+      <p class="eyebrow">${c && c.last ? `${esc(coachFullName(c))} · ` : ""}Class 1A, District ${d}</p>
       <h2 data-focus tabindex="-1">Pick your school</h2>
-      <p class="muted">Every school in District ${d} needs a head coach. They're listed from the most talent to the least. Tradition is how the program has done over the years.</p>
+      <p class="muted">Every school in District ${d} needs a head coach. They're listed from the most talent to the least. Tradition is how the program has done over the years.${mine ? ` You bring your schemes, the ${OFF_STYLES[off].name} offense and the ${DEF_STYLES[def].name} defense. Each team still knows its last coach's playbook, and learns yours in practice.` : ""}</p>
     </div>
     ${ids.map(card).join("")}`;
 }
@@ -103,6 +112,7 @@ function vSeason() {
     <section class="panel">
       <h3>Your schemes</h3>
       ${styleSegs(me.off, me.def)}
+      <p class="muted styledesc">${esc(knownLine(me))}</p>
     </section>`;
   } else if (gm && played(gm)) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · Final</p><h3>${esc(resultText(gm, id))}</h3><button class="btn" data-a="weekdone">${weekName(n)} results</button></section>`;
   else if (SEASON.phase === "playoffs") main = `<section class="panel"><p class="eyebrow">${weekName(n)}</p>
@@ -114,8 +124,8 @@ function vSeason() {
       <p class="eyebrow">Class 1A state champions</p>
       <h3>${mine ? "Your team won it all" : esc(nameOf(ch))}</h3>
       <p>${mine ? `The ${esc(me.mascot)} beat the ${esc(nameOf(loserOf(fin)))} ${Math.max(fin.hs, fin.as)}-${Math.min(fin.hs, fin.as)} in the final.` : `They beat the ${esc(nameOf(loserOf(fin)))} ${Math.max(fin.hs, fin.as)}-${Math.min(fin.hs, fin.as)} in the final.`}</p>
+      <button class="btn" data-a="summary">Season summary</button>
       <button class="btn ghost" data-a="week" data-v="${LAST_WEEK}">State championship results</button>
-      <button class="btn" data-a="newseason">${confirming === "newseason" ? "Tap again to start over" : "Start a new season"}</button>
     </section>`;
   }
   const last = weeksDone(), lastGm = last ? myGameIn(last) : null;
@@ -123,7 +133,8 @@ function vSeason() {
       <p>${esc(weekName(last))}: ${lastGm && played(lastGm) ? esc(resultText(lastGm, id).replace(/^You/, "you")) + "." : "no game for you."}</p>
       <button class="btn ghost" data-a="week" data-v="${last}">${weekName(last)} results</button></section>` : "";
   // The rest of the season's screens. Your roster is with this week's game when there is one.
-  const more = [SEASON.bracket ? `<button class="btn ghost" data-a="bracket">Playoff bracket</button>` : "", gm && !played(gm) && !live ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`].filter(Boolean);
+  const more = [SEASON.bracket ? `<button class="btn ghost" data-a="bracket">Playoff bracket</button>` : "", gm && !played(gm) && !live ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`,
+    `<button class="btn ghost" data-a="coach">Your coach</button>`].filter(Boolean);
   const simBtn = SEASON.phase === "regular" ? ["playoffs", "Sim to the playoffs"] : SEASON.phase === "playoffs" ? ["end", "Sim the rest of the season"] : null;
   return `
     <div class="masthead" style="--team:${me.color}">
@@ -218,7 +229,8 @@ function vWeek() {
     <section class="panel"><h3>${playoffs ? weekName(n) : `District ${SEASON.district}`}</h3>${list(nearby.map(scoreText))}</section>
     ${!playoffs && n >= DISTRICT_START ? `<section class="panel"><h3>Standings</h3>${standingsTable(SEASON.district, n, true)}</section>` : ""}
     ${around ? `<details><summary>Scores around the state</summary><div class="statwrap">${around}</div></details>` : ""}
-    ${APP.weekFrom === "schedule" ? `<button class="btn ghost" data-a="back">Back to the schedule</button>` : `<button class="btn" data-a="season">Continue</button>`}`;
+    ${APP.weekFrom === "schedule" ? `<button class="btn ghost" data-a="back">Back to the schedule</button>`
+      : n === LAST_WEEK && SEASON.phase === "over" ? `<button class="btn" data-a="summary">Season summary</button>` : `<button class="btn" data-a="season">Continue</button>`}`;
 }
 
 // Your injury news for the week just played: who got hurt in the game, and who's back

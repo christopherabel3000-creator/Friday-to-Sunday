@@ -20,7 +20,9 @@ class LocalOnly extends ResourceLoader {
     return p;
   }
 }
-async function openPage(storage) {
+// extra: things to add to the page's window before it loads (the browser's compression helpers,
+// stand-ins for the clipboard and the online database)
+async function openPage(storage, extra) {
   const errors = [];
   const vc = new VirtualConsole();
   vc.on("jsdomError", e => errors.push(e.message || String(e)));
@@ -30,6 +32,10 @@ async function openPage(storage) {
     beforeParse(window) {
       window.scrollTo = () => {};
       if (storage) for (const [k, v] of Object.entries(storage)) window.localStorage.setItem(k, v);
+      if (extra) for (const [k, v] of Object.entries(extra)) {
+        if (k === "clipboard") Object.defineProperty(window.navigator, "clipboard", { value: v, configurable: true });
+        else window[k] = v;
+      }
     }
   });
   await new Promise(r => dom.window.addEventListener("load", r));
@@ -61,7 +67,7 @@ function checkScreen(page, label) {
   let page = await openPage();
   let d = page.d;
   ok(d.querySelector("h1") && /Friday to/i.test(d.querySelector("h1").textContent), "the main menu shows the title");
-  ok(btn(d, "season") && /Start a season/.test(btn(d, "season").textContent) && btn(d, "exhibition"), "the main menu offers a season and an exhibition");
+  ok(btn(d, "career") && /Start a career/.test(btn(d, "career").textContent) && btn(d, "exhibition") && btn(d, "saves"), "the main menu offers a career, an exhibition and saves");
   ok(!btn(d, "gohome"), "no Home button on the main menu");
   checkScreen(page, "main menu");
   tap(page, "exhibition");
@@ -242,9 +248,33 @@ function checkScreen(page, label) {
   const p4 = await openPage(), d4 = p4.d, w4 = p4.w;
   const ev = x => w4.eval(x);
   const heading = () => { const f = focused(d4); return f && (f.hasAttribute("data-focus") || /^H[12]$/.test(f.tagName)) ? f.textContent : null; };
-  tap(p4, "season");
-  ok(ev("APP.screen") === "pick" && /Pick your school/.test(heading() || ""), "a new season opens on picking your school");
+  const said4 = async () => { await new Promise(r => setTimeout(r, 120)); return d4.getElementById("sr").textContent; };
+  // Typing: the page keeps what's typed without redrawing
+  const typeIn = (id, text) => { const el = d4.getElementById(id); el.focus(); el.value = text; el.dispatchEvent(new w4.Event("input", { bubbles: true })); };
+  const pressReturn = id => d4.getElementById(id).dispatchEvent(new w4.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  // Creating your coach
+  tap(p4, "career");
+  ok(ev("APP.screen") === "newcoach" && /Your coach/.test(heading() || ""), "a career starts with creating your coach");
+  ok(d4.querySelector('label[for="cfirst"]') && d4.querySelector('label[for="clast"]') && d4.getElementById("cfirst").type === "text", "the name boxes are labeled");
+  checkScreen(p4, "your coach");
+  tap(p4, "makecoach");
+  ok(ev("APP.screen") === "newcoach" && focused(d4) === d4.getElementById("cfirst") && d4.getElementById("cfirst").getAttribute("aria-invalid") === "true"
+    && d4.getElementById("cfirst").getAttribute("aria-describedby") === "cnameerr" && /first and last name/.test(d4.getElementById("cnameerr").textContent), "no name yet: focus goes to the first name, which says what's missing");
+  typeIn("cfirst", "Chris");
+  pressReturn("cfirst");
+  ok(focused(d4) === d4.getElementById("clast") && ev("APP.screen") === "newcoach", "Return in the first name moves on to the last name");
+  typeIn("clast", "Abel");
+  tap(p4, "cbg", "line");
+  ok(btn(d4, "cbg", "line").getAttribute("aria-pressed") === "true" && focused(d4) === btn(d4, "cbg", "line") && /Offense 46, Defense 46/.test(d4.body.textContent), "pick a background: the starting ratings follow it");
+  ok(/^Former lineman: Offense 46 and Defense 46\.$/.test(await said4()), "and are read out");
+  ok(d4.getElementById("cfirst").value === "Chris" && d4.getElementById("clast").value === "Abel", "what's typed survives the redraw");
+  tap(p4, "ostyle", "air"); tap(p4, "dstyle", "blz");
+  ok(ev("APP.coachDraft.off") === "air" && ev("APP.coachDraft.def") === "blz" && focused(d4) === btn(d4, "dstyle", "blz"), "pick your schemes");
+  pressReturn("clast");
+  ok(ev("APP.screen") === "pick" && ev("CAREER.coach.last") === "Abel" && ev("CAREER.coach.bg") === "line" && ev("CAREER.coach.off_style") === "air", "Return in the last name makes your coach");
+  ok(/Pick your school/.test(heading() || ""), "then on to picking your school");
   ok(d4.querySelectorAll(".teamcard").length === 8 && d4.querySelectorAll('[data-a="takejob"]').length === 8, "eight schools to pick from");
+  ok([...d4.querySelectorAll(".teamcard")].every(c => /Last coach: .+ offense, .+ defense\. They know \d of your 4 core plays on offense and \d of 4 on defense\./.test(c.textContent)), "each school says what its last coach ran, and how much of your playbook it knows");
   checkScreen(p4, "pick your school");
   const pickId = btn(d4, "takejob").dataset.v;
   tap(p4, "sroster", pickId);
@@ -253,13 +283,23 @@ function checkScreen(page, label) {
   ok(ev("APP.screen") === "pick", "back to picking");
   tap(p4, "takejob", pickId);
   ok(ev("SEASON.myId") === pickId && ev("APP.screen") === "season", "take the job");
+  ok(ev("mySchool().coach === CAREER.coach") && ev("mySchool().off") === "air" && ev("mySchool().def") === "blz", "your coach and schemes take over");
+  ok(/Your team knows (all 4|none of the 4|\d of the 4) core plays of the Air Raid offense/.test(d4.body.textContent), "the week ahead says how much of your playbook the team knows");
+  // Your coach's page
+  tap(p4, "coach");
+  ok(ev("APP.screen") === "coach" && heading() === "Coach Chris Abel" && /Offense 46\./.test(d4.body.textContent) && /Former lineman/.test(d4.body.textContent), "your coach's page: name, background and ratings");
+  checkScreen(p4, "your coach's page");
+  typeIn("plast", "Abell");
+  ok(ev("CAREER.coach.last") === "Abell" && ev("mySchool().coach.last") === "Abell", "rename your coach as you type");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "season", "back to the week ahead");
   ok(heading() === ev("nameOf(SEASON.myId)"), "the season screen opens on your school's name");
   ok(btn(d4, "playgame") && btn(d4, "simgame") && /On paper/.test(d4.body.textContent), "this week's game: play it or sim it, and who's favored");
   ok(d4.querySelector('table.stand th[scope="row"]') && /\(you\)/.test(d4.querySelector("table.stand").textContent), "your district's standings, with your school marked");
   checkScreen(p4, "the week ahead");
   // Your schemes carry into your games
   tap(p4, "ostyle", "wc");
-  ok(ev("mySchool().off") === "wc" && focused(d4) === btn(d4, "ostyle", "wc"), "change your offensive style; focus stays put");
+  ok(ev("mySchool().off") === "wc" && ev("CAREER.coach.off_style") === "wc" && focused(d4) === btn(d4, "ostyle", "wc"), "change your offensive style; focus stays put");
   // Your roster: changes for the next game only
   tap(p4, "sroster", ev("SEASON.myId"));
   ok(btn(d4, "dedit", "QB") && btn(d4, "rteam"), "your roster can be changed, and the opponent's is a tap away");
@@ -292,7 +332,6 @@ function checkScreen(page, label) {
   ok(/Practice plan/.test(heading() || ""), "the practice plan opens on its heading");
   ok(btn(d4, "ppreset", "balanced").getAttribute("aria-pressed") === "true" && btn(d4, "pcontact", "shells").getAttribute("aria-pressed") === "true", "a balanced week in shells to start");
   checkScreen(p4, "practice plan");
-  const said4 = async () => { await new Promise(r => setTimeout(r, 120)); return d4.getElementById("sr").textContent; };
   tap(p4, "ppreset", "gameprep");
   ok(ev("SEASON.plan.areas.prep") === 3 && /Game prep plan/.test(await said4()) && focused(d4) === btn(d4, "ppreset", "gameprep"), "a preset sets the plan, and says so");
   const olHeavy = [...d4.querySelectorAll('[data-a="parea"]')].find(b => b.dataset.t === "ol" && b.dataset.v === "3");
@@ -387,11 +426,101 @@ function checkScreen(page, label) {
   for (let i = 0; i < 400 && ev("APP.screen") === "simming"; i++) await new Promise(r => setTimeout(r, 25));
   ok(ev("SEASON.phase") === "over" && ev("SEASON.champion") && /state champions/i.test(d4.body.textContent), "the season ends with a state champion");
   checkScreen(p4, "season over");
-  tap(p4, "newseason");
-  ok(/Tap again/.test(btn(d4, "newseason").textContent), "starting over asks for a second tap");
-  tap(p4, "newseason");
-  ok(ev("APP.screen") === "pick" && ev("SEASON.myId") === null, "a new season");
+  tap(p4, "week", 14);
+  ok(btn(d4, "summary") && !btn(d4, "season"), "the state championship's results lead to the season summary");
+  tap(p4, "summary");
+  ok(ev("APP.screen") === "summary" && heading() === ev("nameOf(SEASON.myId)") && /The record/.test(d4.body.textContent) && /Most improved/.test(d4.body.textContent), "the season summary");
+  ok(/with the (best|(second|third|fourth|fifth|sixth|seventh|eighth)-best) starters in the district before the season/.test(d4.body.textContent) && ev("CAREER.seasons.length") === 1, "your finish against your talent, and the season goes into your career");
+  checkScreen(p4, "season summary");
+  tap(p4, "coach");
+  ok(/Season 1: /.test(d4.body.textContent), "your coach's page lists the season");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "summary", "back to the summary");
+  tap(p4, "nextseason");
+  ok(ev("APP.screen") === "pick" && ev("SEASON.myId") === null && ev("CAREER.coach.last") === "Abell" && ev("CAREER.seasons.length") === 1, "coach another season: the same coach picks a new school");
+  tap(p4, "gohome");
+  ok(/Looking for a job/.test(d4.body.textContent) && btn(d4, "season") && /Pick your school/.test(btn(d4, "season").textContent), "the main menu: your coach is looking for a job");
+  tap(p4, "newcareer");
+  ok(/Tap again/.test(btn(d4, "newcareer").textContent), "starting over asks for a second tap");
+  tap(p4, "newcareer");
+  ok(ev("APP.screen") === "newcoach" && ev("CAREER") === null && ev("SEASON") === null && d4.getElementById("cfirst").value === "", "a new career starts with a new coach");
   ok(p4.errors.length === 0, "no script errors in the season: " + p4.errors.slice(0, 2).join(" | "));
+
+  // ---- Saves: save codes and cloud saves ----
+  // The browser's helpers, a clipboard, and a stand-in for the online database shared by two devices
+  const cloudData = {};
+  const cloudDb = { ref: p => ({
+    transaction(fn) {
+      const cur = cloudData[p] === undefined ? null : JSON.parse(JSON.stringify(cloudData[p])), next = fn(cur);
+      if (next === undefined) return Promise.resolve({ committed: false, snapshot: { exists: () => cur !== null } });
+      cloudData[p] = next;
+      return Promise.resolve({ committed: true, snapshot: { exists: () => true } });
+    },
+    once() { return Promise.resolve({ val: () => cloudData[p] === undefined ? null : cloudData[p] }); }
+  }) };
+  const firebase = { apps: [], database: true, initializeApp() { this.apps.push(1); return { database: () => cloudDb }; }, app() { return { database: () => cloudDb }; } };
+  let clip = "";
+  const web = { TextEncoder, TextDecoder, Blob, Response, CompressionStream, DecompressionStream, firebase, clipboard: { writeText: t => { clip = t; return Promise.resolve(); } } };
+  const p6 = await openPage(store4, web), d6 = p6.d, w6 = p6.w, ev6 = x => w6.eval(x);
+  const wait = async (cond, ms) => { for (let i = 0; i < (ms || 2000) / 10 && !cond(); i++) await new Promise(r => setTimeout(r, 10)); return cond(); };
+  const msg6 = () => { const m = d6.getElementById("savemsg"); return m ? m.textContent : ""; };
+  tap(p6, "gohome");
+  tap(p6, "saves");
+  ok(ev6("APP.screen") === "saves" && focused(d6) && /Cloud saves and save codes/.test(focused(d6).textContent), "the saves screen opens on its heading");
+  ok(d6.querySelector('label[for="importbox"]') && d6.querySelector('label[for="cloudkey"]') && d6.querySelector('label[for="importfile"]'), "its boxes are labeled");
+  checkScreen(p6, "saves");
+  await wait(() => ev6("!!codeCache"));
+  tap(p6, "copycode");
+  await wait(() => /copied/.test(msg6()));
+  ok(clip.startsWith("FTS1Z.") && /copied/.test(msg6()) && focused(d6) === d6.getElementById("savemsg") && d6.getElementById("exportbox").value === clip, "copy your save code: on the clipboard, in the box, and said");
+  // Paste a code from another device: the week 3 save from before
+  const code4 = clip;
+  ev6("simSeason(6); save(); prepCode();");
+  const box = d6.getElementById("importbox"); box.value = code4; box.dispatchEvent(new w6.Event("input", { bubbles: true }));
+  tap(p6, "loadcode");
+  await wait(() => !!btn(d6, "loadyes"));
+  ok(btn(d6, "loadyes") && btn(d6, "loadno") && focused(d6) === d6.getElementById("savemsg") && /This save code holds: Coach Chris Abell, .+, \d-\d in week 3\. Loading it replaces the game on this device, .+ in week 6\./.test(msg6()), "a pasted code says what it holds and what it replaces, then asks");
+  tap(p6, "loadyes");
+  ok(ev6("SEASON.week") === 3 && ev6("APP.screen") === "saves" && /^Loaded: /.test(msg6()) && focused(d6) === d6.getElementById("savemsg"), "load it");
+  ok(btn(d6, "undoload") && /in week 6/.test(d6.body.textContent), "the game it replaced is kept as a backup");
+  tap(p6, "undoload"); tap(p6, "undoload");
+  ok(ev6("SEASON.week") === 6 && /^Switched back/.test(msg6()), "switch back to it");
+  // A save file
+  ev6(`openSaveFile({ text: () => Promise.resolve(${JSON.stringify(code4)}) })`);
+  await wait(() => !!btn(d6, "loadyes"));
+  ok(/This save file holds: .+ in week 3/.test(msg6()), "open a save file");
+  tap(p6, "loadno");
+  ok(ev6("SEASON.week") === 6 && /kept the game/.test(msg6()), "or keep the game you have");
+  const box2 = d6.getElementById("importbox"); box2.value = "not a save"; box2.dispatchEvent(new w6.Event("input", { bubbles: true }));
+  tap(p6, "loadcode");
+  await wait(() => /doesn't look like/.test(msg6()));
+  ok(/doesn't look like a Friday to Sunday save code/.test(msg6()) && !btn(d6, "loadyes"), "a bad code says so");
+  // The cloud
+  tap(p6, "cloudsave");
+  ok(/Saving to the cloud/.test(msg6()) && btn(d6, "cloudsave").disabled, "saving to the cloud says so, and waits");
+  await wait(() => /Saved to the cloud/.test(msg6()));
+  const key = ev6("APP.cloud.key");
+  ok(/Your cloud save code is [A-Z0-9]{4} [A-Z0-9]{4} [A-Z0-9]{4}\./.test(msg6()) && focused(d6) === d6.getElementById("savemsg") && cloudData["fridayToSundaySaves/" + key], "saved, with your cloud save code read out");
+  ok(d6.body.textContent.includes(ev6("keyText(APP.cloud.key)")), "the code stays on the screen");
+  // Another device loads it
+  const p7 = await openPage(null, web), d7 = p7.d, w7 = p7.w;
+  tap(p7, "saves");
+  const kb = d7.getElementById("cloudkey"); kb.focus(); kb.value = key.toLowerCase(); kb.dispatchEvent(new w7.Event("input", { bubbles: true }));
+  kb.dispatchEvent(new w7.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  await wait(() => !!btn(d7, "loadyes"));
+  ok(/The cloud save from .+ holds: Coach Chris Abell, .+ in week 6/.test((d7.getElementById("savemsg") || {}).textContent || ""), "Return in the cloud save code box finds the save");
+  tap(p7, "loadyes");
+  ok(w7.eval("SEASON.week") === 6 && w7.eval("APP.cloud.key") === key && w7.eval("mySchool().coach === CAREER.coach"), "the other device has the game, and its cloud save code");
+  // The first device saves again after the other one did: it asks first
+  tap(p7, "cloudsave");
+  await wait(() => /Saved to the cloud/.test((d7.getElementById("savemsg") || {}).textContent || ""));
+  tap(p6, "cloudsave");
+  await wait(() => !!btn(d6, "cloudforce"));
+  ok(/changed on another device/.test(msg6()) && btn(d6, "cloudforce") && btn(d6, "cloudpull"), "a cloud save changed on another device asks before it's replaced");
+  tap(p6, "cloudforce");
+  await wait(() => /Saved to the cloud/.test(msg6()));
+  ok(cloudData["fridayToSundaySaves/" + key].ver === 3 && !btn(d6, "cloudforce"), "replace it when you say so");
+  ok(p6.errors.length === 0 && p7.errors.length === 0, "no script errors with saves: " + p6.errors.concat(p7.errors).slice(0, 2).join(" | "));
 
   console.log(`${checks - fails}/${checks} checks passed`);
   process.exit(fails ? 1 : 0);

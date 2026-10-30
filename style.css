@@ -50,7 +50,7 @@ body {
 h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: 1; text-wrap: balance; margin: 0; letter-spacing: .01em; }
 p { margin: 0; }
 button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .muted { color: var(--muted); }
 
@@ -152,6 +152,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); out
 .callhead { display: grid; gap: 6px; }
 .callhead h2 { font-size: 34px; text-transform: uppercase; }
 .plays { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.plays.one { grid-template-columns: 1fr; }
 .pkgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .pkgs.two { grid-template-columns: 1fr 1fr; }
 .pkg { appearance: none; text-align: left; background: var(--card); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
@@ -267,3 +268,13 @@ tr.me th, tr.me td, li.me { font-weight: 700; }
 .simbar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
 .simbar i { display: block; height: 100%; background: var(--turf); transition: width .2s; }
 @media (prefers-reduced-motion: reduce) { .simbar i { transition: none; } }
+
+/* Forms: your coach's name, save codes */
+.form { display: grid; gap: 6px; }
+.form label { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.form input[type=text] { width: 100%; font: 600 20px var(--body); padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); }
+.form input.codein { flex: none; width: 100%; font: 600 20px var(--mono); }
+.form textarea { width: 100%; min-height: 104px; font: 16px var(--mono); padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); resize: vertical; word-break: break-all; }
+.form input[type=file] { font: 15px var(--body); color: var(--ink); }
+.form input[aria-invalid="true"] { border-color: var(--bad); }
+.err { color: var(--bad); font-weight: 600; }

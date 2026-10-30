@@ -9,8 +9,8 @@ function scripts() {
 function load(opts) {
   opts = opts || {};
   const store = new Map();
-  const sb = { console, setTimeout, clearTimeout, Math, JSON,
-    localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) } };
+  const sb = Object.assign({ console, setTimeout, clearTimeout, Math, JSON,
+    localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) } }, opts.globals || {});
   vm.createContext(sb);
   for (const src of scripts()) vm.runInContext(fs.readFileSync(path.join(ROOT, src), "utf8"), sb, { filename: src });
   // Everything the scripts declared at the top level, for tests that need more than the hook

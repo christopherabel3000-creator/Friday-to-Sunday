@@ -4,10 +4,15 @@ A single-player football coaching career. Start as the head coach of a tiny high
 
 ## Status
 
-Building Milestone 1, one high school season (see [DESIGN.md](DESIGN.md)). Steps 1 to 4 are playable: a full season at a made-up 1A school, from picking your school to the state championship, under high school rules, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, and a depth chart you can change. An exhibition game is on the main menu too.
+Milestone 1, one high school season, is built (see [DESIGN.md](DESIGN.md)): create your coach, take over a made-up 1A school, and play a full season to the state championship under high school rules, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, a depth chart you can change, and a season summary at the end. Saves move between devices with a save code, or with a cloud save once the database rules are published (see Cloud saves below). An exhibition game is on the main menu too.
 
 ## What's in it so far
 
+- A career: name your coach, pick a background (former quarterback, former lineman, defensive mind, special teams ace, or teacher and motivator) and your offensive and defensive schemes. Every new head coach starts at 40 in each rating, plus what the background brings, and some backgrounds grow a unit faster or give the run game an edge.
+- Your coach's ratings matter in the games you call: Offense and Defense on every snap, Special teams on kicks and coverage, Motivation late in close games and comebacks, Game management's fourth-down odds on the call sheet, Scouting's fuller reports and spotting disguised looks, and Development in practice. Your coach's page explains each one, lets you rename your coach, and lists every season you've finished.
+- Picking a school: each one says what its last coach ran and how much of your playbook it already knows. You bring your schemes; the team learns them in practice.
+- The season summary: your record and finish against where your talent ranked, how the season ended, the games to remember, your leaders and your most improved players. Then coach another season in a new district, or start a new career.
+- Saves: the game saves on the device after every tap. Copy a save code (the whole game as text, compressed), save it as a file, or save to the cloud and get a 12-character cloud save code to load the game on another device. Loading a save keeps the game it replaced as a backup.
 - A season: pick one of the eight schools in your district and take over as head coach. Three non-district games, then seven district games, then the state playoffs for the top two in each district, down to a state champion.
 - Each week: a preview of your opponent (record, ratings, coach and schemes, the unit-by-unit matchup, and who's favored on paper), your schemes, then play the game snap by snap or sim it.
 - After each week: your result, your district's scores and standings, a few lines of news (upsets, overtime games, unbeaten teams, who clinched what), and every score around the state.
@@ -31,12 +36,20 @@ Building Milestone 1, one high school season (see [DESIGN.md](DESIGN.md)). Steps
 - Change the depth chart: pick a position, pick a player, then start him, move him up or down, or take him off. Before a game, changes apply to every game or to the next game only. During a game, Change the lineup makes substitutions that last for that game.
 - Fatigue: every snap costs energy and the bench gives it back, so two-way starters wear down the most and a tired player plays below his ratings. A rotation setting (Keep starters in, Normal, Rotate often) sits tired starters when a fresh backup is listed behind them, and the call sheet says who came out.
 - Pocket passers and dual-threat quarterbacks, so starting a scrambler against a blitzing defense is a real choice.
-- Saves on the device after every tap, the season and the game in progress together.
+- Saves on the device after every tap: your career, the season and the game in progress together.
 - Screen reader support carried over from Gridiron Duel: each new screen moves VoiceOver to its heading or the play result, and the scoreboard and field read as plain sentences.
 
 ## Playing it
 
 Open `index.html` from a web server (GitHub Pages works). The game is plain HTML, CSS and JavaScript with no build step.
+
+## Cloud saves
+
+Cloud saves use the Firebase Realtime Database project shared with [Gridiron Duel](https://github.com/christopherabel3000-creator/football-call-sheet), [Hidden Ranks](https://github.com/christopherabel3000-creator/Hidden-Ranks) and [Shardkin: Eight Realms](https://github.com/christopherabel3000-creator/Shardkin-Eight-Realms) (call-sheet-football), under `fridayToSundaySaves/<KEY>`. The Firebase library loads only when a cloud save is first used. Save codes and files don't need it.
+
+The rules are in `database.rules.json`, with a section for each game, and the other three repos have identical copies. To switch cloud saves on, paste the whole file into the Firebase console: Realtime Database, then Rules, then Publish. Keep the four copies the same, or the other games will stop working online. Until the rules are published, the game says cloud saves aren't switched on yet.
+
+The rules only accept well-formed saves, require every save to be exactly one version newer than the last (so a save can't be rewound or wiped), and never allow deleting one. Nobody can list the saves; a save can only be read with its 12-character code.
 
 ## Code
 
@@ -47,15 +60,17 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `rules.js`: the rules for each level (high school now, college and the pros later)
 - `players.js`: ratings, positions, overall ratings, player generation, and how a player reads aloud
 - `team.js`: schools, depth charts, who's on the field for each package, unit ratings
-- `coach.js`: coach ratings, and how they turn into the computer's play calling
+- `coach.js`: coach ratings, how they turn into the computer's play calling, and the backgrounds for your coach
 - `fatigue.js`: energy, how it runs down and comes back, rotation, and injuries in games
 - `engine.js`: Gridiron Duel's game flow, clock, overtime, coin toss and audibles
 - `sim.js`: the snap, rolled from the players on the field, plus penalties, kicking and tries
 - `ai.js`: scouting, the computer coordinator, and simming a game
 - `practice.js`: the practice plan, player growth, installs, conditioning, recovery, practice injuries, and film study
 - `season.js`: the state's schools, the schedule, standings, the playoffs, quick sims and the news
+- `career.js`: your career's coach, the seasons you've finished, and the season summary
+- `cloud.js`: save codes, cloud saves and backups
 - `sound.js`: crowd and horn, synthesized in the browser
-- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js` and `ui.js`: the screens (the game; rosters and the depth chart; practice and scouting reports; the season; the main menu, the exhibition, help and screen reader support)
+- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js` and `ui.js`: the screens (the game; rosters and the depth chart; practice and scouting reports; the season; creating your coach, your coach's page, the season summary and saves; the main menu, the exhibition, help and screen reader support)
 
 ## Tests
 
@@ -65,5 +80,6 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `node tests/rules.js`: high school rules, rosters, depth charts, fatigue and rotation, checked against the real engine
 - `node tests/practice.js`: playbook mastery in the snap, the computer's calls, a season of growth against potential, installs, contact and recovery, injuries in games and practice, film study and the prep edge
 - `node tests/season.js`: the state, the schedule, standings and tiebreakers (clinching checked against every possible finish), the bracket, quick sims against the full engine, your games, whole simmed seasons, and saves mid-season
-- `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a season from picking a school to the state champion, with practice, installs and scouting reports, focus checks and reloads
+- `node tests/career.js`: creating a coach, what each rating does, taking a job with your schemes, faster growth from a background, the season summary, save codes, cloud saves against a stand-in for the database, and saves from before careers
+- `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a career from creating your coach through a season to the summary, with practice, installs and scouting reports, focus checks, reloads, save codes and cloud saves on two devices
 - `node tests/balance.js 300`: plays 300 computer games and prints the numbers to tune against

@@ -34,3 +34,37 @@ function coachParams(c) {
     execO: (c.off - 50) * .005, execD: (c.def - 50) * .005
   };
 }
+
+/* ---------- Your coach ---------- */
+// A first-year high school head coach starts at 40 in everything, plus what the background brings.
+// grow: faster growth for those practice units (practice.js). spec: a specialty ("run": the run game,
+// a small edge on runs and against them).
+const COACH_START = 40;
+const BACKGROUNDS = {
+  qb: { name: "Former quarterback", desc: "Offense, and faster quarterback growth.", add: { off: 12, gm: 6 }, grow: { qb: 1.3 } },
+  line: { name: "Former lineman", desc: "The run game, and faster growth on both lines.", add: { off: 6, def: 6 }, grow: { ol: 1.3, front: 1.3 }, spec: "run" },
+  def: { name: "Defensive mind", desc: "Defense, and a sharp eye for scouting.", add: { def: 12, sct: 6 } },
+  st: { name: "Special teams ace", desc: "Special teams, and faster kicker growth.", add: { st: 15, gm: 5 }, grow: { kick: 1.3 } },
+  teach: { name: "Teacher and motivator", desc: "Motivation and Development.", add: { mot: 10, dev: 10 } }
+};
+const BACKGROUND_IDS = ["qb", "line", "def", "st", "teach"];
+function makeCoach(first, last, bg, offStyle, defStyle) {
+  const b = BACKGROUNDS[bg] || BACKGROUNDS.teach, c = { first, last, you: true, bg: BACKGROUNDS[bg] ? bg : "teach", off_style: offStyle, def_style: defStyle };
+  COACH_RATINGS.forEach(([k]) => { c[k] = COACH_START + (b.add[k] || 0); });
+  if (b.grow) c.grow = clone(b.grow);
+  if (b.spec) c.spec = b.spec;
+  return c;
+}
+// "Coach Abel", or just "Your coach" before he has a name
+const yourCoachName = c => c && c.last ? `Coach ${c.last}` : "Your coach";
+// What each rating does, for the coach's own screen
+const RATING_EFFECTS = {
+  off: "A small edge on every snap on offense.",
+  def: "A small edge on every snap on defense.",
+  st: "Field goals, punts, and covering kicks.",
+  dev: "How fast your players grow in practice.",
+  mot: "An edge late in close games and comebacks.",
+  gm: "Help on the call sheet. At 45 and up, your staff gives the odds of converting on fourth down as a percentage.",
+  sct: "Scouting reports and the edge from film study. At 45 and up, a fuller report from the same film time. At 60 and up, your staff sometimes spots a disguised look at the line."
+};
+

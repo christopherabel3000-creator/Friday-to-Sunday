@@ -200,7 +200,7 @@ function rollPlay(off, def, opk, dpk, side) {
   const T = x.T = talentEdges(off, def, x);
   // Execution: disguises, the coaches, how well each side knows its call, and the week's film study
   const mo = masteryOf(o, off), md = masteryOf(1 - o, def), pr = prepEdge(o, off, def);
-  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + masteryEdge(mo) - masteryEdge(md) + pr;
+  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + specEdge(o, off) + masteryEdge(mo) - masteryEdge(md) + pr;
   const pe = pkgEdge(off, opk, dpk), se = styleEdge(off, def, o), m = clamp(M[off][def] + pe + se + dc + (side ? SIDE_EDGE[off][def] || 0 : 0), -3, 3);
   const OP = OFF_PKGS[opk] || {}, compMul = (OP.comp || {})[off] || 1, fumMul = masteryMul(mo, .008);
   // Missed tackles: weak tackling means more big plays
@@ -638,12 +638,14 @@ function fgChance(K, d) {
   if (d > max) return clamp(.03 * (max + 4 - d), .005, .03);
   return clamp(sure * (1 - Math.pow(d / max, 8)), .01, .99);
 }
-const fgProbFor = (t, d) => fgChance(kickerOf(t), d);
+// A good special teams coach makes a few more kicks: about 5 percent more at a 55
+const fgOdds = (t, K, d) => clamp(fgChance(K, d) * (1 + .004 * stOf(t)), .005, .99);
+const fgProbFor = (t, d) => fgOdds(t, kickerOf(t), d);
 // Kicks get blocked more behind a weak line
 function kickBlockMul(t) { return clamp(1 - .02 * (unitAvg(onField(t, "fgu").OL, { pbk: .7, str: .3 }) - REF), 1, 2.2); }
 // The kicking team's coverage
 function coverUnit(t) { const lu = onField(t, "nickel"); return (lu.LB || []).concat(lu.S || [], lu.CB || []); }
-const coverRating = t => unitAvg(coverUnit(t), { spd: .5, tkl: .5 });
+const coverRating = t => unitAvg(coverUnit(t), { spd: .5, tkl: .5 }) + .2 * stOf(t);
 const coverTackler = t => pickBy(coverUnit(t), p => p.r.tkl + p.r.spd);
 // Return yards: the returner against the coverage. base: a typical return.
 function returnYards(ret, cover, base) {
@@ -727,7 +729,7 @@ function doPunt() {
   // With no return unit on the field the ball is left to roll; a return unit sets up a real runback.
   const roll = dc === "ret" || dc === "blk" ? 0 : ri(2, 8);
   const shank = rand() < clamp(.07 - .0008 * Pn.r.kac, .01, .06);
-  const gross = shank ? ri(12, 24) : Math.max(15, Math.round(normal(22 + .28 * Pn.r.leg, 5)));
+  const gross = shank ? ri(12, 24) : Math.max(15, Math.round(normal(22 + .28 * Pn.r.leg + .05 * stOf(o), 5)));
   const dist = gross + roll, land = from + dist;
   if (land >= 100) {
     pstat(Pn, "puy", 100 - from); pmax(Pn, "pul", 100 - from);
@@ -759,7 +761,7 @@ function doFG() {
   tick(ri(4, 6));
   const dc = S.defCall, rush = dc === "ab" || dc === "blk";
   const blocked = rand() < (dc === "blk" ? .09 : dc === "ab" ? .04 : .012) * kickBlockMul(o);
-  const good = !blocked && rand() < fgChance(K, dist) - (rush ? .04 : 0);
+  const good = !blocked && rand() < fgOdds(o, K, dist) - (rush ? .04 : 0);
   // Roughing the kicker on a miss: the offense keeps the ball (on a make they just take the points)
   if (!good && dc === "blk" && rand() < .12) return roughKicker(r, "fg");
   pstat(K, "fga");
@@ -959,7 +961,7 @@ function doPAT(kind, dist) {
   if (kind === "two") { startTwo(); return; }
   const t = S.patTeam, K = kickerOf(t), base = xpDist(R().tryTwo), d = dist || base;
   const blocked = rand() < .02 * kickBlockMul(t);
-  const ok = !blocked && rand() < fgChance(K, d);
+  const ok = !blocked && rand() < fgOdds(t, K, d);
   pstat(K, "xpa");
   if (ok) { score(t, 1); pstat(K, "xpm"); }
   const ko = kickAfterScore(t), kick = d !== base ? `${K.last}'s ${d}-yard extra point` : `${K.last}'s extra point`;

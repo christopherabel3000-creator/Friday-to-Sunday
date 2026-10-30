@@ -52,7 +52,7 @@ Build steps, each one playable and tested before the next:
 2. **Done:** the depth chart: moving players, changes for the next game only, substitutions during a game, fatigue and rotation, and dual-threat quarterbacks.
 3. **Done:** the season: the district, the schedule, standings, the state playoffs, and quick sims of the games you aren't in.
 4. **Done:** practice: the weekly plan, playbook installs and mastery, opponent prep and scouting reports, growth, and injuries.
-5. The career: creating your coach, cloud save codes, export and import, and the season summary.
+5. **Done:** the career: creating your coach, cloud save codes, export and import, and the season summary.
 
 Milestone 1 is done when:
 
@@ -172,6 +172,30 @@ Name your coach, then pick a background that sets your starting ratings:
 - Teacher and motivator: Motivation and Development
 
 Then pick your scheme: one of Gridiron Duel's offensive styles and one of its defensive styles.
+
+### How it's built (step 5)
+
+- Every new head coach starts at 40 in each rating, plus the background:
+
+  | Background | Ratings | Also |
+  |---|---|---|
+  | Former quarterback | Offense +12, Game management +6 | Quarterbacks grow 1.3 times as fast |
+  | Former lineman | Offense +6, Defense +6 | Both lines grow 1.3 times as fast; +0.05 on runs, and against them |
+  | Defensive mind | Defense +12, Scouting +6 | |
+  | Special teams ace | Special teams +15, Game management +5 | Kickers and punters grow 1.3 times as fast |
+  | Teacher and motivator | Motivation +10, Development +10 | |
+
+- What each rating does when you call the plays (a computer coach gets the same, and a typical 1A coach is a 42):
+  - Offense and Defense: (rating − 50) × 0.005 on every snap on that side, as before.
+  - Special teams: field goal and extra point odds times 1 + 0.004 × (rating − 42), punts 0.05 yards longer per point, and 0.2 more kick coverage per point.
+  - Motivation: (rating − 42) × 0.004 on every snap in the fourth quarter and overtime, when behind by any score or ahead by 8 or less.
+  - Game management: on fourth down the call sheet gives the staff's read on going for it. At 45 and up it's a percentage; below that, words (likely, about even, a tough ask, a long shot). The odds are the engine's conversion rate for the distance on third and fourth down, measured over 700 computer games (64 percent on fourth and 1, 48 on fourth and 4, 18 on fourth and 10), plus 0.0065 per point of your offense's starters over their defense's.
+  - Scouting: the prep edge times 0.8 + 0.4 × rating / 100, as before. At 45 and up, the same film time gives a report one level fuller. At 60 and up, your staff flags a disguised look at the line (rating − 50) percent of the time.
+  - Development: growth times 1 + 0.012 × (rating − 42), as before.
+- Your schemes replace the school's when you take the job. The team keeps its playbook mastery, so a school whose last coach ran your schemes is ready, and anywhere else your plays are learned in practice (six or seven weeks of heavy install to get three new plays to solid). The pick screen gives each school's last schemes and how many of your four core plays on each side it knows well (65 or better). Changing schemes during the season changes your coach's too.
+- Ratings don't change yet: XP and perks come with Milestone 2.
+- When the season is over, Coach another season keeps your coach and schemes and starts a new season in a new district, until Milestone 2 brings the next season at the same school. Each finished season goes on your coach's page.
+- The season summary: your record and district finish against where your starters ranked in the district before the season, how it ended, points for and against, the best win (over the opponent with the best record), the biggest win and the closest loss, your leaders in passing, rushing, receiving, tackles, sacks and interceptions, and the three players whose overall rating at their position went up the most.
 
 ### XP and perks (Milestone 2)
 
@@ -308,7 +332,7 @@ Each level uses its real overtime rules. The details get checked against the cur
 How it's built (step 3):
 
 - Class 1A has 8 districts of 8 schools, each district with one school in each color family, so district games never clash. Your district's schools are saved with their full rosters. Everyone else is saved as a summary (town, mascot, colors, tradition, coach, ratings) plus the seed that rebuilds the whole school, exactly, whenever you play them or open their roster.
-- A new season puts you in a random district and lets you pick any of its eight schools. You take over the coach's job. Until you create your own coach in step 5, your coach ratings are the class average (42).
+- A new season puts you in a random district and lets you pick any of its eight schools. You take over the coach's job with your own coach and schemes (see Coaches).
 - The schedule: weeks 1 to 3 are against three other districts (district d meets d XOR w, so every week brings a different district), and weeks 4 to 10 are a district round robin made with the circle method. Home games are handed out to keep things even: every school gets three or four district home games, and almost always four to six in all.
 - Standings: district record first. Ties go to head-to-head among the tied schools, then the overall record, then point differential in district games (capped at 14 a game), then a coin flip from the season's seed.
 - Clinching is called only when it's certain: a school has the title when nobody can reach its district wins, a playoff spot when at most one school can, and is out when two schools already have more wins than it can reach. A tie could break either way, so a tie is never counted as clinched.
@@ -344,12 +368,20 @@ Take a coordinator job and call one side of the ball while a computer head coach
 ## Saves
 
 - A career is one save. It saves on the device after every snap and every menu choice, like Gridiron Duel.
-- Up to three careers at once.
+- Up to three careers at once (later).
 - A cloud save code, 12 characters long, restores the career on any device. It uses the shared Firebase project, with its own section in the shared rules file, the same way Shardkin's cloud saves work. That rules file has to stay the same in every repo that shares the project.
 - Export and import a save as text.
 - The reason for all three: iPhone Safari can wipe saved data for games inside itch.io's frame, and a career is too much to lose.
 - Saves stay small. Your team is saved in full detail, and everyone else as summaries plus the seeds to rebuild them.
 - Each save records the game's version, and older saves are upgraded when they load.
+
+How it's built (step 5):
+
+- A save code is FTS1Z. and the save gzipped, in base64: about 75 KB for a whole season (the save itself is about 260 KB). A browser that can't compress writes FTS1. and plain base64. Spaces and line breaks are ignored when pasting. The same code can be saved as a text file and opened later.
+- A cloud save lives at fridayToSundaySaves/KEY as { ver, state, t, by, act }, where state is the save code. The first cloud save makes a 12-character key (no 0, O, 1 or I). Each save goes in a transaction that only writes when the cloud copy is the version this device last saved or loaded; otherwise the game asks whether to replace it or load it. The database rules require each save to be exactly one version newer and never allow deleting one, and nobody can list the keys.
+- Neither a save code nor the cloud copy carries this device's cloud key, so sharing a save code never shares the cloud save. Loading a cloud save brings its key along.
+- Loading a save, or starting a new career, keeps the game it replaces as a backup that can be switched back to.
+- A save from a newer version of the game asks for a reload instead of loading.
 
 ## Accessibility
 
@@ -369,12 +401,13 @@ Take a coordinator job and call one side of the ball while a computer head coach
   - team.js: schools, rosters, depth charts, and who's on the field for each package.
   - season.js: the state's schools, the schedule, standings and tiebreakers, the playoff bracket, quick sims, full games nobody's watching, your games, and the news.
   - practice.js: the practice plan, growth, installs, conditioning and recovery, practice injuries and healing, and film study.
-  - coach.js: coach ratings, and later XP and perks.
+  - coach.js: coach ratings, backgrounds, and later XP and perks.
+  - career.js: your career's coach, the seasons you've finished, and the season summary.
   - fatigue.js: energy during a game, rotation, and injuries in games.
-  - save.js (step 5): cloud saves, and export and import. Device saves are in ui.js for now.
+  - cloud.js: save codes, cloud saves and backups. Device saves are in ui.js.
   - rules.js: one rules profile per level. Everything that differs by level, from the clock to kickoffs, tries, penalties and overtime, is read from here. High school is in; the pros profile holds Gridiron Duel's NFL rules so the engine stays general; college comes with Milestone 4.
   - util.js and data.js: helpers, the seeded random numbers, and the name lists.
-  - ui_game.js, ui_depth.js, ui_practice.js, ui_season.js and ui.js: the screens (the game; rosters and the depth chart; practice and scouting reports; the season; and the main menu, the exhibition, help and screen reader support), split further as they grow.
+  - ui_game.js, ui_depth.js, ui_practice.js, ui_season.js, ui_career.js and ui.js: the screens (the game; rosters and the depth chart; practice and scouting reports; the season; creating your coach, your coach's page, the season summary and saves; and the main menu, the exhibition, help and screen reader support), split further as they grow.
 - A seeded random number generator, so a world and its rosters can be rebuilt from a seed.
 - A headless test hook like Gridiron Duel's, plus a tests folder with scripts that play full seasons and check balance.
 - Hosting: GitHub Pages while building, and itch.io when it's ready.

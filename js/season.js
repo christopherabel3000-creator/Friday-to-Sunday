@@ -130,7 +130,8 @@ function balanceHomes(ids, games) {
 //   weeks: [{ n, games: [{ h, a, dist, hs, as, ot }] }] (h is the home team), week: the week to play
 //   next, phase: "pick", "regular", "playoffs" or "over", bracket: { slots, place, rounds },
 //   champion, rot, depthMode, nextDepth: your rotation and depth chart choices (as in an exhibition),
-//   stats: your players' season totals, news: { [week]: [lines] }
+//   stats: your players' season totals, news: { [week]: [lines] }, expect: where your school's talent
+//   ranked in the district when you took the job
 let SEASON = null;
 function newSeason(seed) {
   seed = seed == null ? newSeed() : seed;
@@ -141,13 +142,17 @@ function newSeason(seed) {
     plan: newPlan(), practice: null, cpuWeek: 0, film: null, injLog: {} };
   return SEASON;
 }
-// You take over a school, and its coach's job. Until you create your own coach (step 5), your ratings
-// are the class average.
-const YOUR_COACH = COACH_LEVEL["1A"];
+// You take over a school, and its coach's job, with your coach (career.js) and your schemes. The team
+// still knows the old coach's playbook: yours gets learned in practice. Without a career (a test, or
+// a save from before you could create a coach), you're an unnamed coach with the class average in
+// every rating, running the school's schemes.
 function pickSchool(id) {
   if (!SEASON || SEASON.phase !== "pick" || !SEASON.districts[SEASON.district - 1].ids.includes(id)) return false;
-  const s = SEASON.schools[id], c = { first: "", last: "", you: true, off_style: s.off, def_style: s.def };
-  COACH_RATINGS.forEach(([k]) => { c[k] = YOUR_COACH; });
+  const s = SEASON.schools[id];
+  if (!CAREER) CAREER = { v: 1, coach: legacyCoach(), seasons: [] };
+  const c = CAREER.coach;
+  if (c.off_style && c.def_style) { s.off = c.off_style; s.def = c.def_style; } else { c.off_style = s.off; c.def_style = s.def; }
+  SEASON.expect = talentRank(id);
   s.coach = c; s.rating = schoolRating(s);
   // Where each player started, to see how far he's come
   s.players.forEach(p => { p.o0 = ovr(p, p.pos); });
@@ -467,6 +472,8 @@ function finishWeek() {
   if (n === REGULAR_WEEKS) makeBracket();
   else if (n > REGULAR_WEEKS) nextRound();
   writeNews(n);
+  // A finished season goes into your career (career.js)
+  if (SEASON.phase === "over") recordCareerSeason();
   return n;
 }
 // Sims everything up to the week before stopAt (the end of the season by default), your games too

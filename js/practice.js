@@ -43,6 +43,9 @@ const effBlocks = b => b > 0 ? Math.pow(b, .75) : 0;
 const physBlocks = b => ["qb", "skill", "ol", "front", "secondary", "kick", "cond"].reduce((s, a) => s + b[a], 0);
 // Opponent prep: no report, a light one, a full one, or the works
 const prepLevelOf = b => b <= 0 ? 0 : b < 1.25 ? 1 : b < 2.4 ? 2 : 3;
+// A coach with Scouting 45 or better gets one level more out of the same film time
+const SCOUT_SHARP = 45;
+const prepLevelFor = (b, coach) => { const l = prepLevelOf(b); return l && coach && coach.sct >= SCOUT_SHARP ? Math.min(3, l + 1) : l; };
 // How fresh the team is at kickoff, in percent of full energy
 const freshOf = (b, contact) => clamp(Math.round(100 - physBlocks(b) * (CONTACT[contact] || CONTACT.shells).wear + 3 * b.rec), 86, 100);
 
@@ -190,14 +193,16 @@ function injTextNext(inj) {
 function practiceSchool(s, plan, rng, opts) {
   opts = opts || {};
   const b = blocksOf(plan), c = CONTACT[plan.contact] || CONTACT.shells, dev = devMul(s.coach);
-  const rep = { blocks: b, contact: plan.contact, grew: {}, mastery: [], hurt: [], fresh: freshOf(b, plan.contact), prep: prepLevelOf(b.prep) };
+  const rep = { blocks: b, contact: plan.contact, grew: {}, mastery: [], hurt: [], fresh: freshOf(b, plan.contact), prep: prepLevelFor(b.prep, s.coach) };
   const before = {};
   s.players.forEach(p => { before[p.id] = {}; POS_IDS.forEach(pos => { before[p.id][pos] = ovr(p, pos); }); });
   // Fundamentals, unit by unit
   for (const unit in UNITS) {
     const eff = effBlocks(b[unit]);
     if (!eff) continue;
-    unitPlayers(s, unit).forEach(([p, attrs, pos]) => growPlayer(p, attrs, pos, GROW_RATE * eff * ethMul(p) * dev * c.grow * (YEAR_GROW[p.yr] || 1), rng, rep));
+    // A coach's background can speed up one unit (a former quarterback's quarterbacks, say)
+    const bg = (s.coach && s.coach.grow && s.coach.grow[unit]) || 1;
+    unitPlayers(s, unit).forEach(([p, attrs, pos]) => growPlayer(p, attrs, pos, GROW_RATE * eff * ethMul(p) * dev * c.grow * bg * (YEAR_GROW[p.yr] || 1), rng, rep));
   }
   // Conditioning: stamina, and a little strength and speed
   const ce = effBlocks(b.cond);

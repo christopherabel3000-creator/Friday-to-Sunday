@@ -1,0 +1,136 @@
+{
+  "rules": {
+    "games": {
+      ".indexOn": [
+        "t"
+      ],
+      ".read": "query.orderByChild == 't' && query.endAt <= now - 604800000 && query.limitToFirst <= 25",
+      "$code": {
+        ".read": true,
+        ".write": "(newData.exists() && ((!data.exists() && newData.child('ver').val() === 1) || (data.exists() && newData.child('ver').val() === data.child('ver').val() + 1))) || (!newData.exists() && data.exists() && data.child('t').val() < now - 604800000)",
+        ".validate": "$code.matches(/^[A-Z][A-Z][A-Z][A-Z]$/) && newData.hasChildren(['ver', 'state', 't'])",
+        "ver": {
+          ".validate": "newData.isNumber()"
+        },
+        "state": {
+          ".validate": "newData.isString() && newData.val().length < 1000000"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() > now - 86400000 && newData.val() < now + 86400000"
+        },
+        "wid": {
+          ".validate": "newData.isString() && newData.val().length < 64"
+        },
+        "by": {
+          ".validate": "newData.isString() && newData.val().length < 64"
+        },
+        "act": {
+          ".validate": "newData.isString() && newData.val().length < 32"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "hiddenRanks": {
+      "$code": {
+        ".read": true,
+        ".write": "(newData.exists() && ((!data.exists() && newData.child('ver').val() === 1) || (data.exists() && newData.child('ver').val() === data.child('ver').val() + 1))) || (!newData.exists() && data.exists() && data.child('t').val() < now - 604800000)",
+        ".validate": "$code.matches(/^[A-Z][A-Z][A-Z][A-Z]$/) && newData.hasChildren(['ver', 'state', 't'])",
+        "ver": {
+          ".validate": "newData.isNumber()"
+        },
+        "state": {
+          ".validate": "newData.isString() && newData.val().length < 200000"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() > now - 86400000 && newData.val() < now + 86400000"
+        },
+        "by": {
+          ".validate": "newData.isString() && newData.val().length < 64"
+        },
+        "act": {
+          ".validate": "newData.isString() && newData.val().length < 32"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "shardkinDuels": {
+      "$code": {
+        ".read": true,
+        ".write": "(newData.exists() && ((!data.exists() && newData.child('ver').val() === 1) || (data.exists() && newData.child('ver').val() === data.child('ver').val() + 1))) || (!newData.exists() && data.exists() && data.child('t').val() < now - 604800000)",
+        ".validate": "$code.matches(/^[A-Z][A-Z][A-Z][A-Z]$/) && newData.hasChildren(['ver', 'state', 't'])",
+        "ver": {
+          ".validate": "newData.isNumber()"
+        },
+        "state": {
+          ".validate": "newData.isString() && newData.val().length < 200000"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() > now - 86400000 && newData.val() < now + 86400000"
+        },
+        "by": {
+          ".validate": "newData.isString() && newData.val().length < 64"
+        },
+        "act": {
+          ".validate": "newData.isString() && newData.val().length < 32"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "shardkinSaves": {
+      "$key": {
+        ".read": true,
+        ".write": "newData.exists() && ((!data.exists() && newData.child('ver').val() === 1) || (data.exists() && newData.child('ver').val() === data.child('ver').val() + 1))",
+        ".validate": "$key.matches(/^[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]$/) && newData.hasChildren(['ver', 'state', 't'])",
+        "ver": {
+          ".validate": "newData.isNumber()"
+        },
+        "state": {
+          ".validate": "newData.isString() && newData.val().length < 2000000"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() > now - 86400000 && newData.val() < now + 86400000"
+        },
+        "by": {
+          ".validate": "newData.isString() && newData.val().length < 64"
+        },
+        "act": {
+          ".validate": "newData.isString() && newData.val().length < 32"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "fridayToSundaySaves": {
+      "$key": {
+        ".read": true,
+        ".write": "newData.exists() && ((!data.exists() && newData.child('ver').val() === 1) || (data.exists() && newData.child('ver').val() === data.child('ver').val() + 1))",
+        ".validate": "$key.matches(/^[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]$/) && newData.hasChildren(['ver', 'state', 't'])",
+        "ver": {
+          ".validate": "newData.isNumber()"
+        },
+        "state": {
+          ".validate": "newData.isString() && newData.val().length < 2000000"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() > now - 86400000 && newData.val() < now + 86400000"
+        },
+        "by": {
+          ".validate": "newData.isString() && newData.val().length < 64"
+        },
+        "act": {
+          ".validate": "newData.isString() && newData.val().length < 32"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
