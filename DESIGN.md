@@ -211,9 +211,9 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 Each level uses its real overtime rules. The details get checked against the current rulebooks when each level is built.
 
 - **High school,** using the national high school rule: there's no clock. Each team gets a series starting first and goal at the opponent's 10-yard line. If one team is ahead after both series, it wins. Otherwise another overtime is played, and the choice of who goes first alternates. The defense can't score, since a turnover ends the series. Each team gets one timeout per overtime, and nobody has to go for two.
-- **College:** each team gets a possession starting at the opponent's 25-yard line. In the second overtime, a team that scores a touchdown must go for two. From the third overtime on, teams trade two-point plays until one of them wins. Each team gets one timeout per overtime.
-- **Pros, regular season:** one 10-minute period. Both teams get the ball, unless the defense scores on the first possession or that possession runs out the clock. After that, the team ahead wins, and a tie goes to the next score. If it's still tied after 10 minutes, the game ends in a tie. Each team gets two timeouts.
-- **Pros, playoffs:** 15-minute periods until there's a winner, with both teams guaranteed the ball. The first two periods play like a half, then there's a new kickoff, and a new coin toss after four periods. Gridiron Duel's overtime is already close to this.
+- **College:** there's no clock. Each team gets a possession starting at the opponent's 25-yard line. In the second overtime, a team that scores a touchdown must go for two. From the third overtime on, teams trade two-point plays until one of them wins. Each team gets one timeout per overtime.
+- **Pros, regular season:** one 10-minute period, timed like a fourth quarter: the late-game clock rules start at the five-minute mark, and there's a two-minute warning. Each team gets two timeouts. Both teams get the ball, unless the defense scores on the first possession or that possession runs out the clock. After that, the team ahead wins, and a tie goes to the next score. When time runs out, the team ahead wins, even in the middle of the second team's possession, and if it's tied, the game ends in a tie.
+- **Pros, playoffs:** Gridiron Duel's overtime: 15-minute periods until there's a winner, both teams guaranteed the ball, the first two periods played like a half, then a new kickoff, and a new coin toss after four periods. One difference: in Gridiron Duel, a lead at the end of any overtime period wins. Under the NFL rule, if a period ends before the second team's guaranteed possession is over, play continues into the next period. The pros here use the NFL rule.
 
 ## The season
 
@@ -282,10 +282,10 @@ Take a coordinator job and call one side of the ball while a computer head coach
 
 - Talent: turnout in high school, recruiting and NIL in college, the draft in the pros.
 - Quarters: 12 minutes in high school, 15 in college and the pros.
-- Overtime: each level's real rules, with one 10-minute period and ties possible in the pro regular season.
+- Overtime: each level's real rules. High school and college overtime have no clock. The pro regular season has one 10-minute period with fourth-quarter timing, two timeouts each, and ties possible. The pro playoffs work like Gridiron Duel's overtime, with the NFL's guaranteed-possession rule.
 - Depth chart: automatic if you want it, with changes for a single game and substitutions during a game.
 - Difficulty: Normal only to start.
 
 ## Open questions
 
-1. Should other rules that differ by level follow the real rules too, such as when the clock stops, whether there's a two-minute warning, and extra-point distance?
+1. During regulation (not overtime), should rules that differ by level follow the real rules too, such as when the clock stops, whether there's a two-minute warning, and extra-point distance?
