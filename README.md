@@ -48,7 +48,7 @@ Milestones 1 and 2 are built (see [DESIGN.md](DESIGN.md)): create your coach, ta
 
 ## Playing it
 
-Open `index.html` from a web server (GitHub Pages works). The game is plain HTML, CSS and JavaScript with no build step.
+Play it at [christopherabel3000-creator.github.io/Friday-to-Sunday](https://christopherabel3000-creator.github.io/Friday-to-Sunday/). GitHub Pages publishes `main` on every push (`.nojekyll` keeps the files served as they are). To run it yourself, open `index.html` from any web server. The game is plain HTML, CSS and JavaScript with no build step.
 
 ## Cloud saves
 
