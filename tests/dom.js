@@ -103,6 +103,7 @@ function checkScreen(page, label) {
   // ---- Play a game by tapping ----
   const seen = new Set();
   let steps = 0, focusBad = 0, lastHead = "";
+  const puntsSeen = {};
   const sw = page.w;
   while (steps < 4000) {
     steps++;
@@ -114,6 +115,21 @@ function checkScreen(page, label) {
       case "toss": tap(page, "toss", S.toss.step === "call" ? "heads" : (btn(d, "toss", "receive") ? "receive" : "defense")); break;
       case "call": {
         const pk = d.querySelector('[data-a="pkg"][aria-pressed="true"]');
+        // Fourth down: send out the punt team half the time and pick one of the three punts
+        if (S.side === "off" && S.down === 4 && btn(d, "pkg", "punt") && Math.random() < .5) {
+          tap(page, "pkg", "punt");
+          const pc = [...d.querySelectorAll('[data-a="pick"][data-v="punt"]')];
+          ok(pc.map(b => b.dataset.k).join() === "normal,pin,boom", `the punt team has three punts (${pc.map(b => b.dataset.k).join()})`);
+          const want = pc[Math.floor(Math.random() * pc.length)];
+          want.focus(); want.click();
+          const now = d.querySelector(`[data-a="pick"][data-v="punt"][data-k="${want.dataset.k}"]`);
+          ok(now && now.getAttribute("aria-pressed") === "true" && d.activeElement === now, `picking ${want.dataset.k} marks it, and focus stays on it`);
+          const label = { normal: "Punt", pin: "Pin it deep", boom: "Boom it" }[want.dataset.k];
+          ok(btn(d, "lock").textContent.includes(label), `the lock button says ${label}`);
+          tap(page, "lock");
+          if (sw.eval("S.offCall") === "punt") { puntsSeen[want.dataset.k] = (puntsSeen[want.dataset.k] || 0) + 1; ok(sw.eval("S.puntKind") === want.dataset.k, `the ${want.dataset.k} punt is the one kicked`); }
+          break;
+        }
         const plays = [...d.querySelectorAll('[data-a="pick"]')];
         const pick = plays[Math.floor(Math.random() * plays.length)];
         pick.focus(); pick.click();
@@ -145,6 +161,7 @@ function checkScreen(page, label) {
   ok(page.errors.length === 0, "no script errors during the game: " + page.errors.slice(0, 3).join(" | "));
   ok(sw.eval("S.phase") === "final", `the game reaches the final by tapping (${steps} taps, last screen ${sw.eval("S.phase")})`);
   ok(focusBad === 0, `every new screen puts focus on its heading or main block (${focusBad} misses)`);
+  ok(Object.keys(puntsSeen).length > 0, `the game sent out the punt team and kicked a punt by tapping (${JSON.stringify(puntsSeen)})`);
   ok(["toss", "call", "result"].every(p => seen.has(p)), "saw the toss, call sheet and results: " + [...seen].join(", "));
   ok(/win|tie/.test(d.querySelector(".final h2").textContent), "the final screen names the winner");
   ok(d.querySelectorAll(".statwrap table").length >= 4, "player stats tables in the box score");

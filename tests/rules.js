@@ -409,6 +409,69 @@ function plain(g, extra) {
   ok(g("S.phase") === "final" && g(`S.teams.every(t => t.rot && t.players.every(p => Number.isFinite(p.en)))`), "an older save is upgraded and plays on");
 }
 
+// ---- Punt choices: a regular punt, Pin it deep and Boom it ----
+{
+  const { g } = game(true);
+  plain(g);
+  const setP = (leg, kac) => g(`(() => { const P = punterOf(0); P.r.leg = ${leg}; P.r.kac = ${kac}; S.teams[0].dver++; })()`);
+  // Punt n times from a spot against a call; returns touchbacks, inside the 10, net yards, return TDs, return yards
+  const punts = (kind, spot, dc, n) => {
+    const out = { tb: 0, in10: 0, net: 0, td: 0, ry: 0, kept: 0, pinned: 0 };
+    for (let i = 0; i < n; i++) {
+      plain(g, { spot, down: 4, toGo: 8 });
+      g(`S.defCall = "${dc}"; S.offCall = "punt"; S.puntKind = "${kind}";`);
+      const before = g("S.teams[1].score"), r = g(`doPunt()`);
+      if (/Blocked/.test(r.head)) continue;
+      if (g("S.teams[1].score") > before) { out.td++; continue; }
+      out.kept++;
+      if (/into the end zone/.test(r.text)) out.tb++;
+      if (g("S.spot") <= 10) out.in10++;
+      if (r.head === "Pinned deep") out.pinned++;
+      out.net += 100 - g("S.spot") - spot;
+      const m = /returns it (\d+)/.exec(r.text); if (m) out.ry += +m[1];
+    }
+    out.net /= out.kept; return out;
+  };
+  setP(55, 55);
+  // From their 40: a regular punt sails into the end zone a lot; pinning it stops short and downs it deep
+  const nm = punts("normal", 60, "ba", 1500), pin = punts("pin", 60, "ba", 1500);
+  ok(pin.tb * 3 < nm.tb, `pinning it from their 40 means far fewer touchbacks (${pin.tb} against ${nm.tb})`);
+  ok(pin.in10 > nm.in10 * 1.5, `and a lot more punts downed inside the 10 (${pin.in10} against ${nm.in10})`);
+  ok(pin.net > nm.net, `and a better net (${pin.net.toFixed(1)} against ${nm.net.toFixed(1)})`);
+  ok(pin.pinned > 0, `a punt downed inside the 10 reads as pinned deep (${pin.pinned})`);
+  // Backed up at the 10 with nobody back: booming it flips the field
+  const nmDeep = punts("normal", 10, "ba", 1500), boomDeep = punts("boom", 10, "ba", 1500);
+  ok(boomDeep.net > nmDeep.net + 5, `booming it from your 10 with nobody back gains real yards (${boomDeep.net.toFixed(1)} against ${nmDeep.net.toFixed(1)})`);
+  // Against a return unit it outkicks the coverage: longer returns and more return touchdowns
+  const nmRet = punts("normal", 10, "ret", 4000), boomRet = punts("boom", 10, "ret", 4000), pinRet = punts("pin", 10, "ret", 4000);
+  ok(boomRet.ry / boomRet.kept > (nmRet.ry / nmRet.kept) * 1.3, `a boomed punt is returned farther (${(boomRet.ry / boomRet.kept).toFixed(1)} a punt against ${(nmRet.ry / nmRet.kept).toFixed(1)})`);
+  ok(boomRet.td > nmRet.td * 1.5, `and returned for a touchdown more often (${boomRet.td} against ${nmRet.td} of 4000)`);
+  ok(Math.abs(boomRet.net - nmRet.net) < 5, `but against a return its net is close to a regular punt's: a gamble, not a free win (${boomRet.net.toFixed(1)} against ${nmRet.net.toFixed(1)})`);
+  // Out of range, pinning it is a short, high kick: almost never returned, and never for a touchdown
+  ok(pinRet.td === 0 && pinRet.ry / pinRet.kept < 2, `a pooch punt is hard to return (${(pinRet.ry / pinRet.kept).toFixed(1)} yards a punt, ${pinRet.td} touchdowns)`);
+  ok(pinRet.net < nmRet.net + 2, `and from your own 10 it gives up distance (${pinRet.net.toFixed(1)} against ${nmRet.net.toFixed(1)})`);
+  // An accurate punter drops it inside the 10 more often
+  setP(55, 90); const acc = punts("pin", 55, "ba", 1500);
+  setP(55, 20); const wild = punts("pin", 55, "ba", 1500);
+  ok(acc.in10 > wild.in10 * 1.15, `an accurate punter pins them deeper (${acc.in10} inside the 10 against ${wild.in10})`);
+  // A bigger leg booms it farther
+  setP(85, 55); const bigLeg = punts("boom", 10, "ba", 1000);
+  setP(30, 55); const smallLeg = punts("boom", 10, "ba", 1000);
+  ok(bigLeg.net > smallLeg.net + 8, `a big leg booms it farther (${bigLeg.net.toFixed(1)} against ${smallLeg.net.toFixed(1)})`);
+  // A regular punt still works as before when no style is set
+  setP(55, 55);
+  plain(g, { spot: 30, down: 4, toGo: 8 }); g(`S.defCall = "ba"; S.offCall = "punt"; S.puntKind = null;`);
+  ok(/punts|shanks/.test(g(`doPunt()`).text), "a punt with no style set is a regular punt");
+  // The computer: pins from around midfield and booms it backed up, more often with better game management
+  const cpuKinds = (spot, gm) => { const c = { normal: 0, pin: 0, boom: 0 }; g(`S.teams[0].coach.gm = ${gm}`);
+    for (let i = 0; i < 600; i++) { plain(g, { spot, down: 4, toGo: 8 }); c[g(`cpuPuntKind()`)]++; } return c; };
+  const mid = cpuKinds(58, 70), deep = cpuKinds(8, 70), open = cpuKinds(35, 70), midLow = cpuKinds(58, 25);
+  ok(mid.pin > 400 && mid.boom === 0, `the computer pins them from their 42 (${JSON.stringify(mid)})`);
+  ok(deep.boom > 250 && deep.pin === 0, `and booms it from its own 8 (${JSON.stringify(deep)})`);
+  ok(open.normal === 600, `and punts normally in between (${JSON.stringify(open)})`);
+  ok(midLow.pin < mid.pin, `a coach with weak game management pins them less often (${midLow.pin} against ${mid.pin})`);
+}
+
 // ---- Whole games ----
 {
   const { g, F } = game(true);

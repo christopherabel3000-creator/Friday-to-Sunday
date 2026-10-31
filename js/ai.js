@@ -173,6 +173,14 @@ function cpuKickCall() {
   if (S.toGo <= 4 && rand() < .04) return S.spot < 62 || fgP < .3 ? "fp" : "ffg";
   return "punt";
 }
+// How the computer punts: pin them from around midfield, boom it when backed up deep. A coach with
+// better Game management picks the situational punt more often.
+function cpuPuntKind() {
+  const c = S.teams[S.poss].coach || {}, sharp = clamp(.35 + .012 * ((c.gm || 42) - 20), .35, 1);
+  if (S.spot >= 50 && rand() < sharp) return "pin";
+  if (S.spot <= 20 && rand() < sharp * .8) return "boom";
+  return "normal";
+}
 // The computer leans toward the plays its team knows
 function knownWeights(w, t) { Object.keys(w).forEach(k => { if (OFFP[k] || DEFP[k]) w[k] *= masteryPref(masteryOf(t, k)); }); return w; }
 function cpuOff() {

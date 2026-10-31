@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: building Milestone 1, one high school season. Steps 1 to 4 of the build plan below are done: a full 1A season, from picking your school through the state championship, with weekly practice, playbook mastery, scouting reports, player growth and injuries, every game played snap by snap or simmed, plus the exhibition game.
+Status: Milestones 1 and 2 are done: a career at a 1A school that goes on season after season, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, and the offseason program. Next is Milestone 3, the high school job market, which needs its design worked out before it's built.
 
 ## The pitch
 
@@ -329,6 +329,7 @@ How it's built (step 4):
 - Your film: after each game, the calls you made by situation go into the season's film (older games count 0.6 each week). Before the next game, the other coach starts with that film, at 0.6 times (his Scouting rating minus 25) out of 60, so a good scout counters your habits from the first snap.
 - After the game: the final score, box score, player stats and a short summary.
 - Injuries (step 4): each team has a 0.28 percent chance on every scrimmage snap that a player on the field gets hurt, about 0.36 injuries a team a game. Ball carriers, tacklers, targets and covering defenders are 2.5 times likelier, and so are tired players and players with poor health. 45 percent are out for the rest of the game, 27 percent miss the next game, 15 percent two or three, 9 percent four to six, and 4 percent the season. An injured player stays on the depth chart and the next healthy player behind him plays. Injuries go home with the schools that keep their rosters and heal a game at a time at the end of each week.
+- Punting: three punts on the punt team's call sheet. A regular punt. Pin it deep: aim to drop it at their 10; the punter reaches his average minus 2 (give or take 5), and out of that range it's a high, short kick of his average minus 7. In range, it lands 1 yard past the 10, give or take 8 minus 0.05 per point of kicking accuracy (3.5 to 7.5), with 1.3 times the usual shank chance. It can't be returned for a touchdown: a return unit fair-catches it 75 percent of the time and the rest are short returns against the coverage plus 10, and with nobody back the coverage downs it. Boom it: 6 yards longer (give or take 6), rolling 4 to 12 with nobody back, 1.4 times the shank chance, a quarter likelier to be blocked, and it outkicks the coverage: a return unit fair-catches only 12 percent, returns run against the coverage minus 10 with a typical return of 11, and return touchdowns are three times likelier. The computer pins it from its 50 and in, and booms it from its 20 and back, with a chance of 0.35 plus 0.012 a point of Game management over 20 (booming at 0.8 of that), and punts normally otherwise.
 - Carries: the feature back is spelled on 15 percent of carries, and more often once he has 18 in a game, so even a run-first team spreads the load.
 
 ## Rules by level

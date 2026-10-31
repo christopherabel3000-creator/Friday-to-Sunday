@@ -29,6 +29,7 @@ Milestones 1 and 2 are built (see [DESIGN.md](DESIGN.md)): create your coach, ta
 - Players grow from practice, faster when they're young, hard-working and getting time, and never past their potential.
 - A playbook your team has to learn: every play has a mastery from 0 to 100, shown on the call sheet. Known plays are an edge; new ones cost edge and draw flags and fumbles. Pick up to three plays to install each week. The computer calls what its team knows, too.
 - Scouting reports from film study: the opponent's habits in short, medium and long yardage, their favorite calls, what beats them, players to watch, and where to attack. Your team gets a small edge when they run a call you studied, and every coach you face has watched your film.
+- Three ways to punt: a regular punt, Pin it deep (a high, short kick aimed to drop inside the 10, where your punter's accuracy decides how close he gets; overkick it and it's a touchback) or Boom it (about 6 yards longer and it rolls, but it outkicks the coverage, so big returns and return touchdowns are likelier). Computer coaches pin you from around midfield and boom it when they're backed up deep, more often with better Game management.
 - Injuries in games and in practice: a player may be out for the rest of a game or for weeks, the next player on the depth chart steps in, and rosters say who's hurt and for how long.
 - Two generated small-town schools, each with about 30 players, a coach with ratings, an offensive and defensive scheme, and a depth chart that sets itself from the ratings. Most starters play both ways.
 - Every player is rated 1 to 100 in speed, strength, awareness and the skills for each position, with an overall rating at every position. Small-school starters mostly rate in the 30s to 50s.
@@ -85,7 +86,7 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 `npm install` once (for jsdom and acorn), then `npm test`, or run one at a time:
 
 - `node tests/lint.js`: top-level names are unique and safe
-- `node tests/rules.js`: high school rules, rosters, depth charts, fatigue and rotation, checked against the real engine
+- `node tests/rules.js`: high school rules, rosters, depth charts, fatigue and rotation, the three punts, checked against the real engine
 - `node tests/practice.js`: playbook mastery in the snap, the computer's calls, a season of growth against potential, installs, contact and recovery, injuries in games and practice, film study and the prep edge
 - `node tests/season.js`: the state, the schedule, standings and tiebreakers (clinching checked against every possible finish), the bracket, quick sims against the full engine, your games, whole simmed seasons, and saves mid-season
 - `node tests/career.js`: creating a coach, what each rating does, taking a job with your schemes, faster growth from a background, the season summary, save codes, cloud saves against a stand-in for the database, and saves from before careers

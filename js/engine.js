@@ -260,6 +260,11 @@ const kickDist = () => 100 - S.spot + R().fgAdd;
 const endHalfKick = () => (S.quarter === 2 || S.quarter >= 4) && S.clock <= 40 && !noClock();
 const fgAvailable = () => !S.twoPt && kickDist() <= fgMaxTry(S.poss) && (S.down === 4 || endHalfKick() || otFgWins() || hsOT());
 const puntAvailable = () => !S.twoPt && S.down === 4 && !hsOT();
+// The three ways to punt. Pin it deep aims a high, short kick to drop inside their 10; Boom it
+// kicks it as far as the punter can and outkicks the coverage.
+const PUNT_KINDS = { normal: "Punt", pin: "Pin it deep", boom: "Boom it" };
+const puntKind = () => PUNT_KINDS[S.puntKind] ? S.puntKind : "normal";
+const puntName = k => PUNT_KINDS[k] || "Punt";
 
 /* ---------- Game flow ---------- */
 const newTeamStats = () => ({ plays: 0, yds: 0, rush: 0, pass: 0, fd: 0, to: 0, pen: 0, penYds: 0, d3: 0, d3c: 0 });
@@ -622,7 +627,7 @@ function startPlay() {
   const notes = [rotate(0), rotate(1)], watching = S.teams[0].cpu && S.teams[1].cpu;
   S.subNote = [0, 1].filter(t => notes[t].length && (watching || !S.teams[t].cpu)).map(t => (watching ? `${tname(t)}: ` : "") + rotationNote(notes[t])).join(" ");
   S.scoutNote = null; S.toUsed = false;
-  S.offCall = null; S.defCall = null; S.sel = null; S.offSide = false; S.selSide = false; S.locked = false; S.aud = null; S.look = null; S.audSel = null; S.disgOn = false; S.disgSel = null; S.disg = null;
+  S.offCall = null; S.defCall = null; S.sel = null; S.offSide = false; S.selSide = false; S.puntKind = null; S.selPunt = null; S.locked = false; S.aud = null; S.look = null; S.audSel = null; S.disgOn = false; S.disgSel = null; S.disg = null;
   S.snap = { total: S.teams[0].score + S.teams[1].score, poss: S.poss, spot: S.spot, down: S.down, toGo: S.toGo, sit: S.twoPt ? "Two-point try" : `${downText()} at the ${spotText(S.poss, S.spot)}`, q: S.quarter, clock: S.clock, ot: S.ot ? { a: S.ot.a, ph: S.ot.ph } : null };
   S.offPkg = null; S.defPkg = null;
   // No huddle: both sides stay in the personnel that was on the field for the last snap
@@ -630,7 +635,7 @@ function startPlay() {
   S.noHuddle = false;
   if (!S.teams[S.poss].cpu) { S.side = "off"; S.pkgSel = S.nhLock ? S.nhLock.off : pkgMem(S.poss).off; S.phase = passPhone() ? "handoff" : "call"; }
   else {
-    S.offPkg = S.nhLock ? S.nhLock.off : cpuOffPkg(); S.offCall = cpuOff(); S.offSide = cpuSide(S.offCall);
+    S.offPkg = S.nhLock ? S.nhLock.off : cpuOffPkg(); S.offCall = cpuOff(); S.offSide = cpuSide(S.offCall); S.puntKind = S.offCall === "punt" ? cpuPuntKind() : null;
     if (stPkgFor(S.offCall)) S.offPkg = stPkgFor(S.offCall); // a kick or a fake needs the special teams unit on the field
     defStep();
   }
@@ -727,7 +732,7 @@ function lock() {
   if (!pkgChoices(isOff).includes(pk) || !(isOff ? offCallsFor(pk) : defCallsFor()).includes(S.sel)) return;
   if (isOff) { S.offPkg = pk; if (!isST(pk)) pkgMem(S.poss).off = pk; }
   else { S.defPkg = pk; pkgMem(1 - S.poss).def = S.defPkg; }
-  if (S.side === "off") { S.offCall = S.sel; S.offSide = !!S.selSide && sideOn(S.sel) && sidelineOK(); S.locked = true; if (S.sel === "kneel") { S.defCall = null; resolve(); } else defStep(); }
+  if (S.side === "off") { S.offCall = S.sel; S.offSide = !!S.selSide && sideOn(S.sel) && sidelineOK(); S.puntKind = S.sel === "punt" ? (PUNT_KINDS[S.selPunt] ? S.selPunt : "normal") : null; S.locked = true; if (S.sel === "kneel") { S.defCall = null; resolve(); } else defStep(); }
   else {
     S.defCall = S.sel;
     S.disg = null;
@@ -805,7 +810,7 @@ function finalize(r) {
   r.id = S.playId = (S.playId || 0) + 1;
   S.last = r; S.phase = "result"; S.banner = "";
   S.log.unshift({ q: S.snap.q, clock: S.snap.clock, team: S.snap.poss, sit: S.snap.sit,
-    off: S.offCall === "punt" ? "Punt" : S.offCall === "fg" ? "Field goal" : S.offCall === "kneel" ? "Kneel down" : S.offCall === "fp" ? "Fake punt" : S.offCall === "ffg" ? "Fake field goal" : `${OFF_PKGS[S.offPkg] ? OFF_PKGS[S.offPkg].short + " · " : ""}${OFFP[S.offCall].name}${S.offSide && sideOn(S.offCall) ? " (sideline)" : ""}${S.aud ? ` (audible from ${OFFP[S.aud.from].name})` : ""}`,
+    off: S.offCall === "punt" ? puntName(puntKind()) : S.offCall === "fg" ? "Field goal" : S.offCall === "kneel" ? "Kneel down" : S.offCall === "fp" ? "Fake punt" : S.offCall === "ffg" ? "Fake field goal" : `${OFF_PKGS[S.offPkg] ? OFF_PKGS[S.offPkg].short + " · " : ""}${OFFP[S.offCall].name}${S.offSide && sideOn(S.offCall) ? " (sideline)" : ""}${S.aud ? ` (audible from ${OFFP[S.aud.from].name})` : ""}`,
     def: S.defCall ? `${DEF_PKGS[S.defPkg] ? DEF_PKGS[S.defPkg].short + " · " : ""}${DEFP[S.defCall].name}${S.look && S.look.fake ? ` (disguised as ${LOOKS[S.look.d].name.toLowerCase()})` : ""}` : "", text: r.text + (r.sub ? " " + r.sub : "") + (r.injNote ? " " + r.injNote : ""), score: `${S.teams[0].score}-${S.teams[1].score}` });
 }
 // Seconds that come off before the next snap with the clock running

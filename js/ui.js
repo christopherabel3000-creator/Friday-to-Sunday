@@ -327,6 +327,7 @@ function vHelp() {
       "Late in a half: use timeouts, or go no huddle (faster snaps, but nobody can change personnel).",
       "In the last two minutes of each half you can also spike the ball, or run a play to the sideline to stop the clock.",
       "Fourth down: send out the punt team or field goal unit, or keep the offense on the field and go for it. The defense sees who runs on, and kicking units can run a fake.",
+      "Punting: a regular punt, Pin it deep (a high, short kick aimed inside their 10, best from around midfield; your punter's accuracy decides how close he gets), or Boom it (as far as his leg allows, to flip the field when you're backed up, but it outkicks the coverage, so big returns happen, and it can sail into the end zone).",
       "Leading late with the other team out of timeouts, you can kneel to run out the clock.",
       "After your team scores, you can call an onside kick before the kickoff. High school teams don't have to announce one, so a surprise works a lot more often. Trailing in the last two minutes, you're asked every time."
     ]))}
@@ -390,7 +391,7 @@ function focusSig(app) {
   if (!el || el === document.body || !app.contains(el)) return null;
   if (el.id) return { id: el.id };
   const b = el.closest("[data-a]");
-  return b ? { a: b.dataset.a, v: b.dataset.v, t: b.dataset.t, c: b.dataset.c } : null;
+  return b ? { a: b.dataset.a, v: b.dataset.v, t: b.dataset.t, c: b.dataset.c, k: b.dataset.k } : null;
 }
 // An action can name the control that should have focus after the redraw (focusNext)
 let focusNext = null;
@@ -403,7 +404,7 @@ function placeFocus(app, key, prev) {
   if (!changed) {
     if (!prev) return;
     if (prev.id) el = document.getElementById(prev.id);
-    else el = [...app.querySelectorAll("[data-a]")].find(b => b.dataset.a === prev.a && b.dataset.v === prev.v && b.dataset.t === prev.t && b.dataset.c === prev.c);
+    else el = [...app.querySelectorAll("[data-a]")].find(b => b.dataset.a === prev.a && b.dataset.v === prev.v && b.dataset.t === prev.t && b.dataset.c === prev.c && b.dataset.k === prev.k);
     if (!el || el.disabled) el = app.querySelector("[data-focus]");
   } else {
     el = app.querySelector("[data-focus]") || app.querySelector("h1, h2");
@@ -618,7 +619,7 @@ function act(a, ds) {
     case "audpick": if (inGame && S.phase === "los") S.audSel = S.audSel === ds.v ? null : ds.v; break;
     case "audible": if (inGame && S.phase === "los") { audible(S.audSel); scrollTop(); } break;
     case "snap": if (inGame && S.phase === "los") { audible(null); scrollTop(); } break;
-    case "pick": if (inGame && S.phase === "call") S.sel = ds.v; break;
+    case "pick": if (inGame && S.phase === "call") { S.sel = ds.v; S.selPunt = ds.v === "punt" ? (PUNT_KINDS[ds.k] ? ds.k : "normal") : null; } break;
     case "disg": if (inGame && S.phase === "call" && S.side === "def") S.disgOn = ds.v === "1"; break;
     case "dlook": if (inGame && S.phase === "call" && S.side === "def" && LOOKS[ds.v]) S.disgSel = S.disgSel === ds.v ? null : ds.v; break;
     case "side": if (inGame && S.phase === "call" && S.side === "off" && sideOn(S.sel)) S.selSide = !S.selSide; break;

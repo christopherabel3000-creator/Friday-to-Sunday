@@ -163,7 +163,15 @@ function vCall() {
   }
   if (kickUnit) {
     st += `<p class="sechead">Kick</p><div class="plays">`;
-    if (pk === "punt") st += card("punt", "Punt", "Kick", `Flip the field. ${esc(punterOf(t).last)} averages about ${puntAvg(t)} yards.`, "st");
+    if (pk === "punt") {
+      const pc = (k, nm, ds) => `<button class="play st" data-a="pick" data-v="punt" data-k="${k}" aria-pressed="${S.sel === "punt" && (S.selPunt || "normal") === k}">
+        <span class="tag">Kick</span><span class="nm">${nm}</span><span class="ds">${ds}</span></button>`;
+      const P = punterOf(t), avg = puntAvg(t);
+      const pinNote = 90 - S.spot > avg - 2 ? "Too far out to aim from here: a high, short kick that's hard to return." : "Best from around midfield. Overkick it and it's a touchback.";
+      st += pc("normal", "Punt", `Flip the field. ${esc(P.last)} averages about ${avg} yards.`) +
+        pc("pin", "Pin It Deep", `A high, short punt aimed to drop inside their 10, where the coverage can down it or force a fair catch. ${pinNote}`) +
+        pc("boom", "Boom It", `Kick it as far as ${esc(P.last)} can, about ${avg + 6} yards. Flips the field when you're backed up, but it outkicks the coverage, so big returns happen, and from too close it sails into the end zone.`);
+    }
     else { const k = kickDist(); st += card("fg", `${k}-yd field goal`, "Kick", `${esc(kickerOf(t).last)} makes it about ${Math.round(fgProbFor(t, k) * 100)}% of the time from here.`, "st"); }
     st += `</div><p class="sechead">Trick play</p><div class="plays">`;
     if (pk === "punt") st += card("fp", "Fake Punt", "Trick", "Line up to punt, then run or throw for the first down. Deadly if they sell out for the kick.", "st");
@@ -194,7 +202,7 @@ function vCall() {
       ${fakeLook ? "" : `<p class="muted pkdesc">No look picked: a random one is shown.</p>`}` : ""}` : "";
   const sideToggle = canSide ? `<p class="sechead">Clock</p>
       <button class="btn ghost" data-a="side" aria-pressed="${sideNow}" ${sideOn(S.sel) ? "" : "disabled"} style="width:100%">${sideNow ? "Sideline: get out of bounds ✓" : "Run it to the sideline"}<span class="sr-only">. </span><br><small style="font-family:var(--body);font-weight:500;font-size:14px;text-transform:none">${sideOn(S.sel) || !S.sel ? "Stops the clock on most gains. Fewer yards, and Cover 2 sits on short throws to the sideline." : "Not available on this play."}</small></button>` : "";
-  const selName = S.sel ? (S.sel === "punt" ? "Punt" : S.sel === "fg" ? "Field goal" : S.sel === "kneel" ? "Kneel down" : S.sel === "fp" ? "Fake punt" : S.sel === "ffg" ? "Fake field goal" : book[S.sel].name) : "";
+  const selName = S.sel ? (S.sel === "punt" ? puntName(S.selPunt) : S.sel === "fg" ? "Field goal" : S.sel === "kneel" ? "Kneel down" : S.sel === "fp" ? "Fake punt" : S.sel === "ffg" ? "Fake field goal" : book[S.sel].name) : "";
   return `${board()}
     ${S.locked && !isOff && !bothHuman() ? "" : bannerHtml()}
     ${S.subNote ? `<p class="banner">${esc(S.subNote)}</p>` : ""}

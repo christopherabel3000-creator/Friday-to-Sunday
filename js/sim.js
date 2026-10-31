@@ -713,13 +713,14 @@ function onsideKick(k) {
   return { ok: false, text: `Onside kick by ${K.last}, but ${tname(rcv)} fall on it at the ${spotText(rcv, S.spot)}.` };
 }
 function doPunt() {
-  const o = S.poss, d = 1 - o, from = S.spot, Pn = punterOf(o), ret = returnerOf(d, "PR");
+  const o = S.poss, d = 1 - o, from = S.spot, Pn = punterOf(o), ret = returnerOf(d, "PR"), kind = puntKind();
   const r = { read: null, fromX: fx(o, from), tone: "" };
   tick(ri(9, 13));
-  const dc = S.defCall;
+  const dc = S.defCall, retUnit = dc === "ret" || dc === "blk";
   if (dc === "blk" && rand() < .04) return roughKicker(r, "punt");
   pstat(Pn, "pu");
-  if (rand() < (dc === "blk" ? .08 : dc === "ab" ? .05 : .01) * kickBlockMul(o)) {
+  // A booming kick takes a beat longer to get off
+  if (rand() < (dc === "blk" ? .08 : dc === "ab" ? .05 : .01) * kickBlockMul(o) * (kind === "boom" ? 1.25 : 1)) {
     const bs = Math.max(from - 7, 1);
     startDrive(d, 100 - bs);
     Object.assign(r, { head: "Blocked!", tone: "bad", text: `${Pn.last}'s punt is blocked! ${tname(d)} recover at the ${spotText(d, S.spot)}.`, toX: fx(d, S.spot) });
@@ -727,30 +728,55 @@ function doPunt() {
   }
   // The punter's leg sets the distance. A shank or a low snap now and then, more for a shaky punter.
   // With no return unit on the field the ball is left to roll; a return unit sets up a real runback.
-  const roll = dc === "ret" || dc === "blk" ? 0 : ri(2, 8);
-  const shank = rand() < clamp(.07 - .0008 * Pn.r.kac, .01, .06);
-  const gross = shank ? ri(12, 24) : Math.max(15, Math.round(normal(22 + .28 * Pn.r.leg + .05 * stOf(o), 5)));
-  const dist = gross + roll, land = from + dist;
+  const avg = 22 + .28 * Pn.r.leg + .05 * stOf(o), shankP = clamp(.07 - .0008 * Pn.r.kac, .01, .06);
+  let dist, shank = false, short = false;
+  if (kind === "pin") {
+    // Aim to drop it at their 10: the punter's accuracy sets how close he gets. Out of range, it's
+    // just a high, short kick.
+    const need = 90 - from, reach = Math.round(normal(avg - 2, 5));
+    if (need > reach) { short = true; dist = Math.max(15, Math.round(normal(avg - 7, 5))); }
+    else if (rand() < shankP * 1.3) { shank = true; dist = Math.max(8, need - ri(10, 22)); }
+    else dist = Math.max(12, need + Math.round(normal(1, clamp(8 - .05 * Pn.r.kac, 3.5, 7.5))));
+  } else if (kind === "boom") {
+    // A low, driving kick: more distance and more roll, but the coverage can't get down there in time
+    shank = rand() < shankP * 1.4;
+    dist = (shank ? ri(14, 28) : Math.max(18, Math.round(normal(avg + 6, 6)))) + (retUnit ? 0 : ri(4, 12));
+  } else {
+    shank = rand() < shankP;
+    dist = (shank ? ri(12, 24) : Math.max(15, Math.round(normal(avg, 5)))) + (retUnit ? 0 : ri(2, 8));
+  }
+  const land = from + dist;
   if (land >= 100) {
     pstat(Pn, "puy", 100 - from); pmax(Pn, "pul", 100 - from);
     startDrive(d, R().puntTb);
-    Object.assign(r, { head: "Punt", text: `${Pn.last} punts ${yd(100 - from)} into the end zone. Touchback.`, toX: fx(d, R().puntTb) });
+    const lead = kind === "pin" ? `${Pn.last}'s punt carries too far, ` : kind === "boom" ? `${Pn.last} booms it, ` : `${Pn.last} punts `;
+    Object.assign(r, { head: "Punt", text: `${lead}${yd(100 - from)} into the end zone. Touchback.`, toX: fx(d, R().puntTb) });
   } else {
     pstat(Pn, "puy", dist); pmax(Pn, "pul", dist); if (land >= 80) pstat(Pn, "pu20");
     const cover = coverRating(o);
-    if (dc === "ret" && rand() < .015 * clamp(retRating(ret) / 50, .6, 1.6)) {
+    const tdOdds = dc !== "ret" || kind === "pin" ? 0 : (kind === "boom" ? .045 : .015) * clamp(retRating(ret) / 50, .6, 1.6);
+    if (rand() < tdOdds) {
       score(d, 6); afterTD(d); pstat(ret, "pr"); pstat(ret, "pry", 100 - land); pstat(ret, "prtd");
-      Object.assign(r, { head: "Return TD", tone: "bad", text: `${Pn.last} punts ${yd(dist)}, and ${ret.last} returns it all the way! ${tname(d)} touchdown!`, toX: fx(d, 100) });
+      Object.assign(r, { head: "Return TD", tone: "bad", text: `${Pn.last} punts ${yd(dist)}${kind === "boom" ? ", but it outkicks the coverage" : ""}, and ${ret.last} returns it all the way! ${tname(d)} touchdown!`, toX: fx(d, 100) });
       return r;
     }
     let ry = 0, how;
-    if (dc === "ret") { if (rand() < .3) how = "fair"; else { ry = returnYards(ret, cover, 7); how = "ret"; } }
+    if (kind === "pin") {
+      // High hang time: the returner rarely gets a chance, and the gunners down it if nobody's back
+      if (dc === "ret") { if (rand() < .75) how = "fair"; else { ry = returnYards(ret, cover + 10, 3); how = "ret"; } }
+      else how = dc === "blk" ? "fair" : "downed";
+    } else if (kind === "boom") {
+      if (dc === "ret") { if (rand() < .12) how = "fair"; else { ry = returnYards(ret, cover - 10, 11); how = "ret"; } }
+      else if (dc === "blk") { if (rand() < .35) how = "fair"; else { ry = ri(3, 14); how = "ret"; } }
+      else how = "roll";
+    } else if (dc === "ret") { if (rand() < .3) how = "fair"; else { ry = returnYards(ret, cover, 7); how = "ret"; } }
     else if (dc === "blk") { if (rand() < .5) how = "fair"; else { ry = ri(0, 5); how = "ret"; } }
     else how = "roll";
     if (how === "ret") { ry = Math.min(ry, 99 - (100 - land)); pstat(ret, "pr"); pstat(ret, "pry", ry); }
     startDrive(d, Math.min(100 - land + ry, 99));
-    const tail = how === "ret" ? `, and ${ret.last} returns it ${yd(ry)}` : how === "fair" ? `. ${ret.last} calls for a fair catch` : ". Nobody back to return it, so it rolls";
-    Object.assign(r, { head: "Punt", text: `${Pn.last} ${shank ? "shanks it" : "punts"}, ${yd(dist)}${tail}.`, toX: fx(d, S.spot) });
+    const tail = how === "ret" ? `, and ${ret.last} returns it ${yd(ry)}${kind === "boom" && ry >= 18 ? ". It outkicked the coverage" : ""}` : how === "fair" ? `. ${ret.last} calls for a fair catch` : how === "downed" ? ". The coverage downs it" : ". Nobody back to return it, so it rolls";
+    const verb = shank ? "shanks it" : kind === "pin" ? (short ? "hangs a short one up" : "drops a pooch punt") : kind === "boom" ? "booms it" : "punts";
+    Object.assign(r, { head: kind === "pin" && how !== "ret" && !shank && S.spot <= 10 ? "Pinned deep" : "Punt", text: `${Pn.last} ${verb}, ${yd(dist)}${tail}.`, toX: fx(d, S.spot) });
   }
   r.sub = `${tname(d)} ball. ${downText()} at the ${spotText(d, S.spot)}.`;
   return r;
