@@ -131,6 +131,25 @@
           ".validate": false
         }
       }
+    },
+    "gridironStats": {
+      ".read": true,
+      "$day": {
+        ".validate": "$day.matches(/^20[0-9][0-9]-[01][0-9]-[0-3][0-9]$/)",
+        "$site": {
+          ".validate": "$site.matches(/^(itch|github|other)$/)",
+          "dev": {
+            "$id": {
+              ".write": "!data.exists()",
+              ".validate": "newData.val() === true && $id.matches(/^[a-z0-9]{4,24}$/)"
+            }
+          },
+          "$event": {
+            ".write": true,
+            ".validate": "$event.matches(/^(start|finish)_(online|local|watch|cpu_rookie|cpu_pro|cpu_allpro)$/) && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+          }
+        }
+      }
     }
   }
 }

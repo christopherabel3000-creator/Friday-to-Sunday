@@ -52,7 +52,7 @@ Open `index.html` from a web server (GitHub Pages works). The game is plain HTML
 
 ## Cloud saves
 
-Cloud saves use the Firebase Realtime Database project shared with [Gridiron Duel](https://github.com/christopherabel3000-creator/football-call-sheet), [Hidden Ranks](https://github.com/christopherabel3000-creator/Hidden-Ranks) and [Shardkin: Eight Realms](https://github.com/christopherabel3000-creator/Shardkin-Eight-Realms) (call-sheet-football), under `fridayToSundaySaves/<KEY>`. The Firebase library loads only when a cloud save is first used. Save codes and files don't need it.
+Cloud saves use the Firebase Realtime Database project shared with [Gridiron Duel](https://github.com/christopherabel3000-creator/football-call-sheet), [Hidden Ranks](https://github.com/christopherabel3000-creator/Hidden-Ranks) and [Shardkin: Eight Realms](https://github.com/christopherabel3000-creator/Shardkin-Eight-Realms) (call-sheet-football), under `fridayToSundaySaves/<KEY>`. Gridiron Duel's anonymous play counts live under `gridironStats` in the same file. The Firebase library loads only when a cloud save is first used. Save codes and files don't need it.
 
 The rules are in `database.rules.json`, with a section for each game, and the other three repos have identical copies. To switch cloud saves on, paste the whole file into the Firebase console: Realtime Database, then Rules, then Publish. Keep the four copies the same, or the other games will stop working online. Until the rules are published, the game says cloud saves aren't switched on yet.
 
