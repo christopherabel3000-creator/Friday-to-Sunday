@@ -4,7 +4,7 @@ A single-player football coaching career. Start as the head coach of a tiny high
 
 ## Status
 
-Milestone 1, one high school season, is built, and Milestone 2, more seasons, is under way (see [DESIGN.md](DESIGN.md)): create your coach, take over a made-up 1A school, and coach it season after season. Each season opens with three weeks of preseason camp, then a full schedule to the state championship under high school rules, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, a depth chart you can change, and a season summary at the end. In the offseason your seniors graduate and a new class of freshmen comes out. Saves move between devices with a save code, or with a cloud save once the database rules are published (see Cloud saves below). An exhibition game is on the main menu too.
+Milestones 1 and 2 are built (see [DESIGN.md](DESIGN.md)): create your coach, take over a made-up 1A school, and coach it season after season. Each season opens with three weeks of preseason camp, then a full schedule to the state championship under high school rules, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, a depth chart you can change, and a season summary at the end. In the offseason you plan the summer, talk athletes into coming out for football and spend your coach's XP; your seniors graduate and a new class of freshmen comes out. Saves move between devices with a save code, or with a cloud save once the database rules are published (see Cloud saves below). An exhibition game is on the main menu too.
 
 ## What's in it so far
 
@@ -15,6 +15,8 @@ Milestone 1, one high school season, is built, and Milestone 2, more seasons, is
 - More seasons: after the summary comes the offseason. Your seniors graduate; the next season brings summer growth, a few players leaving, and a new class of freshmen sized by your school's enrollment and tradition. A report shows how the team changed. Tradition follows results, and the rest of the state moves on with you: every school graduates its seniors and brings in a class, kept on paper and rebuilt exactly for any year from its seed.
 - Preseason camp: three weeks of practice before week 1, every season. Opponent prep time goes into install, so a new coach can start teaching their plays. Hold each week's practice, or sim the rest of camp and read one report for all of it.
 - Career stats for your players, and the state champions by year.
+- The offseason program: plan the summer (weights, 7-on-7, youth camp, hallway recruiting and study hall), and pitch athletes from other sports, and kids who don't play anything, to come out for football. A new coach rating, Program building, brings more freshmen, more players at summer workouts and more yeses.
+- Grades and eligibility: report cards after weeks 4 and 8 can rule a player with poor grades ineligible for two games, and study hall helps.
 - Coach XP: earned for wins, upsets, playoff runs and titles, the snaps your calls win, and players getting better. Spend it on your coach's page: rating points (the rating minus 20 in XP) and twelve perks, from faster growth for a unit to an edge on your style's best plays, fuller scouting reports, spotting disguises, trick plays, motivation and quicker installs.
 - Saves: the game saves on the device after every tap. Copy a save code (the whole game as text, compressed), save it as a file, or save to the cloud and get a 12-character cloud save code to load the game on another device. Loading a save keeps the game it replaced as a backup.
 - A season: pick one of the eight schools in your district and take over as head coach. Three non-district games, then seven district games, then the state playoffs for the top two in each district, down to a state champion.
@@ -73,9 +75,10 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `season.js`: the state's schools, the schedule, standings, the playoffs, quick sims and the news
 - `career.js`: your career's coach, the seasons you've finished, and the season summary
 - `years.js`: the passing of years: graduation, summer growth, freshman classes, tradition, and schools on paper rebuilt for any year
+- `program.js`: the offseason program: the summer, hallway recruiting, and grades and eligibility
 - `cloud.js`: save codes, cloud saves and backups
 - `sound.js`: crowd and horn, synthesized in the browser
-- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js`, `ui_offseason.js` and `ui.js`: the screens (the game; rosters and the depth chart; practice and scouting reports; the season and camp; creating your coach, your coach's page, the season summary and saves; the offseason and how the team changed; the main menu, the exhibition, help and screen reader support)
+- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js`, `ui_offseason.js` and `ui.js`: the screens (the game; rosters and the depth chart; practice and scouting reports; the season and camp; creating your coach, your coach's page, the season summary and saves; the offseason, hallway recruiting and how the team changed; the main menu, the exhibition, help and screen reader support)
 
 ## Tests
 
@@ -86,6 +89,7 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `node tests/practice.js`: playbook mastery in the snap, the computer's calls, a season of growth against potential, installs, contact and recovery, injuries in games and practice, film study and the prep edge
 - `node tests/season.js`: the state, the schedule, standings and tiebreakers (clinching checked against every possible finish), the bracket, quick sims against the full engine, your games, whole simmed seasons, and saves mid-season
 - `node tests/career.js`: creating a coach, what each rating does, taking a job with your schemes, faster growth from a background, the season summary, save codes, cloud saves against a stand-in for the database, and saves from before careers
+- `node tests/program.js`: Program building, the summer, hallway recruiting, grades and report cards, and saves from before the offseason program
 - `node tests/years.js`: preseason camp, schools on paper rebuilt for any year, graduation, freshmen, career stats, tradition, a state that stays at the same level for five years, and saves from before more seasons
 - `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a career from creating your coach through camp and a season to the summary, the offseason and the next season's camp, with practice, installs and scouting reports, focus checks, reloads, save codes and cloud saves on two devices
 - `node tests/balance.js 300`: plays 300 computer games and prints the numbers to tune against

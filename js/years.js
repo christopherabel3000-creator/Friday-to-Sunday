@@ -7,10 +7,12 @@
 // and tradition, and how good they are on its tradition, plus some luck. The size and level of each
 // class are kept with the school (classes: { [year]: { n, lv } }), so a school kept on paper can be
 // rebuilt exactly in a later year, even after its tradition has changed.
+// Your youth program (program.js: youth camp builds it) and the coach's Program building bring out
+// more freshmen, and better ones.
 function classParams(s, year) {
-  const g = dice(hashSeed(`${s.seed}:${year}:class`));
-  const n = clamp(Math.round(4.5 + (s.enroll || 135) * .025 + ((s.trad || 50) - 50) * .03 + g.n(0, 1.2)), 4, 12);
-  const lv = CLASS_LEVEL[s.cls || "1A"] + Math.round(((s.trad || 50) - 50) * .06 + g.n(0, 2));
+  const g = dice(hashSeed(`${s.seed}:${year}:class`)), y = s.youth || 0, pb = coachPbd(s.coach) - 42;
+  const n = clamp(Math.round(4.5 + (s.enroll || 135) * .025 + ((s.trad || 50) - 50) * .03 + y * .25 + pb * .04 + g.n(0, 1.2)), 4, 13);
+  const lv = CLASS_LEVEL[s.cls || "1A"] + Math.round(((s.trad || 50) - 50) * .06 + y * .8 + pb * .03 + g.n(0, 2));
   return { n, lv };
 }
 const classOf = (s, year) => (s.classes && s.classes[year]) || classParams(s, year);
@@ -139,8 +141,23 @@ function newTradition(s, w, l, poWins, champ) {
 // The end of a school's year, for real: the seniors graduate, a few players leave, everyone else
 // grows over the summer and moves up a year, and the new freshmen come out. Injuries heal over the
 // summer, and the team forgets some of its playbook. Returns { grads, left, fresh, grew }.
+// A roster past 32 loses players off the bottom of the depth chart: kids who aren't getting on the
+// field (not starting or first off the bench anywhere) quit, 3 percent more for each player past 32
+const BIG_ROSTER = 32;
+function benchQuits(s, year) {
+  const n = s.players.length, plays = new Set();
+  if (n <= BIG_ROSTER) return [];
+  for (const pos in s.depth) (s.depth[pos] || []).slice(0, (STARTERS[pos] || 1) + 1).forEach(id => plays.add(id));
+  const out = [];
+  s.players = s.players.filter(p => {
+    if (plays.has(p.id) || STAY_ARCHS.has(p.arch) || p.yr >= 12) return true;
+    if (seededRandom(hashSeed(`${s.seed}:${p.id}:${year}:bench`))() < .03 * (n - BIG_ROSTER)) { out.push(p); return false; }
+    return true;
+  });
+  return out;
+}
 function advanceSchool(s, year) {
-  const rep = { grads: [], left: [], fresh: [], grew: [] }, before = {};
+  const rep = { grads: [], left: benchQuits(s, year), fresh: [], grew: [] }, before = {};
   s.players.forEach(p => { before[p.id] = ovr(p, p.pos); });
   s.players = s.players.filter(p => {
     const out = playerYear(s, p, year, false);
@@ -218,5 +235,6 @@ function yearReportOf(rep, year) {
   if (!rep) return null;
   const who = p => ({ name: fullName(p), pos: p.pos, ovr: ovr(p, p.pos), stats: careerStatLine(p.cs), why: LEFT_WHY[hashSeed(p.id + year) % LEFT_WHY.length] });
   const best = list => list.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
-  return { from: year, grads: best(rep.grads).map(who), left: best(rep.left).map(who), fresh: rep.fresh.map(p => p.id), grew: rep.grew.slice(0, 10) };
+  return { from: year, grads: best(rep.grads).map(who), left: best(rep.left).map(who), fresh: rep.fresh.map(p => p.id), joined: (rep.joined || []).map(p => p.id),
+    went: rep.went || 0, grew: rep.grew.slice(0, 10) };
 }

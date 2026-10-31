@@ -132,6 +132,6 @@ function playerLine(p, level, opts) {
   const bits = [`${fullName(p)}, ${YEAR_NAMES[p.yr]}.`, `${posPart}.`];
   if (st.length) bits.push(`${capFirst(st.join(", "))}.`);
   if (!opts.noPot) bits.push(`${capFirst(POT_BANDS[p.potSeen])} potential.`);
-  if (p.inj) bits.push("Injured.");
+  if (p.inj) bits.push(p.inj.at === "grades" ? "Ineligible." : "Injured.");
   return bits.join(" ");
 }

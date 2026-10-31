@@ -80,7 +80,7 @@ Build steps, each one playable and tested before the next:
 
 1. **Done:** more seasons: the offseason with graduation, growth and freshmen, the next season with its preseason camp, and the rest of the state moving on with you.
 2. **Done:** coach XP and perks.
-3. The offseason program: hallway recruiting, the summer, Program building, and grades and eligibility.
+3. **Done:** the offseason program: hallway recruiting, the summer, Program building, and grades and eligibility.
 
 How it's built (step 1):
 
@@ -108,6 +108,19 @@ How it's built (step 2):
   - Motivator: +0.04 more late in close games and comebacks. 200 XP.
   - Install expert: install time teaches 30 percent faster. 200 XP.
 - The week's XP shows on its results, the season's on the summary, and what's left to spend on the offseason screen and your coach's page.
+
+How it's built (step 3):
+
+- Program building, a new coach rating: your coach starts at 40 (an older unnamed coach at 42). A computer coach's is worked out from his Motivation, give or take 8, so it rolls none of the seed's dice and the same seed still builds the same state. Each point over 42 adds 0.04 freshmen and 0.03 to their level, a point of summer attendance, and a point on every pitch.
+- The summer: eight weeks shared out by weight (none 0 to heavy 3) among summer weights, 7-on-7, youth camp, hallway recruiting and study hall; the plan carries over. Workouts are voluntary: a player shows up with a chance of 0.45 + half his work ethic (as a fraction) + a point per point of Program building over 42, between 20 and 98 percent. It happens for the players coming back, before the year turns over.
+  - Weights: strength (and 0.3 as much speed) grows 0.9 × weeks to the 0.75 power × work ethic, like practice: about a point at normal, four with the whole summer.
+  - 7-on-7: the same for accuracy, arm and awareness (quarterbacks), hands and routes (backs, receivers, tight ends) and coverage (linebackers and defensive backs).
+  - Youth camp builds a youth program that keeps 60 percent from year to year and adds half the camp weeks to the 0.75 power (at most 6). Each point of it adds 0.25 freshmen and 0.8 to their level.
+  - Hallway recruiting: one pitch, plus the hallway weeks to the 0.75 power (rounded), plus one with the Hallway recruiter perk (a 13th perk, 150 XP, which also adds 15 points to every pitch).
+  - Study hall: grades up by 3.5 × weeks to the 0.75 power for players under 70 (a third of that for the rest).
+- Hallway recruiting: six students who aren't on the team, the same for a school and year: a sport (basketball, baseball, track, soccer, wrestling, or none) and a body type to go with it, next season's year (sophomore to senior), a level 4 below the school's and 8 less awareness, and an interest. The really good ones are less interested. A pitch works 25, 50 or 75 percent of the time by interest, plus Program building, 0.3 a point of tradition over 50, and the perk (5 to 95 percent). Those who say yes join at the start of next season.
+- A roster past 32 loses players off the bottom of the depth chart: each one not starting or first off the bench anywhere quits with a chance of 3 percent for every player past 32.
+- Grades: 68 on average, give or take 22, plus 0.4 a point of work ethic over 52, until study hall changes them. Report cards come out after weeks 4 and 8 for every school in your district: a player under 55 is ruled ineligible for the next two games with a 2.5 percent chance a point under 55 (at most half). It's kept like an injury, so the depth chart plays the next player and the player still practices, and recovery doesn't bring him back early. About one or two players a team a season.
 
 ## The world
 

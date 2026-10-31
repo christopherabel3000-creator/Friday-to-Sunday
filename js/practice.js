@@ -68,11 +68,12 @@ const ethMul = p => .6 + .8 * (p.eth || 50) / 100;
 const devMul = c => clamp(1 + (((c && c.dev) || 42) - 42) * .012, .6, 1.5);
 // The players a unit works with: anyone who plays one of its positions (his own two, or a spot where
 // the depth chart has him starting or first off the bench), with the ratings to train and the position
-// his growth is measured at. Injured players sit out.
+// his growth is measured at. Injured players sit out; players ruled ineligible still practice.
+const sitsOut = p => !!(p.inj && p.inj.at !== "grades");
 function unitPlayers(s, unit) {
   const u = UNITS[unit], out = [];
   s.players.forEach(p => {
-    if (p.inj) return;
+    if (sitsOut(p)) return;
     const at = Object.keys(u).filter(pos => p.pos === pos || p.pos2 === pos || (s.depth[pos] || []).indexOf(p.id) >= 0 && (s.depth[pos] || []).indexOf(p.id) <= STARTERS[pos]);
     if (!at.length) return;
     const attrs = {};
@@ -165,7 +166,8 @@ function healSchool(s, recBlocks, rng) {
     if (!p.inj) return;
     if (p.inj.w <= 0) { delete p.inj; back.push(p.id); return; }
     if (p.inj.w >= 50) return;
-    p.inj.w -= 1 + (rng() < .35 * Math.min(1, (recBlocks || 0) / 3) ? 1 : 0);
+    // Recovery can get an injured player back a week early, but not a player ruled ineligible
+    p.inj.w -= 1 + (p.inj.at !== "grades" && rng() < .35 * Math.min(1, (recBlocks || 0) / 3) ? 1 : 0);
     if (p.inj.w < 0) { delete p.inj; back.push(p.id); }
   });
   return back;
@@ -206,7 +208,7 @@ function practiceSchool(s, plan, rng, opts) {
   }
   // Conditioning: stamina, and a little strength and speed
   const ce = effBlocks(b.cond);
-  if (ce) s.players.forEach(p => { if (p.inj) return; condition(p, .35 * ce * ethMul(p), rng, rep); growPlayer(p, { str: .12, spd: .06 }, p.pos, GROW_RATE * ce * ethMul(p) * dev, rng, rep); });
+  if (ce) s.players.forEach(p => { if (sitsOut(p)) return; condition(p, .35 * ce * ethMul(p), rng, rep); growPlayer(p, { str: .12, spd: .06 }, p.pos, GROW_RATE * ce * ethMul(p) * dev, rng, rep); });
   installPlays(s, b.install, plan.focus, rep);
   if (!opts.noInjuries) practiceInjuries(s, b, plan.contact, rng, rep);
   // Overall ratings that went up, for the report: at his own position, and wherever he starts

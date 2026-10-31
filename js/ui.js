@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 7;
+const BUILD = 8;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -89,6 +89,11 @@ function upgradeSave(s) {
     if (picking) se6.cpuWeek = -PRESEASON_WEEKS;
     Object.values(se6.schools).forEach(sc => { if (sc.trad0 == null) sc.trad0 = sc.trad; });
   }
+  // Version 8: the offseason program. Your coach gets Program building (40, or 42 for an unnamed
+  // coach from before you could create one), and the season a summer plan.
+  const co = s.career && s.career.coach;
+  if (co && co.pbd == null) co.pbd = co.bg ? COACH_START : COACH_LEVEL["1A"];
+  if (se6 && se6.schools && !se6.summer) se6.summer = newSummer();
   s.build = BUILD;
   return s;
 }
@@ -254,6 +259,15 @@ function vHelp() {
       "The rest of the state moves on with you: every school graduates its seniors and brings in a new class, and the schedule is new each year.",
       "Your players keep their career stats. Their screens show what they did before this season."
     ]))}
+    ${sec("The offseason program", ul([
+      "Plan the summer on the offseason screen: eight weeks shared out among summer weights, a 7-on-7 league, youth camp, hallway recruiting and study hall.",
+      "Summer workouts are voluntary. Players with more work ethic show up more, and so do more players under a coach with better Program building.",
+      "Summer weights build strength and a little speed. 7-on-7 works on passing, catching, routes and coverage.",
+      "Youth camp builds up your youth program: the next freshman classes come out bigger and better, and the effect lasts a few years if you keep it up.",
+      "Hallway recruiting: talk to athletes from other sports, and kids who don't play anything, about coming out for football. You get one pitch, more with more summer time for it. Their interest, your Program building and your school's tradition decide who says yes. Those who do join next season.",
+      "Grades: report cards come out after weeks 4 and 8. A player with poor grades can be ruled ineligible for the next two games, and the next player on the depth chart plays. Study hall raises the grades of the players who need it. A player's screen shows his grades.",
+      "Program building is a coach rating like the others: more freshmen, more players at summer workouts, and more athletes saying yes."
+    ]))}
     ${sec("Practice", ul([
       "Each week has ten practice blocks. Give each area none, light, normal or heavy, and the blocks are shared out by weight. Presets give a quick start: Balanced, Install, Game prep and Rest.",
       "Fundamentals grow the players in each unit: quarterbacks, running backs and receivers, the offensive line, the defensive front, the secondary and the kickers. Growth depends on the player's work ethic, his year, your Development rating and the time spent, and slows as he nears his potential.",
@@ -339,7 +353,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: vSeason, week: vWeek, standings: vStandings, schedule: vSchedule,
   bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
-  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear };
+  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear, halls: vHalls };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -493,6 +507,22 @@ function act(a, ds) {
       if (S && S.season) S = null;
       nextSeason(); APP.screen = "newyear"; scrollTop(); break;
     case "newyear": if (SEASON && SEASON.yearReport) { APP.screen = "newyear"; scrollTop(); } break;
+    // The offseason program: the summer plan, and pitching athletes in the hallways
+    case "summer": {
+      const v = +ds.v;
+      if (!SEASON || SEASON.phase !== "offseason" || !SUMMER_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
+      (SEASON.summer = SEASON.summer || newSummer())[ds.t] = v;
+      announce(`${SUMMER_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${weeksText(summerWeeks(SEASON.summer)[ds.t])}.`); break;
+    }
+    case "halls": if (SEASON && SEASON.phase === "offseason") { APP.screen = "halls"; scrollTop(); } break;
+    case "pitch": {
+      if (!SEASON || SEASON.phase !== "offseason") break;
+      const H = hallsNow(), p = H.players.find(x => x.id === ds.v);
+      if (!p) break;
+      const before = H.said[p.id], r = before ? "" : pitch(ds.v), left = `${plural(pitchesLeft(), "pitch", "pitches")} left.`;
+      announce(before ? `${p.first} ${p.last} already said ${before}.` : r === "yes" ? `${p.first} ${p.last} said yes: coming out for football next season. ${left}` : r === "no" ? `${p.first} ${p.last} said no. ${left}` : "No pitches left. More summer time for hallway recruiting brings more.");
+      break;
+    }
     case "newcareer":
       if (!confirmed("newcareer")) break;
       keepBackup();
@@ -560,6 +590,7 @@ function act(a, ds) {
       else if (APP.screen === "roster") { const b = APP.view && APP.view.back; APP.screen = b === "game" && !(S && S.teams) ? "home" : b || "home"; }
       else if (APP.screen === "week" && APP.weekFrom === "schedule") APP.screen = "schedule";
       else if (APP.screen === "coach") APP.screen = SCREENS[APP.coachBack] && APP.coachBack !== "coach" ? APP.coachBack : "home";
+      else if (APP.screen === "halls") APP.screen = "offseason";
       else APP.screen = seasonScreen();
       APP.reportView = null;
       scrollTop(); break;
@@ -638,6 +669,7 @@ function startScreen() {
   if (sc === "summary") return season && ["over", "offseason"].includes(SEASON.phase) ? sc : season ? "season" : "home";
   if (sc === "offseason") return season && SEASON.phase === "offseason" ? sc : season ? "season" : "home";
   if (sc === "newyear") return season && SEASON.yearReport ? sc : season ? "season" : "home";
+  if (sc === "halls") return season && SEASON.phase === "offseason" ? sc : season ? "season" : "home";
   if (sc === "simming") return season ? "season" : "home";
   if (sc === "week") return season && APP.weekView && APP.weekView < SEASON.week ? sc : season ? "season" : "home";
   if (sc === "bracket") return season && SEASON.bracket ? sc : season ? "season" : "home";

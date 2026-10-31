@@ -157,6 +157,8 @@ function vSeason() {
     ${simBtn && !live ? (camp ? `<button class="btn ghost" data-a="campsim">${confirming === "campsim" ? "Tap again to sim the rest of camp" : simBtn[1]}</button>`
       : `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>`) : ""}`;
 }
+// Who's out and why: "Hill, out this week and next" or "Hill, ineligible, out this week"
+const outLine = p => `${p.last}, ${p.inj.at === "grades" ? "ineligible, " : ""}${injText(p.inj)}`;
 // Preseason camp: a week of practice, then the next one, with week 1 coming
 function campPanel() {
   const me = mySchool(), done = practiced(), left = SEASON.pre - SEASON.camp, gm = myGameIn(1), hurt = me.players.filter(p => p.inj);
@@ -166,7 +168,7 @@ function campPanel() {
       <p class="eyebrow">Preseason camp · Week ${SEASON.camp} of ${SEASON.pre}</p>
       <h3>${left ? `${plural(left + 1, "week")} of camp left` : "The last week of camp"}</h3>
       <p>No games yet. ${esc(first)} With no opponent to study, opponent prep time goes into install.</p>
-      ${hurt.length ? `<p>Injured: ${esc(andList(hurt.map(p => `${p.last}, ${injText(p.inj)}`)))}.</p>` : ""}
+      ${hurt.length ? `<p>Out: ${esc(andList(hurt.map(outLine)))}.</p>` : ""}
       ${done ? `<p>This week's practice is done.</p><button class="btn" data-a="campnext">${next}</button>` : `<button class="btn" data-a="hold">Hold practice</button>`}
       <div class="choices"><button class="btn ghost" data-a="practice">Practice plan</button>${done ? `<button class="btn ghost" data-a="preport">Practice report</button>` : `<button class="btn ghost" data-a="install">Install focus</button>`}</div>
       ${SEASON.yearReport ? `<button class="btn ghost" data-a="newyear">How the team changed</button>` : ""}
@@ -179,7 +181,7 @@ function practicePanel() {
   return `<section class="panel">
       <h3>Practice</h3>
       <p>${done ? `Done for the week: ${planText}. ${P.prep ? `The scouting report is ready.` : "No film study this week."}` : `This week: ${planText}. Practice happens before kickoff if you don't hold it first.`}</p>
-      ${hurt.length ? `<p>Injured: ${esc(andList(hurt.map(p => `${p.last}, ${injText(p.inj)}`)))}.</p>` : ""}
+      ${hurt.length ? `<p>Out: ${esc(andList(hurt.map(outLine)))}.</p>` : ""}
       <div class="choices"><button class="btn ghost" data-a="practice">Practice plan</button>${done ? `<button class="btn ghost" data-a="preport">Practice report</button>` : `<button class="btn ghost" data-a="hold">Hold practice</button>`}</div>
       ${done && P.film ? `<button class="btn ghost" data-a="scout">Scouting report</button>` : ""}
     </section>`;
@@ -261,8 +263,10 @@ function injuryPanel(n) {
   const who = id => playerById(s, id), list = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
   const hurt = (L.game || []).map(who).filter(Boolean).map(p => `${fullName(p)}, ${p.inj ? injTextNext(p.inj) : "back for next week"}`);
   const back = (L.back || []).map(who).filter(p => p && !(L.game || []).includes(p.id)).map(fullName);
-  if (!hurt.length && !back.length) return "";
-  return `<section class="panel"><h3>Injuries</h3>${hurt.length ? `<p>Hurt in the game:</p>${list(hurt)}` : ""}${back.length ? `<p>Back from injury: ${esc(andList(back))}.</p>` : ""}</section>`;
+  const cards = (L.grades || []).map(who).filter(p => p && p.inj).map(p => `${fullName(p)}, ${injTextNext(p.inj)}`);
+  if (!hurt.length && !back.length && !cards.length) return "";
+  return `<section class="panel"><h3>${cards.length && !hurt.length && !back.length ? "Report cards" : "Injuries and eligibility"}</h3>${hurt.length ? `<p>Hurt in the game:</p>${list(hurt)}` : ""}
+    ${cards.length ? `<p>Ruled ineligible by report cards:</p>${list(cards)}` : ""}${back.length ? `<p>Back in the lineup: ${esc(andList(back))}.</p>` : ""}</section>`;
 }
 
 /* ---------- Your schedule and season stats ---------- */

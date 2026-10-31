@@ -97,7 +97,7 @@ function vPReport() {
     return { n: starts + Object.keys(g).length + 2 * ov.length, t: `${fullName(p)}: ${parts.join(", ")}.${ov.length ? ` Now ${andList(ov)}.` : ""}` };
   }).filter(Boolean).sort((a, b) => b.n - a.n);
   const hurt = P.hurt.map(id => { const p = playerById(s, id); return p ? `${fullName(p)}, ${injText(p.inj)}` : ""; }).filter(Boolean);
-  const still = s.players.filter(p => p.inj && !P.hurt.includes(p.id)).map(p => `${fullName(p)}, ${injText(p.inj)}`);
+  const still = s.players.filter(p => p.inj && !P.hurt.includes(p.id)).map(p => `${fullName(p)}, ${p.inj.at === "grades" ? "ineligible, " : ""}${injText(p.inj)}`);
   const opp = P.opp ? SEASON.schools[P.opp] : null;
   // In camp: on to the next week (this report is this week's), or back to the week ahead
   const campNow = inCamp() && !all && practiced() && P.week === practiceSlot();

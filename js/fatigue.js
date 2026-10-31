@@ -47,7 +47,6 @@ function tireSnap(o, opk, dpk) {
       p.en = Math.max(0, p.en - (TIRE_COST[pos] || .6) / staminaMul(p));
     });
     team.players.forEach(p => { if (!on.has(p.id)) p.en = Math.min(100, p.en + BENCH_REST * staminaMul(p)); });
-    lineupPlayers(lu).forEach(p => { if (TIRE_COST[p.pos] === 0) p.en = 100; });
   });
   S.fe = (S.fe || 0) + 1;
 }

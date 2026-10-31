@@ -105,6 +105,8 @@ function plain(g, extra) {
 {
   const { g } = game(true);
   plain(g);
+  // A kicker with a big leg, so some kicks reach the end zone (a weak one almost never gets there)
+  g(`[0, 1].forEach(t => { starterAt(S.teams[t], "K").r.leg = 52; S.teams[t].dver++; })`);
   let tb = 0, tbBad = 0, oob = 0, oobBad = 0, ret = 0, retClock = 0;
   for (let i = 0; i < 3000; i++) {
     plain(g, { clock: 600 });

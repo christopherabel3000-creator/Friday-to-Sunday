@@ -466,12 +466,28 @@ function checkScreen(page, label) {
   tap(p4, "offseason");
   ok(ev("APP.screen") === "offseason" && ev("SEASON.phase") === "offseason" && heading() === ev("nameOf(SEASON.myId)") && /Graduating/.test(d4.body.textContent) && /Coming back/.test(d4.body.textContent), "the offseason: who's graduating and who's coming back");
   checkScreen(p4, "offseason");
+  // The summer plan and hallway recruiting
+  ok(d4.querySelector('[role="group"][aria-label="Youth camp"]') && btn(d4, "summer", "3") && /Hallway recruiting/.test(d4.body.textContent), "the summer plan: five activities, each with none to heavy");
+  const hallsHeavy = [...d4.querySelectorAll('[data-a="summer"]')].find(b => b.dataset.t === "halls" && b.dataset.v === "3");
+  hallsHeavy.focus(); hallsHeavy.click();
+  ok(ev("SEASON.summer.halls") === 3 && /^Hallway recruiting: heavy, about \d/.test(await said4()), "more summer time for hallway recruiting, and it says so");
+  tap(p4, "halls");
+  ok(ev("APP.screen") === "halls" && /Talk to athletes/.test(heading() || "") && d4.querySelectorAll('[data-a="pitch"]').length === 6, "the hallways: six athletes to pitch");
+  checkScreen(p4, "hallway recruiting");
+  const pid = btn(d4, "pitch").dataset.v;
+  tap(p4, "pitch", pid);
+  const answer = ev(`hallsNow().said["${pid}"]`);
+  ok(["yes", "no"].includes(answer) && focused(d4) === btn(d4, "pitch", pid) && new RegExp(`said ${answer}`).test(btn(d4, "pitch", pid).textContent), `pitch one: he said ${answer}, and focus stays on his button`);
+  ok(new RegExp(`said ${answer}`).test(await said4()), "and it's read out");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "offseason", "back to the offseason");
   const year = ev("SEASON.year"), seniors = ev("mySchool().players.filter(p => p.yr === 12).length");
   tap(p4, "gohome");
   ok(/offseason/.test(d4.body.textContent) && /Continue the offseason/.test(btn(d4, "season").textContent), "the main menu picks up the offseason");
   tap(p4, "season");
   tap(p4, "nextyear");
   ok(ev("APP.screen") === "newyear" && ev("SEASON.year") === year + 1 && new RegExp(`^The ${year + 1} `).test(heading() || "") && /New freshmen/.test(d4.body.textContent) && ev("SEASON.yearReport.grads.length") === seniors, `the ${year + 1} season: how the team changed`);
+  ok(answer === "yes" ? /From the hallways/.test(d4.body.textContent) && ev(`!!playerById(mySchool(), "${pid}")`) : !/From the hallways/.test(d4.body.textContent), "an athlete who said yes is on the team");
   checkScreen(p4, "how the team changed");
   tap(p4, "season");
   ok(ev("APP.screen") === "season" && ev("SEASON.phase") === "preseason" && /Camp week 1 of 3/.test(d4.querySelector(".masthead .eyebrow").textContent) && btn(d4, "newyear"), "then camp, with the team's changes a tap away");

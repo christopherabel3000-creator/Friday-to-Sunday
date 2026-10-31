@@ -2,19 +2,30 @@
 "use strict";
 
 /* ---------- Coach ratings ---------- */
-// Every coach is rated 1 to 100. Program building and Recruiting arrive with the milestones that use them.
-const COACH_RATINGS = [["off", "Offense"], ["def", "Defense"], ["st", "Special teams"], ["dev", "Development"], ["mot", "Motivation"], ["gm", "Game management"], ["sct", "Scouting"]];
+// Every coach is rated 1 to 100. Program building came with more seasons (Milestone 2); Recruiting
+// arrives with college.
+const COACH_RATINGS = [["off", "Offense"], ["def", "Defense"], ["st", "Special teams"], ["dev", "Development"], ["mot", "Motivation"], ["gm", "Game management"], ["sct", "Scouting"], ["pbd", "Program building"]];
 // Small-school coaches: mostly 30s to 50s, a few better or worse
 const COACH_LEVEL = { "1A": 42 };
+// The ratings a generated coach rolls dice for, in the order they're rolled. Program building is
+// worked out from the coach instead (coachPbd), so the same seed still builds the same state.
+const ROLLED_RATINGS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
 function genCoach(g, cls) {
   const base = g.n(COACH_LEVEL[cls] || 42, 7), c = { first: g.pick(COACH_FIRST), last: g.pick(LAST_NAMES) };
-  COACH_RATINGS.forEach(([k]) => { c[k] = clamp(Math.round(base + g.n(0, 8)), 15, 90); });
+  ROLLED_RATINGS.forEach(k => { c[k] = clamp(Math.round(base + g.n(0, 8)), 15, 90); });
+  c.pbd = coachPbd(c);
   // Small schools lean on the run
   c.off_style = g.w({ bal: 3, gnp: 4, air: 1.5, wc: 1.5 });
   c.def_style = g.w({ bal: 3, blz: 2, nfz: 1.5, rs: 2.5 });
   return c;
 }
 const coachName = c => `${c.first} ${c.last}`;
+// Program building for a coach who doesn't have it yet: about his Motivation, give or take 8
+function coachPbd(c) {
+  if (!c) return 42;
+  if (c.pbd != null) return c.pbd;
+  return clamp(Math.round(42 + ((c.mot || 42) - 42) * .5 + (hashSeed(`${c.first} ${c.last}:pbd`) % 17) - 8), 15, 90);
+}
 
 /* ---------- How ratings coach a game ---------- */
 // For every computer coach, and for any game that's simmed, the ratings decide how the plays get
@@ -65,6 +76,7 @@ const RATING_EFFECTS = {
   dev: "How fast your players grow in practice.",
   mot: "An edge late in close games and comebacks.",
   gm: "Help on the call sheet. At 45 and up, your staff gives the odds of converting on fourth down as a percentage.",
+  pbd: "More freshmen come out, more of your players show up for the summer program, and more of the athletes you pitch say yes.",
   sct: "Scouting reports and the edge from film study. At 45 and up, a fuller report from the same film time. At 60 and up, your staff sometimes spots a disguised look at the line."
 };
 
@@ -86,9 +98,10 @@ const PERKS = {
   disg: { name: "Disguise detector", cost: 150, desc: "Your staff spots a disguised look at the line about a third of the time, whatever your Scouting." },
   trick: { name: "Trick play artist", cost: 150, desc: "Fake punts, fake field goals and Tackle Eligible work more often." },
   motv: { name: "Motivator", cost: 200, desc: "A bigger edge late in close games and comebacks." },
-  inst: { name: "Install expert", cost: 200, desc: "Install time teaches plays 30 percent faster." }
+  inst: { name: "Install expert", cost: 200, desc: "Install time teaches plays 30 percent faster." },
+  rec: { name: "Hallway recruiter", cost: 150, desc: "One more pitch each offseason, and athletes say yes more often." }
 };
-const PERK_IDS = ["qbw", "linew", "skill", "dbs", "offg", "defm", "blitz", "film", "disg", "trick", "motv", "inst"];
+const PERK_IDS = ["qbw", "linew", "skill", "dbs", "offg", "defm", "blitz", "film", "disg", "trick", "motv", "inst", "rec"];
 const coachHas = (c, k) => !!(c && c.perks && c.perks.includes(k));
 // Growth for one practice unit: the background's (1.3 for a former quarterback's quarterbacks, say),
 // times 1.25 for a perk that covers it

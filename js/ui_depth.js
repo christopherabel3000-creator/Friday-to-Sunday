@@ -100,7 +100,7 @@ function slotLine(team, p, pos, starter, level) {
   const also = elsewhere.length ? `Also starts at ${andList(elsewhere.map(slotName))}.`
     : (() => { const x = [p.pos, p.pos2].filter(q => q && q !== pos && POS_INFO[q]).map(q => `${posName(q)} ${ovr(p, q)}`); return x.length ? `Also ${x.join(" and ")}.` : ""; })();
   const st = strengths(p, level).map(a => ATTR_PRAISE[a]);
-  return `${p.inj ? `Injured, ${injWhen(p)}. ` : starter ? "Starter. " : ""}${fullName(p)}, ${YEAR_NAMES[p.yr]}, ${slotName(pos)} ${slotRating(p, pos)}.${also ? " " + also : ""}${st.length ? ` ${capFirst(st.join(", "))}.` : ""}${energyLine(p)}`;
+  return `${p.inj ? `${outWord(p)}, ${injWhen(p)}. ` : starter ? "Starter. " : ""}${fullName(p)}, ${YEAR_NAMES[p.yr]}, ${slotName(pos)} ${slotRating(p, pos)}.${also ? " " + also : ""}${st.length ? ` ${capFirst(st.join(", "))}.` : ""}${energyLine(p)}`;
 }
 // How long an injured player is out, from where the screen is: hurt in the game you're watching, or
 // out for weeks
@@ -165,7 +165,7 @@ function vDepthEdit() {
   const others = tm.players.filter(p => !listed.includes(p)).sort((a, b) => slotRating(b, pos) - slotRating(a, pos));
   const where = inGameView() ? "Changes last for this game only." : depthHome().depthMode === "next" ? "Changes apply to the next game only." : "Changes apply to every game.";
   const elsewhere = p => { const s = depthRoles(tm, p).starts.filter(x => x !== pos && !["KR", "PR"].includes(x)); return s.length ? ` Also starts at ${andList(s.map(slotName))}.` : ""; };
-  const text = (p, k) => `${k != null ? `${k + 1}. ${k < n ? "Starter" : "Backup"}. ` : ""}${fullName(p)}, ${YEAR_NAMES[p.yr]}, ${slotName(pos)} ${slotRating(p, pos)}: ${keyRatings(p, pos)}.${elsewhere(p)}${energyLine(p)}${p.inj ? ` Injured, ${injWhen(p)}.` : ""}`;
+  const text = (p, k) => `${k != null ? `${k + 1}. ${k < n ? "Starter" : "Backup"}. ` : ""}${fullName(p)}, ${YEAR_NAMES[p.yr]}, ${slotName(pos)} ${slotRating(p, pos)}: ${keyRatings(p, pos)}.${elsewhere(p)}${energyLine(p)}${p.inj ? ` ${outWord(p)}, ${injWhen(p)}.` : ""}`;
   const act = (how, label, p) => `<button class="btn ghost slim" data-a="dmove" data-v="${how}" data-t="${p.id}">${label}</button>`;
   const actions = (p, k) => {
     if (sel !== p.id) return "";
@@ -211,13 +211,13 @@ function vPlayer() {
     <div class="masthead" style="--team:${tm.color}">
       <p class="eyebrow">${esc(teamTown(tm))} ${esc(teamMascot(tm))} · Number ${p.num}</p>
       <h2 data-focus tabindex="-1">${esc(fullName(p))}</h2>
-      <p class="muted">${capFirst(YEAR_NAMES[p.yr])}. ${p.inj ? `Injured, ${esc(injWhen(p))}. ` : ""}${esc(rolesLine(tm, p))}${esc(energyLine(p))}</p>
+      <p class="muted">${capFirst(YEAR_NAMES[p.yr])}. ${p.inj ? `${outWord(p)}, ${esc(injWhen(p))}. ` : ""}${esc(rolesLine(tm, p))}${esc(energyLine(p))}</p>
     </div>
     <section class="panel">
       <h3>Overall</h3>
       <ul class="hlist">${shown.map(pos => `<li>${capFirst(posName(pos))} ${ovr(p, pos)}</li>`).join("")}
         <li>Next best fits: ${others.map(([pos, v]) => `${posName(pos)} ${v}`).join(", ")}</li></ul>
-      <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}.</p>
+      <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}, grades ${gradesOf(p)}.</p>
       ${p.o0 != null && mineInSeason && ovr(p, p.pos) > p.o0 ? `<p>Up from ${p.o0} at ${slotName(p.pos)} since the start of the season.</p>` : ""}
     </section>
     ${st ? `<section class="panel"><h3>This game</h3>${playerGameLine(st)}</section>` : ""}

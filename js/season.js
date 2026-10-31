@@ -150,7 +150,7 @@ function newSeason(seed, year) {
   const w = genWorld(seed, district);
   SEASON = { v: 1, seed, world: seed, year, year0: year, cls: "1A", district, myId: null, schools: w.schools, districts: w.districts, weeks: makeSchedule(w.districts, g),
     week: 1, phase: "pick", camp: 0, pre: PRESEASON_WEEKS, bracket: null, champion: null, rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {},
-    plan: newPlan(), practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {}, history: [] };
+    plan: newPlan(), practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {}, history: [], summer: newSummer(), halls: null };
   return SEASON;
 }
 // The next season in the same state: every school's year ends (years.js), then a new schedule, and
@@ -160,11 +160,21 @@ function nextSeason() {
   if (!old || old.phase !== "offseason" || !old.myId) return null;
   keepCareerStats();
   const champ = old.champion, history = (old.history || []).concat(champ ? [{ year: old.year, id: champ, name: nameOf(champ) }] : []);
+  // Your summer program (program.js), before the year turns over for everyone
+  const me = mySchool(), before = {};
+  me.players.forEach(p => { before[p.id] = ovr(p, p.pos); });
+  const went = runSummer(me, old.summer || newSummer(), old.year);
   const report = advanceState();
+  report.joined = joinRecruits(me, old.halls);
+  report.went = went;
+  // Who grew from the end of last season, summer program and all
+  report.grew = me.players.filter(p => before[p.id] != null).map(p => [p.id, before[p.id], ovr(p, p.pos)]).filter(x => x[2] > x[1]).sort((a, b) => (b[2] - b[1]) - (a[2] - a[1]));
+  me.depth = autoDepth(me); me.rating = schoolRating(me);
   const year = old.year + 1, seed = hashSeed(`${old.world}:${year}`), g = dice(seed ^ 0x5eed);
   SEASON = { v: 1, seed, world: old.world, year, year0: old.year0, cls: old.cls, district: old.district, myId: old.myId, schools: old.schools, districts: old.districts,
     weeks: makeSchedule(old.districts, g), week: 1, phase: "preseason", camp: 1, pre: PRESEASON_WEEKS, bracket: null, champion: null,
-    rot: old.rot, depthMode: "always", nextDepth: null, stats: {}, news: {}, plan: old.plan, practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {}, history };
+    rot: old.rot, depthMode: "always", nextDepth: null, stats: {}, news: {}, plan: old.plan, practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {}, history,
+    summer: old.summer || newSummer(), halls: null };
   SEASON.expect = talentRank(SEASON.myId);
   SEASON.yearReport = yearReportOf(report, old.year);
   REBUILT.clear();
@@ -426,10 +436,13 @@ function mergeReports(reps) {
 const WEEKLY_GROWTH = .14;
 // The end of a week: injuries heal a week, and the schools elsewhere in the state get a little better
 function endOfWeek() {
+  const cards = REPORT_WEEKS.includes(SEASON.week);
   SEASON.districts[SEASON.district - 1].ids.forEach(id => {
     const s = SEASON.schools[id], mine = id === SEASON.myId;
     const back = healSchool(s, mine ? (practiced() ? SEASON.practice.blocks.rec : blocksOf(SEASON.plan).rec) : blocksOf(CPU_PLAN).rec, rand);
     if (mine) injLog(SEASON.week).back = back;
+    // Report cards (program.js): a player with poor grades can be ruled ineligible
+    if (cards) { const out = reportCards(s, rand); if (mine) injLog(SEASON.week).grades = out; }
     s.rating = schoolRating(s);
   });
   for (const id in SEASON.schools) { const s = SEASON.schools[id]; if (!isFull(s)) { s.rating.off += WEEKLY_GROWTH; s.rating.def += WEEKLY_GROWTH; } }
@@ -439,7 +452,7 @@ function endOfWeek() {
 function injLog(n) {
   const L = SEASON.injLog || (SEASON.injLog = {});
   Object.keys(L).forEach(k => { if (+k < n - 2) delete L[k]; });
-  return L[n] || (L[n] = { game: [], back: [] });
+  return L[n] || (L[n] = { game: [], back: [], grades: [] });
 }
 
 /* ---------- Film of your habits ---------- */
