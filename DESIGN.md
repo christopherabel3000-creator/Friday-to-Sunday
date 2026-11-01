@@ -343,7 +343,8 @@ High school rules vary a little from state to state. Where they differ, the fict
 ### High school (NFHS), for Milestone 1
 
 - 12-minute quarters and three timeouts per half. There's no two-minute warning.
-- The clock stops on an incomplete pass, a player going out of bounds, a change of possession, a score, a timeout, a fair catch and a touchback. In each case it starts again on the snap.
+- The clock stops on an incomplete pass, a change of possession, a score, a timeout, a fair catch and a touchback. In each case it starts again on the snap.
+- House rule (changed from NFHS after playtesting, Nov 2026): going out of bounds stops the clock until the snap only in the last two minutes of each half. Earlier, the clock starts again when the ball is ready for play. Stopping it all game let teams combine for 600+ rushing yards.
 - The clock also stops when a team earns a first down, and starts again when the ball is ready for play.
 - After an accepted penalty, the clock starts when the ball is ready for play. In the last two minutes of either half, the team that was fouled can make it wait for the snap instead.
 - On a kickoff, the clock starts when the receiving team touches the ball.

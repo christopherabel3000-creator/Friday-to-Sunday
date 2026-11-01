@@ -583,7 +583,7 @@ function setupPenalty(code, r, pre) {
   const endOfPlay = (code === "rtp" || code === "fm" || (R().endOfRun && pen.on === "def" && runPlay)) && r.y > 0 && post.poss === pre.poss && !post.needPAT && !post.gameOver && sameScore && !post.otEnd;
   const e = enforce(code, endOfPlay ? post : pre, endOfPlay);
   // Would the play itself have stopped the clock?
-  const playStop = post.poss !== pre.poss || !sameScore || r.head === "Incomplete" || !!r.oob;
+  const playStop = post.poss !== pre.poss || !sameScore || r.head === "Incomplete" || (!!r.oob && oobWindow());
   r.who = penPlayer(code, r);
   S.pen = { code, offender, chooser, r, pre, post, endOfPlay, playStop, acc: e.s, accDesc: e.desc, accYds: e.yds, periodOver: S.periodOver };
   if (S.teams[chooser].cpu) choosePenalty(stateValue(e.s, chooser) > stateValue(S.pen.post, chooser));

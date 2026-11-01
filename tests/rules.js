@@ -59,9 +59,18 @@ function plain(g, extra) {
   plain(g);
   ok(g("S.cfg.qLen") === 720 && g("R().qLen") === 720, "12-minute quarters");
   ok(g("S.tos[0]") === 3, "three timeouts a half");
-  // Out of bounds stops the clock until the snap, even in the 1st quarter
+  // Out of bounds early in a half: the clock starts again on the ready
   g(`finishClock({ oob: true }, false)`);
-  ok(g("S.clockRunning") === false, "out of bounds in the 1st quarter stops the clock until the snap");
+  ok(g("S.clockRunning") === true && g("S.oobRestart") === true && g("S.readyWhy") === "oob", "out of bounds in the 1st quarter restarts the clock on the ready");
+  // In the last two minutes of a half, out of bounds stops it until the snap
+  const q0 = g("S.quarter"), c0 = g("S.clock");
+  for (const [q, c] of [[2, 100], [4, 30]]) {
+    g(`S.quarter = ${q}; S.clock = ${c}`); g(`finishClock({ oob: true }, false)`);
+    ok(g("S.clockRunning") === false, `out of bounds in Q${q} at ${c}s stops the clock until the snap`);
+  }
+  g(`S.quarter = 4; S.clock = 200`); g(`finishClock({ oob: true }, false)`);
+  ok(g("S.clockRunning") === true, "out of bounds in Q4 with 3:20 left restarts on the ready");
+  g(`S.quarter = ${q0}; S.clock = ${c0}`);
   // A first down stops the clock until the ball is ready
   g(`finishClock({ fd: true }, false)`);
   ok(g("S.clockRunning") === true && g("S.oobRestart") === true && g("S.readyWhy") === "fd", "a first down restarts the clock on the ready");

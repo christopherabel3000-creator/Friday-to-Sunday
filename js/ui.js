@@ -310,7 +310,8 @@ function vHelp() {
     ]))}
     ${sec("High school rules", ul([
       `${Rl.qLen / 60}-minute quarters and three timeouts each half. There's no two-minute warning.`,
-      "The clock stops for an incomplete pass, a player going out of bounds, a change of possession, a score and a timeout, and starts again on the snap.",
+      "The clock stops for an incomplete pass, a change of possession, a score and a timeout, and starts again on the snap.",
+      "Going out of bounds stops it until the snap only in the last two minutes of each half. Earlier, it starts again when the ball is ready for play.",
       "It also stops for a first down and after a penalty, and starts again when the ball is ready for play, so a little less time comes off.",
       `Kickoffs are from the ${Rl.kickoff.spot}. Any kick that reaches the end zone is a touchback at the ${Rl.kickoff.tb}, and nobody returns it.`,
       "A missed field goal is treated like a punt: into the end zone it's a touchback at the 20.",

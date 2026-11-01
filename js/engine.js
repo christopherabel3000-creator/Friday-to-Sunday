@@ -391,9 +391,15 @@ function runoff(sec) {
   if (after <= 0) { S.clock = 0; S.periodOver = true; return "end"; }
   S.clock = after; return "ok";
 }
-// When going out of bounds stops the clock until the snap: all game long in high school; in the
-// pros only inside 2:00 of the first half or 5:00 of the second half
-const oobWindow = () => R().oob === "always" ? !noClock() : (S.quarter === 2 && S.clock <= 120) || (S.quarter >= 4 && S.clock <= 300);
+// When going out of bounds stops the clock until the snap: in high school, the last two minutes of
+// each half; in the pros, inside 2:00 of the first half or 5:00 of the second half. Outside that
+// window the clock starts again when the ball is ready. ("always" keeps the strict NFHS rule.)
+const oobWindow = () => {
+  const m = R().oob;
+  if (m === "always") return !noClock();
+  if (m === "late2") return !noClock() && lateHalf();
+  return (S.quarter === 2 && S.clock <= 120) || (S.quarter >= 4 && S.clock <= 300);
+};
 // Whether the next period starts with a kickoff instead of carrying the drive over: after Q2
 // (halftime), after Q4 (overtime), and after 2OT, 4OT, 6OT... in pro overtime (see startOT)
 const kickoffNext = () => S.quarter <= 4 ? S.quarter % 2 === 0 : (S.quarter - 4) % 2 === 0;

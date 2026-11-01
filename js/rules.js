@@ -14,8 +14,10 @@ const RULES = {
     qLen: 720,                 // 12-minute quarters
     timeouts: 3,               // per half
     twoMinWarning: false,
-    // The clock stops when a player goes out of bounds, all game long, and starts on the snap
-    oob: "always",
+    // Out of bounds stops the clock until the snap only in the last two minutes of each half.
+    // Earlier, the clock starts again when the ball is ready for play. (A house rule: real NFHS
+    // stops it until the snap all game, which let rushing totals run away.)
+    oob: "late2",
     // A first down stops the clock until the ball is ready for play
     fdStop: "always",
     // After an accepted penalty the clock starts when the ball is ready. In the last two minutes of
