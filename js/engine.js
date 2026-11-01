@@ -826,6 +826,9 @@ function betweenPlays() {
   if (S.last && S.last.offId === "kneel") return ri(36, 40);
   let sec = S.oobRestart ? pick(S.readyWhy === "oob" ? RO.oob : RO.ready) : pick(RO.run);
   if (S.noHuddle) sec = Math.min(sec, pick(RO.nh));
+  // Running the clock: the offense uses all the play clock it can. When the clock only starts again
+  // on the ready, that's the top of the usual range.
+  if (S.burnClock) sec = S.oobRestart ? (S.readyWhy === "oob" ? RO.oob : RO.ready)[1] : ri(36, 39);
   return sec;
 }
 function cont() {
@@ -851,19 +854,22 @@ function cont() {
   if (!S.periodOver && !S.gameOver) {
     cpuClock();
     cpuNoHuddle();
+    cpuBurn();
     if (S.clockRunning) {
       if (S.noHuddle && !nhAvailable()) S.noHuddle = false;
+      if (S.burnClock && !burnAvailable()) S.burnClock = false;
       const res = runoff(betweenPlays());
       if (res !== "ok") S.noHuddle = false; // two-minute warning or end of the period: everyone can huddle and sub
       if (res === "tmw" && S.spikeNext) { S.spikeNext = false; S.banner = "Two-minute warning. The clock stopped on its own, so no spike needed."; }
     }
-    S.oobRestart = false; S.toNote = "";
+    S.oobRestart = false; S.toNote = ""; S.burnClock = false;
     if (S.spikeNext && !S.periodOver) { S.noHuddle = false; doSpike(); return; }
     S.spikeNext = false;
   }
   S.wasRunning = S.clockRunning;
   S.clockRunning = false;
   if (S.periodOver) S.noHuddle = false;
+  S.burnClock = false;
   if (S.periodOver && !S.gameOver) endPeriod();
   if (S.halftimeShow) { S.halftimeShow = false; S.hready = null; S.phase = "halftime"; return; }
   if (S.gameOver) { S.phase = "final"; return; }
@@ -885,7 +891,7 @@ function doSpike() {
 }
 function callTimeout(t) {
   if (!S.clockRunning || !S.tos || S.tos[t] <= 0 || S.toUsed) return false;
-  S.tos[t]--; S.oobRestart = false; S.spikeNext = false; S.noHuddle = false; S.toUsed = true;
+  S.tos[t]--; S.oobRestart = false; S.spikeNext = false; S.noHuddle = false; S.burnClock = false; S.toUsed = true;
   restAll("timeout");
   // A running clock starts again when the ball is ready for play
   if (S.runClock) { S.oobRestart = true; S.readyWhy = "to"; } else S.clockRunning = false;
@@ -917,9 +923,19 @@ function nhAvailable() {
     !S.retryTwo && !S.kickChoice && !S.twoPt && !!r && !r.pen && !r.accepted && !r.preSnap && !r.pat && r.team === S.poss &&
     !!OFFP[r.offId] && !!r.opk && !!r.dpk && S.down <= 4;
 }
+// Running the clock: in the 4th quarter, an offense with the lead can use as much of the play clock
+// as it can between plays (36 to 39 seconds). It can't be combined with no huddle or a spike.
+function burnAvailable() {
+  return S.phase === "result" && S.clockRunning && S.quarter === 4 && !S.periodOver && !S.gameOver && !S.needPAT && !S.tryChoice &&
+    !S.retryTwo && !S.kickChoice && !S.twoPt && !S.otEnd && !noClock() && S.teams[S.poss].score > S.teams[1 - S.poss].score;
+}
+// Computer coordinators with the lead in the 4th quarter always run the clock
+function cpuBurn() {
+  if (S.teams[S.poss].cpu && burnAvailable()) { S.burnClock = true; S.noHuddle = false; S.spikeNext = false; }
+}
 function cpuNoHuddle() {
   const o = S.poss;
-  if (!S.teams[o].cpu || S.spikeNext || !nhAvailable()) return;
+  if (!S.teams[o].cpu || S.spikeNext || S.burnClock || !nhAvailable()) return;
   const diff = S.teams[o].score - S.teams[1 - o].score;
   if ((S.quarter >= 4 && diff < 0 && diff >= -24 && S.clock <= 300) || (S.quarter === 2 && S.clock <= 150 && S.clock > 0)) S.noHuddle = true;
 }

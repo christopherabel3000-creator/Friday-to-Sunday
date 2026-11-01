@@ -233,14 +233,15 @@ function clockBox() {
   const o = S.poss, t = S.teams, RO = R().runoff;
   let stat;
   if (S.clockRunning) {
-    const secs = S.spikeNext ? 10 : S.noHuddle ? midOf(RO.nh) : S.oobRestart ? midOf(S.readyWhy === "oob" ? RO.oob : RO.ready) : midOf(RO.run);
+    const secs = S.spikeNext ? 10 : S.burnClock ? (S.oobRestart ? (S.readyWhy === "oob" ? RO.oob : RO.ready)[1] : 38) : S.noHuddle ? midOf(RO.nh) : S.oobRestart ? midOf(S.readyWhy === "oob" ? RO.oob : RO.ready) : midOf(RO.run);
     const why = { fd: "The clock stopped for the first down and starts again when the ball is ready", pen: "The clock stopped for the penalty and starts again when the ball is ready",
       oob: "Out of bounds: the clock starts again when the ball is ready", to: "The running clock starts again when the ball is ready" }[S.readyWhy];
-    stat = `${S.oobRestart && why ? why + ", so about" : `${S.runClock ? "Running clock" : "Clock running"}. About`} ${secs} seconds come off before the next snap.${S.noHuddle ? ` ${tname(o)} are going no huddle: nobody can change personnel.` : ""}`;
+    stat = `${S.oobRestart && why ? why + ", so about" : `${S.runClock ? "Running clock" : "Clock running"}. About`} ${secs} seconds come off before the next snap.${S.noHuddle ? ` ${tname(o)} are going no huddle: nobody can change personnel.` : ""}${S.burnClock ? ` ${tname(o)} are running the clock.` : ""}`;
   } else stat = S.toNote ? S.toNote + " Clock stopped." : "Clock stopped until the next snap.";
   let btns = "";
   if (S.clockRunning) {
     [0, 1].forEach(i => { if (!t[i].cpu && S.tos[i] > 0 && !S.toUsed) btns += `<button class="btn ghost" data-a="to" data-t="${i}">${esc(t[i].abbr)} timeout (${S.tos[i]})</button>`; });
+    if (!t[o].cpu && burnAvailable()) btns += `<button class="btn ghost" data-a="burn" aria-pressed="${!!S.burnClock}">${S.burnClock ? "Running the clock" : `${esc(t[o].abbr)}: run the clock`}</button>`;
     if (!t[o].cpu && nhAvailable()) btns += `<button class="btn ghost" data-a="nohuddle" aria-pressed="${!!S.noHuddle}">${S.noHuddle ? "Going no huddle" : `${esc(t[o].abbr)}: no huddle`}</button>`;
     if (!t[o].cpu && (spikeOK() || S.spikeNext)) btns += `<button class="btn ghost" data-a="spike" aria-pressed="${!!S.spikeNext}">${S.spikeNext ? "Spiking next snap" : `${esc(t[o].abbr)}: spike next snap`}</button>`;
   }

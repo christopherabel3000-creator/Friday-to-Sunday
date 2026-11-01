@@ -326,6 +326,7 @@ function vHelp() {
     ]))}
     ${sec("Clock and situations", ul([
       "Late in a half: use timeouts, or go no huddle (faster snaps, but nobody can change personnel).",
+      "Ahead in the 4th quarter: run the clock, using 36 to 39 seconds between plays. It can't be combined with no huddle.",
       "In the last two minutes of each half you can also spike the ball, or run a play to the sideline to stop the clock.",
       "Fourth down: send out the punt team or field goal unit, or keep the offense on the field and go for it. The defense sees who runs on, and kicking units can run a fake.",
       "Punting: a regular punt, Pin it deep (a high, short kick aimed inside their 10, best from around midfield; your punter's accuracy decides how close he gets), or Boom it (as far as his leg allows, to flip the field when you're backed up, but it outkicks the coverage, so big returns happen, and it can sail into the end zone).",
@@ -646,8 +647,9 @@ function act(a, ds) {
     case "pen": if (inGame && S.phase === "penalty") { choosePenalty(ds.v === "1"); scrollTop(); } break;
     case "half": if (inGame && S.phase === "halftime") { S.hready = null; startPlay(); scrollTop(); } break;
     case "to": if (inGame && callTimeout(+ds.t)) announce(S.toNote); break;
-    case "spike": if (inGame && (S.spikeNext || spikeOK())) { S.spikeNext = !S.spikeNext; if (S.spikeNext) S.noHuddle = false; announce(S.spikeNext ? "Spike set for the next snap." : "Spike cancelled."); } break;
-    case "nohuddle": if (inGame && nhAvailable()) { S.noHuddle = !S.noHuddle; if (S.noHuddle) S.spikeNext = false; announce(S.noHuddle ? "Going no huddle." : "No huddle cancelled."); } break;
+    case "spike": if (inGame && (S.spikeNext || spikeOK())) { S.spikeNext = !S.spikeNext; if (S.spikeNext) { S.noHuddle = false; S.burnClock = false; } announce(S.spikeNext ? "Spike set for the next snap." : "Spike cancelled."); } break;
+    case "nohuddle": if (inGame && nhAvailable()) { S.noHuddle = !S.noHuddle; if (S.noHuddle) { S.spikeNext = false; S.burnClock = false; } announce(S.noHuddle ? "Going no huddle." : "No huddle cancelled."); } break;
+    case "burn": if (inGame && burnAvailable()) { S.burnClock = !S.burnClock; if (S.burnClock) { S.noHuddle = false; S.spikeNext = false; } announce(S.burnClock ? "Running the clock." : "No longer running the clock."); } break;
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;

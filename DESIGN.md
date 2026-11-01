@@ -318,6 +318,7 @@ How it's built (step 4):
 
 - Play every snap or sim the game. A key-moments mode, which sims until the game is close and late, comes later.
 - Gridiron Duel's systems carry over: the game clock, timeouts, spikes and sideline routes, audibles, disguises and penalties. Their rules follow the level being played (see Rules by level).
+- Running the clock: in the 4th quarter, the team with the lead can choose to run the clock, using 36 to 39 seconds between plays (the top of the usual range when the clock only restarts on the ready). It can't be combined with no huddle or a spike. Computer coaches always do it with a 4th-quarter lead.
 - You can change the lineup between plays (see Depth chart and personnel).
 - The opposing coach is computer-controlled, with its own ratings and scheme.
 - Scouting lasts all season. Opposing coaches chart your habits across games, and your opponent prep shows theirs.

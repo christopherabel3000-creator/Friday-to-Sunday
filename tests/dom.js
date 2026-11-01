@@ -104,6 +104,7 @@ function checkScreen(page, label) {
   const seen = new Set();
   let steps = 0, focusBad = 0, lastHead = "";
   const puntsSeen = {};
+  let burnSeen = 0, burnBad = 0, burnForced = null;
   const sw = page.w;
   while (steps < 4000) {
     steps++;
@@ -140,6 +141,23 @@ function checkScreen(page, label) {
       case "result": {
         if (btn(d, "to") && Math.random() < .05) tap(page, "to");
         if (btn(d, "onside") && Math.random() < .1) tap(page, "onside");
+        // Once, set up a 4th-quarter lead for the coach on offense to check the run-the-clock button
+        if (!burnForced && S.clockRunning && !S.teams[S.poss].cpu && sw.eval("burnAvailable") && S.quarter < 4 && !S.needPAT && !S.kickChoice && !S.tryChoice) {
+          burnForced = sw.eval(`({ q: S.quarter, a: S.teams[0].score, b: S.teams[1].score })`);
+          sw.eval(`S.quarter = 4; S.teams[S.poss].score = S.teams[1 - S.poss].score + 7; render()`);
+        }
+        if (btn(d, "burn")) {
+          burnSeen++;
+          if (btn(d, "nohuddle")) { tap(page, "nohuddle"); tap(page, "burn"); if (!(sw.eval("S.burnClock") && !sw.eval("S.noHuddle")) || btn(d, "nohuddle").getAttribute("aria-pressed") !== "false") burnBad++; }
+          else tap(page, "burn");
+          if (btn(d, "burn").getAttribute("aria-pressed") !== "true" || !/running the clock/.test(d.querySelector(".cstat").textContent)) burnBad++;
+        }
+        if (burnForced && !burnForced.done) {
+          burnForced.done = true;
+          if (sw.eval("S.burnClock")) tap(page, "burn");
+          ok(!sw.eval("S.burnClock"), "tapping run the clock again turns it off");
+          sw.eval(`S.quarter = ${burnForced.q}; S.teams[0].score = ${burnForced.a}; S.teams[1].score = ${burnForced.b}; render()`);
+        }
         tap(page, "cont"); break;
       }
       case "pat": tap(page, "pat", Math.random() < .3 ? "two" : "kick"); break;
@@ -160,6 +178,7 @@ function checkScreen(page, label) {
   void lastHead;
   ok(page.errors.length === 0, "no script errors during the game: " + page.errors.slice(0, 3).join(" | "));
   ok(sw.eval("S.phase") === "final", `the game reaches the final by tapping (${steps} taps, last screen ${sw.eval("S.phase")})`);
+  ok(burnSeen > 0 && burnBad === 0, `running the clock turns on, turns off no huddle and shows in the clock box (${burnSeen} times, ${burnBad} problems)`);
   ok(focusBad === 0, `every new screen puts focus on its heading or main block (${focusBad} misses)`);
   ok(Object.keys(puntsSeen).length > 0, `the game sent out the punt team and kicked a punt by tapping (${JSON.stringify(puntsSeen)})`);
   ok(["toss", "call", "result"].every(p => seen.has(p)), "saw the toss, call sheet and results: " + [...seen].join(", "));

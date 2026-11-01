@@ -74,6 +74,25 @@ function plain(g, extra) {
   // A first down stops the clock until the ball is ready
   g(`finishClock({ fd: true }, false)`);
   ok(g("S.clockRunning") === true && g("S.oobRestart") === true && g("S.readyWhy") === "fd", "a first down restarts the clock on the ready");
+  // Running the clock: 4th quarter, offense ahead, 36 to 39 seconds, never with no huddle
+  {
+    const q0 = g("S.quarter"), c0 = g("S.clock"), s0 = g("S.teams[0].score"), s1 = g("S.teams[1].score"), ph = g("S.phase"), p0 = g("S.poss");
+    g(`S.phase = "result"; S.poss = 0; S.clockRunning = true; S.oobRestart = false; S.quarter = 3; S.teams[0].score = 14; S.teams[1].score = 7`);
+    ok(g("burnAvailable()") === false, "running the clock isn't offered before the 4th quarter");
+    g(`S.quarter = 4; S.clock = 400`);
+    ok(g("burnAvailable()") === true, "the team ahead can run the clock in the 4th quarter");
+    g(`S.teams[0].score = 7; S.teams[1].score = 14`);
+    ok(g("burnAvailable()") === false, "a team that's behind can't run the clock");
+    g(`S.teams[0].score = 7; S.teams[1].score = 7`);
+    ok(g("burnAvailable()") === false, "a tied team can't run the clock");
+    g(`S.teams[0].score = 14; S.teams[1].score = 7; S.burnClock = true; S.noHuddle = false; S.spikeNext = false; S.last = null`);
+    let lo = 99, hi = 0; for (let i = 0; i < 200; i++) { const x = g("betweenPlays()"); lo = Math.min(lo, x); hi = Math.max(hi, x); }
+    ok(lo >= 36 && hi <= 39, `running the clock takes 36 to 39 seconds (${lo}-${hi})`);
+    g(`S.noHuddle = true`);
+    let nh = 99; for (let i = 0; i < 50; i++) nh = Math.min(nh, g("betweenPlays()"));
+    ok(nh >= 36, "running the clock wins over a stray no-huddle flag");
+    g(`S.burnClock = false; S.noHuddle = false; S.quarter = ${q0}; S.clock = ${c0}; S.teams[0].score = ${s0}; S.teams[1].score = ${s1}; S.phase = "${ph}"; S.poss = ${p0}`);
+  }
   // A gain short of the line to gain: the clock keeps running
   g(`finishClock({}, false)`);
   ok(g("S.clockRunning") === true && g("S.oobRestart") === false, "an in-bounds gain keeps the clock running");
