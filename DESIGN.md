@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 and 2 are done: a career at a 1A school that goes on season after season, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, and the offseason program. Next is Milestone 3, the high school job market, which needs its design worked out before it's built.
+Status: Milestones 1 and 2 are done: a career at a 1A school that goes on season after season, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, and the offseason program. Next is Milestone 3a, the high school job market. Its design is below, with a few open questions left before it's built.
 
 ## The pitch
 
@@ -16,7 +16,7 @@ You're a first-time head coach at a tiny high school with a losing tradition. Yo
 
 ## The career at a glance
 
-- Levels: high school (classes 1A to 7A, by enrollment), college (three tiers of programs), and the pros.
+- Levels: high school (classes 1A to 6A, by enrollment), college (three tiers of programs), and the pros.
 - Talent arrives differently at each level: turnout in high school, recruiting and NIL in college, and the draft in the pros.
 - Game rules follow the level: 12-minute quarters in high school and 15-minute quarters in college and the pros, with each level's real overtime (see Overtime by level).
 - Each year runs through the offseason, summer, the regular season and the postseason.
@@ -122,10 +122,161 @@ How it's built (step 3):
 - A roster past 32 loses players off the bottom of the depth chart: each one not starting or first off the bench anywhere quits with a chance of 3 percent for every player past 32.
 - Grades: 68 on average, give or take 22, plus 0.4 a point of work ethic over 52, until study hall changes them. Report cards come out after weeks 4 and 8 for every school in your district: a player under 55 is ruled ineligible for the next two games with a 2.5 percent chance a point under 55 (at most half). It's kept like an injury, so the depth chart plays the next player and the player still practices, and recovery doesn't bring him back early. About one or two players a team a season.
 
+## Milestone 3a: the high school job market
+
+Your record starts to mean something. Before each season your school says what it expects, and afterward the athletic director grades your season against it. Beat expectations and your reputation grows and bigger schools want you. Fall short and the hot seat comes, then the door. Money that buys things (boosters, budgets and facilities) is Milestone 3b.
+
+In this milestone:
+
+- A whole state of six classes, 1A to 6A, each with its own districts and state playoff.
+- Expectations before every season, and a season grade after it, counting strength of schedule.
+- Reputation, as a number and in words.
+- Job security, the athletic director's year-end review, the hot seat and firing.
+- Careers for every computer coach: they age, improve, move, get fired and retire.
+- The job market every offseason, with a detailed look at each job.
+- A coaching stipend, year to year.
+- A few of your best players may follow you to a new school.
+- Your career history by school.
+
+Not in this milestone: contracts and buyouts, schools making counteroffers (that comes with college), interviews, named rivals or news that follows particular coaches, former players or assistants becoming coaches, news about your old school, and an age for your coach (you coach as long as you like).
+
+Build steps, each one playable and tested before the next:
+
+1. The whole state, 1A to 6A: enrollment, rosters, freshman classes and talent by class, two-way play, districts and playoffs for every class, and the quick sim checked at every class.
+2. Expectations, the season grade and reputation.
+3. Job security, the athletic director's review, the hot seat and firing.
+4. Computer coaches' careers and the coaching carousel.
+5. The job market, the stipend, transfers, moving schools and the career history.
+
+Milestone 3a is done when:
+
+- A new career starts at 1A, and a coach who keeps beating expectations can reach 6A in about 8 to 12 seasons.
+- A coach who keeps falling short gets fired, and always finds work again.
+- Jobs open up around the state every year as computer coaches move, get fired and retire.
+- Every class plays like its level, and the whole state still moves on to a new year in a couple of seconds.
+- Every new screen works with VoiceOver, on iPhone and on a computer.
+
+### The state
+
+- Six classes, 1A to 6A. Each has 8 districts of 8 schools, three non-district games and a 16-team playoff for the top two in each district, exactly as 1A does now. That's 384 schools and six state champions a year. Seasons don't get any longer.
+- Every career starts at 1A, picking a school in a random 1A district as now.
+- Districts stay numbered. No named regions.
+- Size and tradition are separate: every class draws tradition the same way, so there are proud small schools and losing big ones, and moving up a class doesn't mean moving to a better program.
+- Every class plays by the same NFHS rules.
+
+| Class | Enrollment | Roster | Freshmen a year | Typical starter | Best players |
+|---|---|---|---|---|---|
+| 1A | 80 to 190 | about 30 | 4 to 12 | about 42 | low 50s |
+| 2A | 190 to 400 | about 38 | 8 to 13 | about 45 | mid 50s |
+| 3A | 400 to 750 | about 46 | 10 to 15 | about 48 | around 60 |
+| 4A | 750 to 1,200 | about 56 | 12 to 18 | about 51 | low 60s |
+| 5A | 1,200 to 1,900 | about 68 | 15 to 22 | about 54 | upper 60s |
+| 6A | 1,900 to 3,200 | about 85 | 19 to 28 | about 57 | a few in the 70s |
+
+- Freshman classes by class: the base size is about a quarter of the class's usual roster, and tradition, the youth program and Program building add to it as they do now, scaled to the class's size. The freshman level rises with each class, tuned so starters land where the table says after five to eight simulated years, as Milestone 2 checked for 1A.
+- Two-way play: the depth chart sets itself so that a player starts on both sides only when he's at least 5 points better than the best player who would start on just that side. At 1A that's still most starters, and at 6A almost nobody, so fatigue matters much less at big schools. 1A's balance gets checked again after this change.
+- Your district plays on the full engine and keeps full rosters. The other 376 schools stay on paper, rebuilt from their seeds and their last four classes. When you take a job, the new school's district is rebuilt in full and your old district goes back to paper.
+- The quick sim was fit from 1A games. It gets checked against full-engine games at every class and refit if the bigger classes don't match.
+- To measure first: rebuilding all six classes on paper at the turn of the year (about 4 ms a school now, more for 85-player rosters), and the save with a 6A district kept in full, which could be up to three times today's. If either is too much, the other schools in your district can be rebuilt from paper when they're needed instead of being saved.
+
+### Expectations
+
+- When a season opens, every school in the state gets an expectation. The whole class's season is quick-simmed on paper 200 times from preseason ratings, and each school's averages become its expected wins, expected playoff wins, and chances at the district title and the state title. Because it uses the real schedule, it counts strength of schedule: a school in a weak district is expected to win more, so winning there means less.
+- Expectations come from talent (the roster, the coach and the schedule). Tradition doesn't raise them; it makes the athletic director less patient (see Job security).
+- You see your expectation before the season starts, on the season screen and in each week's preview, in words with the number. For example: "Expected: about 6-4 and a playoff spot (6.1 wins)."
+
+### The season grade
+
+After the playoffs, each season is graded:
+
+- Regular season: wins minus expected wins.
+- Playoffs: half of playoff wins minus expected playoff wins.
+- Rewarded whatever was expected: 0.5 for each playoff win, 1 for a district title, and 1.5 for a state title.
+
+A team expected to go 7-3 with a playoff win that goes 9-1 and wins the state title grades about +8. A strong season of three wins over expectations and one playoff win grades about +4, so a title is worth about two strong seasons. A talented team that only does what it should still gains a little for a district title and playoff wins.
+
+The grade in words: under −3 far below expectations, −3 to −1 below, −1 to +1 met expectations, +1 to +3 above, +3 to +6 far above, and +6 or more a season to remember.
+
+### Reputation
+
+- 0 to 100, shown as a number and in words: under 25 an unknown, 25 to 39 a rising name, 40 to 54 a respected coach, 55 to 69 a proven winner, 70 to 84 one of the state's best, and 85 and up a legend.
+- A new coach starts at 20.
+- Each season reputation moves by 3 times the season grade, times the class's stage: 1A 1.0, 2A 1.15, 3A 1.3, 4A 1.45, 5A 1.6 and 6A 1.75. A bigger class is a bigger stage, so the same season builds more reputation there.
+- No fading with time. A coach who keeps meeting expectations holds steady. Reputation only falls when seasons fall short, so a school that's happy with 6-4 from a team that should go 5-5 keeps its coach, and his reputation doesn't slip.
+- Your coach's page shows reputation, this season's change and why.
+
+### Job security
+
+- Job security runs from 0 to 100, and a new hire starts at 60. Each season it moves by 10 times the season grade. A grade below zero counts 1 + (tradition − 50) / 100 times as much, so a proud program (1.4 at a tradition of 90) is far less patient than a losing one (0.6 at 10).
+- At the year-end review, the athletic director tells you where you stand: 70 and up, your job is safe; 45 to 69, the AD expects improvement; 25 to 44, you're on the hot seat; under 25, you're fired.
+- Two full years: nobody is fired after his first season. After his second, a coach is fired if both seasons were below expectations (graded under −1). From the third season on, job security decides.
+- Firing happens only at the year-end review. There are no warnings during the season.
+- Computer coaches follow the same rules.
+
+### Computer coaches' careers
+
+- Every computer coach has an age, a reputation and job security, by the same rules as yours, from his school's results against the same expectations.
+- New coaches come in at 24 to 35 with ratings in the 30s and 40s and a reputation of 15. Each one coaches 30 to 40 years (his own number, from his seed) and then retires, so most retire between their late 50s and early 70s. A brand-new state spreads its coaches across those careers.
+- Their ratings grow about a point a year for their first 15 years, then level off.
+- Nobody is tracked by name in the news.
+
+### The coaching carousel
+
+At the end of each season, after the athletic director's review:
+
+1. Retirements and firings open jobs around the state, about 30 to 45 of the 384 each year.
+2. Your job market runs on those openings.
+3. When you're done, computer coaches fill the rest, best job first. Each goes to the computer coach with the best reputation who clears its bar and would be moving to a bigger class or a better program. Each move opens his old job, which fills the same way, and whatever's left goes to new coaches.
+
+Computer moves happen after your market, so the jobs you see are the ones open when the season ends.
+
+The carousel news covers anything involving you, every coaching change in your district (your new district, if you moved), and notable changes in your class, like a state champion's coach moving up or a firing at a proud program. At most eight lines.
+
+### The job market
+
+- Only jobs that are interested in you are listed. Each school has a bar: 1A 0, 2A 28, 3A 40, 4A 52, 5A 64 and 6A 76, plus 0.2 a point of tradition over 50, since the best programs want more. With your reputation 10 or more over the bar the school's interest is high, at or over it medium, and up to 8 under it low. More than 8 under, it isn't listed.
+- Each job lists the school, class, district, enrollment, tradition, stipend, the expectation for next season, the athletic director's patience in words, and its interest in you.
+- A detailed look at any job: next season's roster (the players coming back, every rating, as on any roster screen), its last coach's schemes and how much of your playbook it knows, and last season's record.
+- Sort by interest, class, tradition or talent, and filter by class. It starts sorted by interest, then class.
+- You pursue one job at a time, and the school answers right away: an offer (85 percent of the time at high interest, 55 at medium and 25 at low) or a no. A no takes that job off your list. The rest stay open until you take a job.
+- Stay where you are any time and the market closes. Staying doesn't change anything else.
+- No minimum stay: you can leave after any season. Any move is allowed, up, sideways or down. A lower class pays less and builds reputation more slowly.
+- If you're fired, the market works the same, except you can't stay. If every school says no, the 1A school with the weakest roster offers you its job, letting its coach go if it has to. You always have a job.
+- The market comes before the offseason program, so you plan the summer at the school you'll coach.
+
+### Moving schools
+
+- You keep your coach, ratings, XP, perks and schemes. The new team keeps its own playbook mastery, so whatever it doesn't know has to be installed, as when you took your first job.
+- Your old school goes to the carousel, and its players aren't followed.
+- Transfers: each of your five best returning players (by overall, not counting seniors) follows you with a 15 percent chance. Most moves bring none or one, and now and then two or three.
+- Your coach's page gets a career history by school: the years, record, playoff record, district and state titles, and the stipend, beside the season-by-season list.
+
+### The stipend
+
+- High school head coaches are mostly teachers paid a coaching stipend on top. Each job's stipend comes from its class: 1A $4,000, 2A $5,500, 3A $7,000, 4A $9,000, 5A $11,500 and 6A $15,000, plus $50 a point of tradition over 50 (up to $2,000 more).
+- Year to year, with no contracts. A 3 percent raise for each season you stay.
+- Your coach's page shows this year's stipend and your career earnings. Money doesn't buy anything until 3b.
+
+### Screens
+
+- After the season summary: the athletic director's review (your grade and why, the reputation change and where you stand), the carousel news, the job market, and then the offseason program.
+- Each new screen moves VoiceOver to its heading. Changes are announced once, briefly, with no repeated instructions.
+
+### Open questions for 3a
+
+1. Expectations come only from talent and schedule, with tradition making the AD less patient. Should tradition also raise what the school expects?
+2. For the two-year rule, does "underperformed" mean a grade under −1 (about a win short), or anything below zero?
+3. Should a bigger class's stage also make bad seasons cost more reputation, or only make good seasons count more?
+4. An offer you've received: does it stay good while you pursue other jobs, so you can come back to it, or do you have to answer it before pursuing another?
+5. The fallback job when you're fired: the 1A school with the weakest roster, the lowest tradition, or both together?
+6. Transfers: eligible right away, or should they sit out some games, as many states require?
+7. A 3 percent raise each year you stay, and more at proud programs: right?
+8. Do the numbers in the class table look right for how big and how good each class should be?
+
 ## The world
 
-- A fictional state with seven classes, from 1A (the smallest schools) to 7A (the largest). Bigger schools have more students to draw players from.
-- Each school has a town, a mascot, colors, a class, enrollment, tradition (past success, which sets expectations) and community support. Facilities and boosters come in Milestone 3.
+- A fictional state with six classes, from 1A (the smallest schools) to 6A (the largest). Bigger schools have more students to draw players from. All six arrive in Milestone 3a.
+- Each school has a town, a mascot, colors, a class, enrollment, tradition (past success) and community support. Facilities and boosters come in Milestone 3b.
 - The Milestone 1 league is your 8-school district in class 1A, 3 non-district opponents, and a 16-team state playoff for the class. Games in your district run on the full engine behind the scenes. Other districts are simulated quickly from team ratings to fill the playoff bracket.
 - Each new career generates its own world from a random seed, with fictional names throughout.
 
@@ -415,9 +566,13 @@ How it's built (step 3):
 
 See Milestone 2 near the top.
 
-### Milestone 3: the high school job market
+### Milestone 3a: the high school job market
 
-Reputation against expectations, job offers from bigger high schools each offseason, contracts, the hot seat and getting fired, and boosters, budgets and facilities.
+See Milestone 3a near the top.
+
+### Milestone 3b: money
+
+Boosters and fundraisers, budgets and facilities. The coaching stipend from 3a starts buying things here.
 
 ### Milestone 4: college
 
@@ -491,4 +646,4 @@ How it's built (step 5):
 
 ## Open questions
 
-None right now.
+See Open questions for 3a, at the end of Milestone 3a.
