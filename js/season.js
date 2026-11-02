@@ -185,6 +185,9 @@ function newSeason(seed, year) {
 function nextSeason() {
   const old = SEASON;
   if (!old || old.phase !== "offseason" || !old.myId) return null;
+  // The year-end review and the job market come first (jobs.js): if nobody finished the market, you
+  // stay (or, fired, take the first offer), and the carousel fills every open job
+  yearEndReview(); autoMarket(); fillJobs();
   keepCareerStats();
   // Every class's state champion goes into the history
   const champs = old.champs || (old.champion ? { [old.cls || "1A"]: old.champion } : {});
@@ -227,6 +230,7 @@ function pickSchool(id) {
   // Where each player started, to see how far he's come
   s.players.forEach(p => { p.o0 = ovr(p, p.pos); });
   SEASON.myId = id;
+  startJob(id);
   // Camp first, then week 1
   if (SEASON.pre) { SEASON.phase = "preseason"; SEASON.camp = 1; } else SEASON.phase = "regular";
   return true;

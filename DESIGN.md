@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 and 2 are done: a career at a 1A school that goes on season after season, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, and the offseason program. Next is Milestone 3a, the high school job market. Its design is done, below.
+Status: Milestones 1, 2 and 3a are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel and the job market. Next is Milestone 3b, money: boosters, budgets and facilities.
 
 ## The pitch
 
@@ -144,9 +144,9 @@ Build steps, each one playable and tested before the next:
 
 1. **Done:** the whole state, 1A to 6A: enrollment, rosters, freshman classes and talent by class, two-way play, districts and playoffs for every class, and the quick sim checked at every class.
 2. **Done:** expectations, the season grade and reputation.
-3. Job security, the athletic director's review, the hot seat and firing.
-4. Computer coaches' careers and the coaching carousel.
-5. The job market, the stipend, transfers, moving schools and the career history.
+3. **Done:** job security, the athletic director's review, the hot seat and firing.
+4. **Done:** computer coaches' careers and the coaching carousel.
+5. **Done:** the job market, the stipend, transfers, moving schools and the career history.
 
 Milestone 3a is done when:
 
@@ -187,7 +187,7 @@ Milestone 3a is done when:
 - School ids: 1A keeps d3s5; other classes add the class, as in 4Ad3s5. 1A rolls the state's own seed and every other class its own, so a save from before classes gets exactly the classes a new state with its seed would have, rebuilt on paper for its year.
 - Your class plays its season week by week as before. When it's over, each other class plays its season on paper: its own schedule, quick sims, the same standings, tiebreakers and bracket. Every school's season is kept (record, playoff wins, district title, state title) for tradition and, in later steps, expectations and grades, and every class's champion goes into the history.
 - The quick sim was refit from full-engine games at 1A, 3A and 6A. The margin still moves 2.16 points per point of starters, but scoring barely rises with the level of play (about 18 to 19 points a team at 1A and 20 at 6A), so expected points are 13.48 + 1.1235 × offense − 1.0335 × defense, plus home field and coaching as before.
-- Speed, in a desktop browser: a new state of 384 schools takes about half a second, and each new year (rebuilding every school on paper) about 1.1 seconds. The save is about 400 KB at 1A, up from 260.
+- Speed, in a desktop browser: a new state of 384 schools takes about half a second, and each new year (rebuilding every school on paper, and the carousel) 1.1 to 1.7 seconds, with a screen that says the state is moving on while it happens. The save is about 400 KB with a 1A district in full (up from 260) and about 790 KB with a 6A district.
 
 ### Expectations
 
@@ -242,7 +242,7 @@ The grade in words: under −3 far below expectations, −3 to −1 below, −1 
 
 At the end of each season, after the athletic director's review:
 
-1. Retirements and firings open jobs around the state, about 30 to 45 of the 384 each year.
+1. Retirements and firings open jobs around the state, about 20 to 30 of the 384 each year.
 2. Your job market runs on those openings.
 3. When you're done, computer coaches fill the rest, best job first. Each goes to the computer coach with the best reputation who clears its bar and would be moving to a bigger class or a better program. Each move opens his old job, which fills the same way, and whatever's left goes to new coaches.
 
@@ -268,6 +268,16 @@ The carousel news covers anything involving you, every coaching change in your d
 - Your old school goes to the carousel, and its players aren't followed.
 - Transfers: each of your five best returning players (by overall, not counting seniors) follows you with a 15 percent chance. Most moves bring none or one, and now and then two or three. They're eligible from week 1.
 - Your coach's page gets a career history by school: the years, record, playoff record, district and state titles, and the stipend, beside the season-by-season list.
+
+### How it's built (steps 3 to 5)
+
+- The year-end review happens once, when you go on from the season summary (or when the next season starts, for a test or an older save). Your season's grade moves your reputation and job security, your stipend is paid into your career earnings, and the raise is set. Every computer coach's reputation and security move with his school's grade, he gets a year older, and his ratings grow a point (for his first 15 years). A coach who has reached his years retires, and the athletic directors fire by the same rules as yours.
+- A computer coach from before careers gets them from his seed: a career of 30 to 40 years, already partway through, a reputation around his class's bar (about 16 at 1A), security of about 62 and three seasons at his school, so the state's first year isn't a wave of firings.
+- The carousel: a computer coach moves only after two seasons at his school, and only up a class or to a program with 30 more points of tradition in his own (otherwise more than a hundred coaches a year moved). Over eight simulated years, 20 to 30 jobs opened a year (about a third retirements), 40 to 90 coaches moved, and 20 to 30 newcomers came in. Good coaches end up at the biggest schools: 6A coaches' reputations drift into the 90s and 4A's into the 40s.
+- The carousel news before the market covers how many jobs are open, and every retirement and firing in your district and the notable ones in your class. After the market, the offseason screen lists the hires in your district and the notable ones in your class.
+- The job market: each school's answer is rolled once a season, so asking again or reloading never changes it. The list shows each job's class, district and interest, last season's record against what was expected, its starters, tradition, enrollment, stipend, its athletic director's patience and why the job is open, sorted by interest, class, tradition or talent, and filtered by class. Next season's expectation can't be known until its schedule is made, so the closer look shows its returning starters against this season's class average instead, with the returning roster by position group and how much of your playbook it knows.
+- Moving: your old district goes back to paper and the new one is rebuilt in full as it stands at the end of the season. The season you just finished stays in your career, but its summary screen closes once you've moved, since it was at another school.
+- A strong coach's climb, simulated with a grade of +1.5 every season and the biggest class that offers: 2A in year 1, 3A in year 3, 4A in year 5, 5A in year 7 and 6A in year 9. At +2 a season it took 7 years, and at +2.5, 6.
 
 ### The stipend
 

@@ -141,7 +141,11 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     // The next season, at the same school with the same coach
     const seed = g("SEASON.seed"), myId = g("SEASON.myId");
     g(`act("offseason")`);
-    ok(g("APP.screen") === "offseason" && g("SEASON.phase") === "offseason", "on to the offseason");
+    ok(g("APP.screen") === "review" && g("SEASON.phase") === "offseason", "on to the offseason: the athletic director's review first");
+    g(`act("carousel")`); g(`act("market")`);
+    ok(g("APP.screen") === "market", "then the coaching changes and the job market");
+    g(`act("stay")`);
+    ok(g("APP.screen") === "offseason" && g("SEASON.market.done"), "staying where you are opens the offseason program");
     g(`act("nextyear")`);
     ok(g("APP.screen") === "newyear" && g("SEASON.seed") !== seed && g("SEASON.myId") === myId && g("SEASON.phase") === "preseason" && g("CAREER.seasons.length") === 1, "the next season: the same school, starting with camp");
     ok(g("mySchool().off") === "gnp" && g("mySchool().coach === CAREER.coach"), "with the same coach and schemes");

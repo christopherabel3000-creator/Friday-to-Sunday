@@ -99,7 +99,9 @@ function vCoach() {
       ${nameField("plast", "last", "Last name", c.last)}
       <p class="muted">Changes save as you type.</p>
     </section>
-    ${CAREER.seasons.length ? `<section class="panel"><h3>Career</h3><ul class="hlist">${CAREER.seasons.map((x, i) => `<li>${esc(careerLine(x, i))}</li>`).join("")}</ul></section>` : ""}
+    ${CAREER.seasons.length ? `<section class="panel"><h3>Career by school</h3><ul class="hlist">${careerBySchool().map(st => `<li>${esc(stintLine(st))}</li>`).join("")}</ul>
+      ${CAREER.job ? `<p>${esc(`Your stipend this season: ${moneyText(CAREER.job.pay)}. Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p>` : ""}</section>
+    <section class="panel"><h3>Season by season</h3><ul class="hlist">${CAREER.seasons.map((x, i) => `<li>${esc(careerLine(x, i))}</li>`).join("")}</ul></section>` : ""}
     <button class="btn ghost" data-a="back">Back</button>`;
 }
 // Typing in a text box: the coach's name, a save code or a cloud save code. Nothing redraws.
@@ -185,7 +187,7 @@ function vSummary() {
       <button class="btn ghost" data-a="coach">Your coach</button></section>
     <section class="panel">
       <h3>What's next</h3>
-      <p class="muted">The offseason: your seniors graduate, the rest of the team gets a summer older, and a new class of freshmen comes out. Or start over with a new coach.</p>
+      <p class="muted">The offseason: the athletic director's review, coaching changes around the state and the job market, then your seniors graduate, the rest of the team gets a summer older, and a new class of freshmen comes out. Or start over with a new coach.</p>
       <button class="btn" data-a="${SEASON.phase === "offseason" ? "season" : "offseason"}">${SEASON.phase === "offseason" ? "Back to the offseason" : "On to the offseason"}</button>
       <button class="btn ghost" data-a="newcareer">${confirming === "newcareer" ? "Tap again to start over" : "Start a new career"}</button>
     </section>

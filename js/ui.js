@@ -111,7 +111,7 @@ function vHome() {
   if (me) season = `<section class="panel teamcard" style="--team:${me.color}">
       <span class="eyebrow">${esc(coachFullName(c))} · ${when}</span>
       <h2 class="h2small">${esc(nameOf(me.id))}</h2>
-      <p class="muted">${esc(ph === "offseason" ? "The seniors are graduating. The next season starts with camp." : ph === "preseason" ? `Camp week ${SEASON.camp} of ${SEASON.pre}. No games yet.` : seasonStatus())}</p>
+      <p class="muted">${esc(ph === "offseason" ? (marketClosed() ? "The seniors are graduating. The next season starts with camp." : "The job market is open.") : ph === "preseason" ? `Camp week ${SEASON.camp} of ${SEASON.pre}. No games yet.` : seasonStatus())}</p>
       <button class="btn" data-a="${go[0]}">${go[1]}</button>
       <div class="choices"><button class="btn ghost" data-a="coach">Your coach</button>${restart}</div>
     </section>`;
@@ -254,8 +254,18 @@ function vHelp() {
       "Your schemes, rotation and depth chart carry from week to week. A depth chart for the next game only goes back to normal after that game.",
       "Once there's a state champion, the season summary has your record and finish, the games to remember, your leaders and who improved the most."
     ]))}
+    ${sec("Your job", ul([
+      "The state has six classes, 1A to 6A, from the smallest schools to the biggest. Bigger schools have bigger rosters and better players, and fewer of them play both ways. Every career starts at 1A.",
+      "Before each season your school says what it expects, from its talent and its schedule. After the season, your grade is how you did against that: wins over what was expected, playoff wins, and a district or state title.",
+      "Your reputation, from 0 to 100, moves with your grade each season, and more at a bigger class. It's what other schools look at.",
+      "After the season, the athletic director reviews your job. Nobody is fired after his first season. After two, a coach whose seasons were both a win short of expectations or worse is fired. After that, it depends on how you've done over the years, and proud programs are less patient.",
+      "Then coaches around the state retire and get fired, and those jobs open up. The job market lists the open jobs that are interested in you. Pursue one at a time: the school answers right away. Answer an offer right away, or stay where you are.",
+      "If you're fired, someone always hires you, at worst the 1A school with the weakest roster.",
+      "At a new job you keep your coach, XP, perks and schemes. The team keeps its own playbook, so yours gets installed in practice. A few of your best players may follow you.",
+      "Head coaches are paid a stipend, more at bigger schools, with a raise for each of your first five seasons at a school."
+    ]))}
     ${sec("The offseason", ul([
-      "After the season summary comes the offseason. Your seniors graduate, and the offseason screen shows who's leaving and who's coming back.",
+      "After the job market comes the offseason. Your seniors graduate, and the offseason screen shows who's leaving and who's coming back.",
       "Starting the next season, everyone else gets a summer older: players grow over the summer, a few leave the team, and a new class of freshmen comes out. How many depends on your school's size and tradition.",
       "Tradition follows results, a little each year, and better tradition brings out more freshmen, and better ones.",
       "The rest of the state moves on with you: every school graduates its seniors and brings in a new class, and the schedule is new each year.",
@@ -358,7 +368,8 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: vSeason, week: vWeek, standings: vStandings, schedule: vSchedule,
   bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
-  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear, halls: vHalls };
+  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear, halls: vHalls,
+  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -451,7 +462,9 @@ function seasonRoster(id) {
   APP.screen = "roster";
 }
 // The screen for the season as it stands
-const seasonScreen = () => !SEASON ? "home" : SEASON.phase === "pick" ? "pick" : SEASON.phase === "offseason" ? "offseason" : "season";
+const seasonScreen = () => !SEASON ? "home" : SEASON.phase === "pick" ? "pick" : SEASON.phase === "offseason" ? offseasonScreen() : "season";
+// The offseason program waits for the job market to close
+const marketClosed = () => !SEASON.market || SEASON.market.done;
 function act(a, ds) {
   ds = ds || {};
   const pre = preSnap(a);
@@ -493,7 +506,7 @@ function act(a, ds) {
     // Spending XP: a rating point, or a perk. Focus stays on the button; the result is read out.
     case "xprate": if (CAREER) announce(raiseRating(ds.v).say); break;
     case "perk": if (CAREER) announce(learnPerk(ds.v).say); break;
-    case "summary": if (SEASON && ["over", "offseason"].includes(SEASON.phase) && SEASON.myId) { recordCareerSeason(); APP.screen = "summary"; scrollTop(); } break;
+    case "summary": if (SEASON && ["over", "offseason"].includes(SEASON.phase) && SEASON.myId && !movedSchools()) { recordCareerSeason(); APP.screen = "summary"; scrollTop(); } break;
     // Preseason camp: on to the next week, or the rest of camp at once (with a report on all of it)
     case "campnext":
       if (!inCamp()) break;
@@ -506,22 +519,23 @@ function act(a, ds) {
     // The offseason, then the next season
     case "offseason":
       if (!SEASON || SEASON.phase !== "over" || !SEASON.myId) break;
-      recordCareerSeason(); SEASON.phase = "offseason"; APP.screen = "offseason"; scrollTop(); break;
+      // The athletic director's review, the coaching changes and the job market come first
+      recordCareerSeason(); yearEndReview(); SEASON.phase = "offseason"; marketMsg = ""; APP.screen = offseasonScreen(); scrollTop(); break;
     case "nextyear":
-      if (!SEASON || SEASON.phase !== "offseason") break;
+      if (!SEASON || SEASON.phase !== "offseason" || !marketClosed()) break;
       if (S && S.season) S = null;
-      nextSeason(); APP.screen = "newyear"; scrollTop(); break;
+      runNextYear(); scrollTop(); break;
     case "newyear": if (SEASON && SEASON.yearReport) { APP.screen = "newyear"; scrollTop(); } break;
     // The offseason program: the summer plan, and pitching athletes in the hallways
     case "summer": {
       const v = +ds.v;
-      if (!SEASON || SEASON.phase !== "offseason" || !SUMMER_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
+      if (!SEASON || SEASON.phase !== "offseason" || !marketClosed() || !SUMMER_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
       (SEASON.summer = SEASON.summer || newSummer())[ds.t] = v;
       announce(`${SUMMER_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${weeksText(summerWeeks(SEASON.summer)[ds.t])}.`); break;
     }
-    case "halls": if (SEASON && SEASON.phase === "offseason") { APP.screen = "halls"; scrollTop(); } break;
+    case "halls": if (SEASON && SEASON.phase === "offseason" && marketClosed()) { APP.screen = "halls"; scrollTop(); } break;
     case "pitch": {
-      if (!SEASON || SEASON.phase !== "offseason") break;
+      if (!SEASON || SEASON.phase !== "offseason" || !marketClosed()) break;
       const H = hallsNow(), p = H.players.find(x => x.id === ds.v);
       if (!p) break;
       const before = H.said[p.id], r = before ? "" : pitch(ds.v), left = `${plural(pitchesLeft(), "pitch", "pitches")} left.`;
@@ -596,6 +610,7 @@ function act(a, ds) {
       else if (APP.screen === "week" && APP.weekFrom === "schedule") APP.screen = "schedule";
       else if (APP.screen === "coach") APP.screen = SCREENS[APP.coachBack] && APP.coachBack !== "coach" ? APP.coachBack : "home";
       else if (APP.screen === "halls") APP.screen = "offseason";
+      else if (APP.screen === "joblook") APP.screen = seasonScreen();
       else APP.screen = seasonScreen();
       APP.reportView = null;
       scrollTop(); break;
@@ -655,7 +670,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!savesAct(a)) return;
+    default: if (!jobsAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
@@ -672,11 +687,12 @@ function startScreen() {
   if (sc === "pick") return SEASON && SEASON.phase === "pick" && CAREER ? sc : "home";
   if (sc === "newcoach") return APP.coachDraft ? sc : "home";
   if (sc === "coach") return CAREER ? sc : "home";
-  if (sc === "summary") return season && ["over", "offseason"].includes(SEASON.phase) ? sc : season ? "season" : "home";
-  if (sc === "offseason") return season && SEASON.phase === "offseason" ? sc : season ? "season" : "home";
+  if (sc === "summary") return season && ["over", "offseason"].includes(SEASON.phase) && !movedSchools() ? sc : season ? seasonScreen() : "home";
+  if (["offseason", "review", "carousel", "market"].includes(sc)) return season && SEASON.phase === "offseason" ? offseasonScreen() : season ? "season" : "home";
+  if (sc === "joblook") return season && SEASON.phase === "offseason" && !marketClosed() && SEASON.review && SEASON.review.open.includes(APP.jobLook) ? sc : season ? seasonScreen() : "home";
   if (sc === "newyear") return season && SEASON.yearReport ? sc : season ? "season" : "home";
-  if (sc === "halls") return season && SEASON.phase === "offseason" ? sc : season ? "season" : "home";
-  if (sc === "simming") return season ? "season" : "home";
+  if (sc === "halls") return season && SEASON.phase === "offseason" && marketClosed() ? sc : season ? seasonScreen() : "home";
+  if (sc === "simming" || sc === "turning") return season ? seasonScreen() : "home";
   if (sc === "week") return season && APP.weekView && APP.weekView < SEASON.week ? sc : season ? "season" : "home";
   if (sc === "bracket") return season && SEASON.bracket ? sc : season ? "season" : "home";
   if (sc === "preport") return season && (SEASON.practice || (APP.reportView === "camp" && SEASON.campReport)) ? sc : season ? "season" : "home";

@@ -79,5 +79,116 @@ const career = (g, seed) => g(`APP = { v: 1, screen: "home", ex: null, view: nul
   ok(g(`expectOf(SEASON.myId).w`) > 0 && Object.keys(g("SEASON.exp")).length === 384, "a season from before expectations gets them when it needs them");
 }
 
+// ---- Job security and the stipend ----
+{
+  const { g } = fresh();
+  ok(g("newSec(60, 2, 50)") === 80 && g("newSec(60, -2, 90)") === 32 && g("newSec(60, -2, 10)") === 48 && g("newSec(95, 3, 50)") === 100, "job security moves with the grade, and a proud program takes a bad one harder");
+  const fired = j => g(`firedAfter(${JSON.stringify(j)})`);
+  ok(!fired({ ten: 1, tg: [-5], sec: 0 }), "nobody is fired after his first season");
+  ok(fired({ ten: 2, tg: [-1, -1.4], sec: 50 }) && !fired({ ten: 2, tg: [-.9, -3], sec: 10 }), "after two seasons: fired only if both were a win short or worse");
+  ok(fired({ ten: 3, tg: [0, 0], sec: 24.9 }) && !fired({ ten: 3, tg: [-3, -3], sec: 25 }), "from the third season, fired under 25");
+  ok(g("secWord(70)") === "Your job is safe." && g("secWord(45)") === "The athletic director expects improvement." && g("secWord(44)") === "You're on the hot seat.", "where you stand, in words");
+  ok(g(`stipendOf({ cls: "1A", trad: 50 })`) === 4000 && g(`stipendOf({ cls: "3A", trad: 60 })`) === 7500 && g(`stipendOf({ cls: "6A", trad: 95 })`) === 17000, "the stipend: by class, plus up to $2,000 at a proud program");
+  ok(g("moneyText(12345)") === "$12,345", "money reads with commas");
+}
+
+// ---- The year-end review and the carousel ----
+{
+  const { g } = fresh();
+  career(g, 4321);
+  const pay0 = g("CAREER.job.pay");
+  ok(g("CAREER.job.ten") === 0 && g("CAREER.job.sec") === 60 && pay0 === g("stipendOf(mySchool())"), "taking a job: security 60, and the school's stipend");
+  g("simSeason()");
+  const R = g("yearEndReview()");
+  ok(g("CAREER.job.ten") === 1 && !R.fired && R.paid === pay0 && g("CAREER.earned") === pay0 && g("CAREER.job.pay") === Math.round(pay0 * 1.03), "after the first season: never fired, paid, and a 3 percent raise");
+  const e = g("CAREER.seasons[0]");
+  ok(e.sid === g("SEASON.myId") && e.pay === pay0 && typeof e.sec === "number" && e.fired === false, "the season goes into your career with your job's standing");
+  ok(JSON.stringify(g("yearEndReview()")) === JSON.stringify(R) && g("CAREER.job.ten") === 1, "the review happens once");
+  const coaches = g(`Object.values(SEASON.schools).filter(s => !isYou(s.coach)).map(s => s.coach)`);
+  ok(coaches.length === 383 && coaches.every(c => c.age >= 25 && c.span >= 30 && c.span <= 40 && c.yrs >= 1 && c.rep >= 0 && c.job && c.job.ten >= 1), "every computer coach has an age, a career and a job");
+  ok(Object.entries(R.why).every(([id, w]) => { const c = g(`SEASON.schools["${id}"].coach`); return w === "retired" ? c.yrs >= c.span : w === "fired" ? c.job.ten >= 2 : false; }), "the open jobs: coaches who reached their years, and coaches who were fired");
+  ok(R.open.length >= 8 && R.open.length <= 60, `a fair number of jobs open (${R.open.length})`);
+  ok(R.news.length >= 1 && /head coaching jobs? (is|are) open around the state/.test(R.news[0]), "the news says how many jobs are open");
+  // The market closes: computer coaches fill every open job
+  ok(g("stayPut()") && g("SEASON.market.done") && g("SEASON.review.filled"), "staying closes the market, and the carousel runs");
+  const st = g(`(() => { const seen = new Set(); let dup = 0, styles = true; for (const id in SEASON.schools) { const s = SEASON.schools[id]; if (seen.has(s.coach)) dup++; seen.add(s.coach); if (s.off !== s.coach.off_style || s.def !== s.coach.def_style) styles = false; } return { dup, styles }; })()`);
+  ok(st.dup === 0, "every school has its own coach");
+  ok(st.styles, "and runs his schemes");
+  ok(g(`SEASON.review.open.every(id => SEASON.schools[id].coach.job.ten === 0)`), "every job that opened has a new coach");
+  ok(g(`Object.keys(SEASON.review.why).filter(id => SEASON.review.why[id] === "left").every(id => SEASON.schools[id].coach.job.ten === 0)`), "and every job a coach left for a better one was filled too");
+  ok(g("isYou(mySchool().coach)") && g("CAREER.job.ten") === 1, "you're still at your school");
+  // The next season
+  g("SEASON.phase = 'offseason'"); g("nextSeason()");
+  ok(g("SEASON.year") === 2027 && !g("SEASON.review") && Object.keys(g("SEASON.exp")).length === 384, "the next season starts fresh, with new expectations");
+}
+
+// ---- Fired, and the market ----
+{
+  const { g } = fresh();
+  career(g, 5555);
+  g("simSeason()");
+  // A coach on the hot seat with a bad season
+  g(`CAREER.job.sec = 30; CAREER.job.ten = 4; CAREER.seasons[0].g = -3; CAREER.rep = 30;`);
+  const R = g("yearEndReview()");
+  ok(R.fired && R.open.includes(g("SEASON.myId")), "a bad season on the hot seat: fired");
+  ok(!g("stayPut()"), "a fired coach can't stay");
+  const old = g("SEASON.myId"), jobs = g("marketJobs()");
+  ok(!jobs.includes(old) && jobs.every(id => R.open.includes(id) && g(`interestIn(SEASON.schools["${id}"])`) !== ""), "the market lists only open jobs interested in you, never your old one");
+  ok(g(`interestIn({ cls: "2A", trad: 50 })`) === "medium" && g(`interestIn({ cls: "2A", trad: 90 })`) === "low" && g(`interestIn({ cls: "1A", trad: 50 })`) === "high" && g(`interestIn({ cls: "4A", trad: 50 })`) === "", "interest: your reputation against each school's bar");
+  if (jobs.length) {
+    const r = g(`pursueJob("${jobs[0]}")`);
+    ok(r === "offer" || r === "no", `pursuing a job gets an answer (${r})`);
+    if (r === "offer") {
+      ok(jobs.length < 2 || g(`pursueJob("${jobs[1]}")`) === "", "an offer has to be answered before pursuing another job");
+      ok(g("answerOffer(false)") === "declined" && !g("marketJobs()").includes(jobs[0]), "turning it down takes it off the list");
+    } else ok(!g("marketJobs()").includes(jobs[0]) && g(`pursueJob("${jobs[0]}")`) === "", "a no takes it off the list for good");
+  }
+  // Everybody says no: the weakest 1A roster takes you
+  g(`marketJobs().forEach(id => { SEASON.market.tried[id] = "no"; }); if (SEASON.market.offer && SEASON.market.offer !== SEASON.market.fallback) { SEASON.market.tried[SEASON.market.offer] = "declined"; SEASON.market.offer = null; } checkFallback();`);
+  const fb = g("SEASON.market.fallback");
+  ok(fb && fb === g("weakest1A()") && g(`SEASON.schools["${fb}"].cls`) === "1A" && g("SEASON.market.offer") === fb, "when every school says no, the 1A school with the weakest roster offers you its job");
+  ok(g("answerOffer(false)") === "" && g("SEASON.market.offer") === fb, "and that offer can't be turned down");
+  const cls0 = g("SEASON.cls"), d0 = g("SEASON.district");
+  ok(g("answerOffer(true)") === "took" && g("SEASON.myId") === fb && g("SEASON.market.done") && g("SEASON.review.filled"), "you take it, and the carousel fills the rest");
+  ok(g("isYou(mySchool().coach)") && !g(`isYou(SEASON.schools["${old}"].coach)`), "you coach your new school, and your old one has a new coach");
+  ok(g("CAREER.job.ten") === 0 && g("CAREER.job.sec") === 60 && g("CAREER.job.pay") === g("stipendOf(mySchool())") && g("CAREER.job.id") === fb, "a fresh start at the new job");
+  const s = g("mySchool()");
+  ok(g("isFull(mySchool())") && g(`SEASON.districts[SEASON.district - 1].ids.every(id => isFull(SEASON.schools[id]))`) && g("Object.values(SEASON.schools).filter(isFull).length") === 8, "your new district has full rosters, and nobody else does");
+  ok((g("SEASON.district") !== d0 || g("SEASON.cls") !== cls0) ? !g(`isFull(SEASON.schools["${old}"])`) : true, "your old district went back to paper");
+  ok(g("movedSchools()") && s.players.length > 15, "the move is kept");
+  g("SEASON.phase = 'offseason'"); g("nextSeason()");
+  ok(g("SEASON.myId") === fb && g("SEASON.cls") === "1A" && g("SEASON.weeks.every(w => w.games.every(gm => SEASON.schools[gm.h].cls === '1A'))") && g("SEASON.phase") === "preseason", "the next season is at your new school, in its class");
+  const hist = g("careerBySchool()");
+  ok(hist.length === 1 && hist[0].w + hist[0].l >= 10, "your career by school");
+}
+
+// ---- Moving up a class, with players following ----
+{
+  const { g } = fresh();
+  career(g, 2027);
+  g("simSeason()");
+  g("CAREER.rep = 60; yearEndReview()");
+  const up = g(`SEASON.review.open.filter(id => id !== SEASON.myId && SEASON.schools[id].cls !== "1A" && interestIn(SEASON.schools[id]))`);
+  ok(up.length > 0, `a coach with a good reputation is wanted at bigger schools (${up.length} jobs)`);
+  const to = up[0], top5 = g(`mySchool().players.filter(p => p.yr < 12).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)).slice(0, 5).map(p => p.id)`);
+  const follow = g(`transfersFrom(mySchool(), "${to}").map(p => p.id)`);
+  ok(follow.every(id => top5.includes(id)), "only your five best returning players might follow you");
+  g(`SEASON.market.offer = "${to}"`);
+  g("answerOffer(true)");
+  ok(g("SEASON.myId") === to && g("SEASON.cls") === g(`SEASON.schools["${to}"].cls`) && g("SEASON.district") === g(`SEASON.schools["${to}"].district`), "you move up a class, to the new school's district");
+  ok(follow.every(id => g(`!!playerById(mySchool(), "${id}")`)) && g("SEASON.market.transfers.length") === follow.length, `the players who followed you are on your new team (${follow.length})`);
+  ok(g("new Set(mySchool().players.map(p => p.num)).size === mySchool().players.length"), "everyone has his own number");
+  ok(g(`mySchool().off === CAREER.coach.off_style && mySchool().def === CAREER.coach.def_style`), "your schemes come with you");
+  // Over several years with nobody at the controls, you always have a job, and every school a coach
+  for (let y = 0; y < 3; y++) {
+    g("SEASON.phase = 'offseason'"); g("nextSeason()"); g("simSeason()");
+    g("SEASON.phase = 'offseason'"); g("yearEndReview(); autoMarket()");
+    ok(g("SEASON.market.done") && g("isYou(mySchool().coach)") && g(`(() => { const seen = new Set(); return Object.values(SEASON.schools).every(s => { if (!s.coach || seen.has(s.coach)) return false; seen.add(s.coach); return true; }); })()`), `year ${y + 2}: you have a job, and every school its own coach`);
+  }
+  // A career from before job security gets a job at its school
+  g("delete CAREER.job");
+  ok(g("myJob().ten") === g("CAREER.seasons.filter(x => x.seed !== SEASON.seed).length") && g("CAREER.job.id") === g("SEASON.myId"), "a career from before job security gets its job back");
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

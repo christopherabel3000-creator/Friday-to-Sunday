@@ -501,8 +501,30 @@ function checkScreen(page, label) {
   ok(/Reputation \d+: (an unknown|a rising name|a respected coach)\./.test(d4.body.textContent) && /graded/.test(d4.body.textContent), "and your reputation, with what the season did to it");
   tap(p4, "back");
   ok(ev("APP.screen") === "summary", "back to the summary");
-  // The offseason, then the next season
+  // The athletic director's review, the coaching changes and the job market, then the offseason
   tap(p4, "offseason");
+  ok(ev("APP.screen") === "review" && ev("SEASON.phase") === "offseason" && /athletic director's review/.test(heading() || "") && /Your stipend/.test(d4.body.textContent) && /(safe|improvement|hot seat)/.test(d4.body.textContent), "the athletic director's review: your grade, your job and your stipend");
+  checkScreen(p4, "athletic director's review");
+  tap(p4, "gohome");
+  ok(/The job market is open/.test(d4.body.textContent), "the main menu says the job market is open");
+  tap(p4, "season");
+  ok(ev("APP.screen") === "review", "and picks the review back up");
+  tap(p4, "carousel");
+  ok(ev("APP.screen") === "carousel" && /Coaching changes/.test(heading() || "") && /head coaching jobs? (is|are) open around the state/.test(d4.body.textContent), "coaching changes around the state");
+  checkScreen(p4, "coaching changes");
+  tap(p4, "market");
+  ok(ev("APP.screen") === "market" && /The job market/.test(heading() || "") && btn(d4, "stay"), "the job market, with the choice to stay");
+  checkScreen(p4, "job market");
+  const jobs = ev("marketJobs()");
+  if (jobs.length) {
+    tap(p4, "joblook", jobs[0]);
+    ok(ev("APP.screen") === "joblook" && /Coming back next season/.test(d4.body.textContent) && /The playbook/.test(d4.body.textContent), "a closer look at a job: its returning players and its playbook");
+    checkScreen(p4, "a closer look");
+    tap(p4, "back");
+    ok(ev("APP.screen") === "market", "back to the job market");
+  }
+  ok(!btn(d4, "nextyear") && !btn(d4, "halls"), "the next season and the offseason program wait for the job market");
+  tap(p4, "stay");
   ok(ev("APP.screen") === "offseason" && ev("SEASON.phase") === "offseason" && heading() === ev("nameOf(SEASON.myId)") && /Graduating/.test(d4.body.textContent) && /Coming back/.test(d4.body.textContent), "the offseason: who's graduating and who's coming back");
   checkScreen(p4, "offseason");
   // The summer plan and hallway recruiting
@@ -525,6 +547,8 @@ function checkScreen(page, label) {
   ok(/offseason/.test(d4.body.textContent) && /Continue the offseason/.test(btn(d4, "season").textContent), "the main menu picks up the offseason");
   tap(p4, "season");
   tap(p4, "nextyear");
+  ok(ev("APP.screen") === "turning" && /^On to /.test(heading() || ""), "moving the state into the new year says so");
+  for (let i = 0; i < 400 && ev("APP.screen") === "turning"; i++) await new Promise(r => setTimeout(r, 25));
   ok(ev("APP.screen") === "newyear" && ev("SEASON.year") === year + 1 && new RegExp(`^The ${year + 1} `).test(heading() || "") && /New freshmen/.test(d4.body.textContent) && ev("SEASON.yearReport.grads.length") === seniors, `the ${year + 1} season: how the team changed`);
   ok(answer === "yes" ? /From the hallways/.test(d4.body.textContent) && ev(`!!playerById(mySchool(), "${pid}")`) : !/From the hallways/.test(d4.body.textContent), "an athlete who said yes is on the team");
   checkScreen(p4, "how the team changed");

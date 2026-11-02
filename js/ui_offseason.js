@@ -23,13 +23,17 @@ function vOffseason() {
     <p class="muted styledesc">${esc(SUMMER_DESC[id])}</p></div>`;
   const H = hallsNow(), yes = H.players.filter(p => H.said[p.id] === "yes").length, left = pitchesLeft();
   const line = p => { const st = careerStatLine(statsWithThisSeason(p)); return `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}${st ? `: ${st}` : ""}.`; };
-  const champ = SEASON.champion;
+  const champ = movedSchools() ? null : SEASON.champion, M = SEASON.market, R = SEASON.review;
+  const newJob = M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new head coach of the ${nameOf(s.id)}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
+      <p>${esc(M.transfers.length ? `Following you from the ${nameOf(M.from)}: ${andList(M.transfers)}.` : `None of your players from the ${nameOf(M.from)} followed you.`)}</p></section>` : "";
+  const moves = R && R.moves && R.moves.length ? `<section class="panel"><h3>Coaching changes</h3><ul class="hlist">${R.moves.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : "";
   return `
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${SEASON.year} offseason</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(s.id))}</h2>
       <p class="muted">The seniors graduate and everyone else gets a summer older. Then a new class of freshmen comes out, and ${plural(PRESEASON_WEEKS, "week")} of camp open the ${SEASON.year + 1} season.</p>
     </div>
+    ${newJob}
     <section class="panel">
       <h3>Graduating</h3>
       ${seniors.length ? `<p>${plural(seniors.length, "senior")}:</p>${list(seniors.map(line))}` : "<p>No seniors this year.</p>"}
@@ -51,12 +55,13 @@ function vOffseason() {
     </section>
     <section class="panel">
       <h3>Your coach</h3>
-      <p>${CAREER.xp || 0} XP to spend on ratings and perks.</p>
+      <p>${CAREER.xp || 0} XP to spend on ratings and perks.${CAREER.job ? ` Your stipend next season: ${moneyText(CAREER.job.pay)}.` : ""}</p>
       <button class="btn ghost" data-a="coach">Spend XP</button>
     </section>
+    ${moves}
     ${champ ? `<p class="muted">${champ === s.id ? `Your team won the ${SEASON.year} Class ${SEASON.cls} state championship.` : `${SEASON.year} Class ${SEASON.cls} state champions: the ${esc(nameOf(champ))}.`}</p>` : ""}
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>
-    <button class="btn ghost" data-a="summary">${SEASON.year} season summary</button>`;
+    ${movedSchools() ? "" : `<button class="btn ghost" data-a="summary">${SEASON.year} season summary</button>`}`;
 }
 
 /* ---------- How the team changed ---------- */
