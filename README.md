@@ -78,6 +78,7 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `career.js`: your career's coach, the seasons you've finished, and the season summary
 - `years.js`: the passing of years: graduation, summer growth, freshman classes, tradition, and schools on paper rebuilt for any year
 - `program.js`: the offseason program: the summer, hallway recruiting, and grades and eligibility
+- `jobs.js`: the high school job market: expectations, the season grade and reputation
 - `cloud.js`: save codes, cloud saves and backups
 - `sound.js`: crowd and horn, synthesized in the browser
 - `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js`, `ui_offseason.js` and `ui.js`: the screens (the game; rosters and the depth chart; practice and scouting reports; the season and camp; creating your coach, your coach's page, the season summary and saves; the offseason, hallway recruiting and how the team changed; the main menu, the exhibition, help and screen reader support)
@@ -93,6 +94,7 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `node tests/career.js`: creating a coach, what each rating does, taking a job with your schemes, faster growth from a background, the season summary, save codes, cloud saves against a stand-in for the database, and saves from before careers
 - `node tests/program.js`: Program building, the summer, hallway recruiting, grades and report cards, and saves from before the offseason program
 - `node tests/state.js`: the six classes: schools, rosters and talent by class, two-way play, every class's season on paper, a state that stays at each class's level for years, and saves from before classes
+- `node tests/jobs.js`: the job market: expectations, the season grade and reputation
 - `node tests/years.js`: preseason camp, schools on paper rebuilt for any year, graduation, freshmen, career stats, tradition, a state that stays at the same level for five years, and saves from before more seasons
 - `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a career from creating your coach through camp and a season to the summary, the offseason and the next season's camp, with practice, installs and scouting reports, focus checks, reloads, save codes and cloud saves on two devices
 - `node tests/balance.js 300`: plays 300 computer games and prints the numbers to tune against

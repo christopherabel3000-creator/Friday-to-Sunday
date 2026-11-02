@@ -177,6 +177,7 @@ function newSeason(seed, year) {
   SEASON = { v: 1, seed, world: seed, year, year0: year, cls: "1A", district, myId: null, schools: w.schools, districts: w.districts, weeks: makeSchedule(w.districts, g),
     week: 1, phase: "pick", camp: 0, pre: PRESEASON_WEEKS, bracket: null, champion: null, rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {},
     plan: newPlan(), practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {}, history: [], summer: newSummer(), halls: null };
+  setExpectations();
   return SEASON;
 }
 // The next season in the same state: every school's year ends (years.js), then a new schedule, and
@@ -206,6 +207,7 @@ function nextSeason() {
   SEASON.expect = talentRank(SEASON.myId);
   SEASON.yearReport = yearReportOf(report, old.year);
   REBUILT.clear();
+  setExpectations();
   return SEASON.yearReport;
 }
 // You take over a school, and its coach's job, with your coach (career.js) and your schemes. The team
@@ -220,6 +222,8 @@ function pickSchool(id) {
   if (c.off_style && c.def_style) { s.off = c.off_style; s.def = c.def_style; } else { c.off_style = s.off; c.def_style = s.def; }
   SEASON.expect = talentRank(id);
   s.coach = c; s.rating = schoolRating(s);
+  // The school's expectation is set with you as its coach
+  setExpectations(SEASON.cls);
   // Where each player started, to see how far he's come
   s.players.forEach(p => { p.o0 = ovr(p, p.pos); });
   SEASON.myId = id;
@@ -371,7 +375,7 @@ function playClassOnPaper(cls) {
   const keep = { districts: SEASON.districts, weeks: SEASON.weeks, bracket: SEASON.bracket, champion: SEASON.champion, phase: SEASON.phase, week: SEASON.week };
   try {
     const ds = classDistricts(cls);
-    Object.assign(SEASON, { districts: ds, weeks: makeSchedule(ds, dice(hashSeed(`${SEASON.seed}:${cls}:schedule`))), bracket: null, champion: null });
+    Object.assign(SEASON, { districts: ds, weeks: paperSchedule(cls), bracket: null, champion: null });
     SEASON.weeks.forEach(w => w.games.forEach(quickGame));
     makeBracket();
     for (let guard = 0; guard < 8 && SEASON.phase !== "over"; guard++) { SEASON.bracket.rounds[SEASON.bracket.rounds.length - 1].forEach(gm => { if (!played(gm)) quickGame(gm); }); nextRound(); }
@@ -384,7 +388,7 @@ function finishState() {
   if (SEASON.results) return SEASON.results;
   const res = classResults(SEASON.districts), champs = { [SEASON.cls]: SEASON.champion };
   CLASSES.forEach(c => { if (c === SEASON.cls) return; const r = playClassOnPaper(c); Object.assign(res, r.results); champs[c] = r.champion; });
-  SEASON.results = res; SEASON.champs = champs;
+  SEASON.results = gradeState(res); SEASON.champs = champs;
   return res;
 }
 

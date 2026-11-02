@@ -86,11 +86,11 @@ function recordCareerSeason() {
   if (!CAREER || !SEASON || SEASON.phase !== "over" || !SEASON.myId) return false;
   if (CAREER.seasons.some(x => x.seed === SEASON.seed)) return false;
   const me = SEASON.myId, r = fullRecord(me), s = mySchool();
-  CAREER.seasons.push({ seed: SEASON.seed, year: SEASON.year, school: schoolName(s), color: s.color, w: r.w, l: r.l, place: placeOf(me, REGULAR_WEEKS), finish: finishText(me), champ: SEASON.champion === me });
+  CAREER.seasons.push(gradeMySeason({ seed: SEASON.seed, year: SEASON.year, school: schoolName(s), color: s.color, w: r.w, l: r.l, place: placeOf(me, REGULAR_WEEKS), finish: finishText(me), champ: SEASON.champion === me }));
   return true;
 }
 // "Season 1: Pine Hollow Pirates, 9-3, first in the district. Lost in the semifinals."
-const careerLine = (x, i) => `${x.year || `Season ${i + 1}`}: ${x.school}, ${x.w}-${x.l}, ${ordWord(x.place - 1)} in the district. ${x.finish}.`;
+const careerLine = (x, i) => `${x.year || `Season ${i + 1}`}: ${x.school}${x.cls ? ` (${x.cls})` : ""}, ${x.w}-${x.l}, ${ordWord(x.place - 1)} in the district. ${x.finish}.${x.g != null ? ` Graded ${signed(x.g)}.` : ""}`;
 
 /* ---------- XP ---------- */
 // Your coach earns XP for winning games, upsets, the snaps your calls win, the playoffs and titles,

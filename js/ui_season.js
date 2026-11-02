@@ -79,7 +79,7 @@ function vPick() {
     return `<section class="panel teamcard" style="--team:${s.color}">
       <p class="eyebrow">${esc(s.colorName)} · ${plural(s.players.length, "player")}</p>
       <h3>${esc(nameOf(id))}</h3>
-      <p class="muted">${talentText(s.rating)} ${capFirst(tradWord(s.trad))}. ${plural(seniors, "senior")}.${esc(fit)}</p>
+      <p class="muted">${talentText(s.rating)} ${capFirst(tradWord(s.trad))}. ${plural(seniors, "senior")}. ${esc(expectText(expectOf(id)))}${esc(fit)}</p>
       <div class="choices"><button class="btn" data-a="takejob" data-v="${id}">Coach the ${esc(s.mascot)}</button><button class="btn ghost" data-a="sroster" data-t="${id}">${esc(s.mascot)} roster</button></div>
     </section>`;
   };
@@ -96,7 +96,7 @@ function vPick() {
 function vSeason() {
   if (SEASON.phase === "offseason") return vOffseason();
   const me = mySchool(), id = me.id, n = SEASON.week, gm = myGameIn(n), live = isMyGame() && S.phase !== "final", camp = inCamp();
-  const eyebrow = SEASON.phase === "over" ? `${SEASON.year} season over` : camp ? `${SEASON.year} preseason · Camp week ${SEASON.camp} of ${SEASON.pre}` : SEASON.phase === "playoffs" ? `State playoffs · ${weekName(n)}` : `${weekName(n)} · Class 1A, District ${SEASON.district}`;
+  const eyebrow = SEASON.phase === "over" ? `${SEASON.year} season over` : camp ? `${SEASON.year} preseason · Camp week ${SEASON.camp} of ${SEASON.pre}` : SEASON.phase === "playoffs" ? `State playoffs · ${weekName(n)}` : `${weekName(n)} · Class ${SEASON.cls}, District ${SEASON.district}`;
   let main = "";
   if (camp) main = campPanel();
   else if (live) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · In progress</p><p>${esc(boardSummary())}</p><button class="btn" data-a="resume">Back to the game</button></section>`;
@@ -144,6 +144,7 @@ function vSeason() {
       <p class="eyebrow">${eyebrow}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
       <p class="muted">${esc(seasonStatus())}</p>
+      ${SEASON.phase !== "over" ? `<p class="muted">${esc(expectText(expectOf(id)))}</p>` : ""}
     </div>
     ${main}
     ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(me.off, me.def)}<p class="muted styledesc">${esc(knownLine(me))}</p></section>` : ""}

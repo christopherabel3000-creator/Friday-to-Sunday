@@ -457,6 +457,7 @@ function checkScreen(page, label) {
   ok(ev("APP.screen") === "game" && ev("isMyGame()") && ev("S.season.week") === 3, "and the week 3 game starts with one tap");
   tap(p4, "sim"); tap(p4, "sim"); tap(p4, "weekdone"); tap(p4, "season");
   ok(ev("SEASON.week") === 4, "on to week 4");
+  ok(/^Expected: about \d+-\d+.*\(\d+(\.\d)? wins?\)\.$/.test(d4.querySelectorAll(".masthead p.muted")[1].textContent.trim()), "the season screen says what your school expects");
   // Standings, schedule and stats
   tap(p4, "standings");
   ok(d4.querySelectorAll("table.stand").length === 8 && /Standings/.test(heading() || ""), "standings for all eight districts");
@@ -493,9 +494,11 @@ function checkScreen(page, label) {
   tap(p4, "summary");
   ok(ev("APP.screen") === "summary" && heading() === ev("nameOf(SEASON.myId)") && /The record/.test(d4.body.textContent) && /Most improved/.test(d4.body.textContent), "the season summary");
   ok(/with the (best|(second|third|fourth|fifth|sixth|seventh|eighth)-best) starters in the district before the season/.test(d4.body.textContent) && ev("CAREER.seasons.length") === 1, "your finish against your talent, and the season goes into your career");
+  ok(/Season grade: .+ \([+−]?\d+\.\d\)/.test(d4.body.textContent) && /Expected about \d+-\d+/.test(d4.body.textContent) && /Reputation \d+: /.test(d4.body.textContent), "the season's grade against what was expected, and your reputation");
   checkScreen(p4, "season summary");
   tap(p4, "coach");
   ok(/20\d\d: .+, \d+-\d+, /.test(d4.body.textContent), "your coach's page lists the season");
+  ok(/Reputation \d+: (an unknown|a rising name|a respected coach)\./.test(d4.body.textContent) && /graded/.test(d4.body.textContent), "and your reputation, with what the season did to it");
   tap(p4, "back");
   ok(ev("APP.screen") === "summary", "back to the summary");
   // The offseason, then the next season

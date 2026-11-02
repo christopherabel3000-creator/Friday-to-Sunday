@@ -143,7 +143,7 @@ Not in this milestone: contracts and buyouts, schools making counteroffers (that
 Build steps, each one playable and tested before the next:
 
 1. **Done:** the whole state, 1A to 6A: enrollment, rosters, freshman classes and talent by class, two-way play, districts and playoffs for every class, and the quick sim checked at every class.
-2. Expectations, the season grade and reputation.
+2. **Done:** expectations, the season grade and reputation.
 3. Job security, the athletic director's review, the hot seat and firing.
 4. Computer coaches' careers and the coaching carousel.
 5. The job market, the stipend, transfers, moving schools and the career history.
@@ -214,6 +214,14 @@ The grade in words: under −3 far below expectations, −3 to −1 below, −1 
 - Each season reputation moves by 3 times the season grade, times the class's stage: 1A 1.0, 2A 1.15, 3A 1.3, 4A 1.45, 5A 1.6 and 6A 1.75. A bigger class is a bigger stage, so the same season builds more reputation there. A bad season costs a little more at a bigger class too, but only half as much more: a grade below zero uses half the stage's extra (1A 1.0, 2A 1.075, 3A 1.15, 4A 1.225, 5A 1.3 and 6A 1.375).
 - No fading with time. A coach who keeps meeting expectations holds steady. Reputation only falls when seasons fall short, so a school that's happy with 6-4 from a team that should go 5-5 keeps its coach, and his reputation doesn't slip.
 - Your coach's page shows reputation, this season's change and why.
+
+### How it's built (step 2)
+
+- Expectations play each class's season 200 times with seeded dice, so the same season always expects the same. Each game's win chance comes from the quick sim's expected margin on a normal curve with a spread of 13.6 points (measured from 20,000 quick sims a margin). Standings go by district wins, then all wins, then a coin flip, and playoff games are played at a neutral site. Other classes use the schedule their season on paper will play.
+- They're set when a season opens (a new state, and each new year), and again for your class when you take a job, since you're the school's new coach. A season from before expectations gets them from where the ratings stand when it first needs them.
+- Over four simulated years of the whole state, schools averaged 5.00 regular-season wins against 5.00 expected, and 0.234 playoff wins against 0.236. Grades averaged +0.27 (the titles and playoff wins), with a spread of about 1.9: 44 percent met expectations, 20 percent above, 8 percent far above and 1 percent a season to remember; 24 percent below and 3 percent far below.
+- Every school's grade goes with its season's result. Yours goes into your career with the class and your expected wins, and moves your reputation once.
+- The season summary shows the grade, what it was made of and the reputation change. Your coach's page shows your reputation, and the career list gives each season's class and grade.
 
 ### Job security
 

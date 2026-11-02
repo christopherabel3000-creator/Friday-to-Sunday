@@ -81,6 +81,7 @@ function vCoach() {
       <h2 data-focus tabindex="-1">${esc(coachFullName(c))}</h2>
       <p class="muted">${bg ? `${esc(bg.name)}. ` : ""}${esc(schemes)} ${xp} XP to spend${CAREER.xpAll ? `, of ${CAREER.xpAll} earned` : ""}.</p>
     </div>
+    ${repPanel()}
     <section class="panel">
       <h3>Ratings</h3>
       <ul class="hlist xplist">${COACH_RATINGS.map(rate).join("")}</ul>
@@ -110,6 +111,23 @@ function typed(k, v) {
     save();
   } else if (k === "importtext") importText = String(v);
   else if (k === "cloudkey") cloudKeyText = String(v);
+}
+
+/* ---------- Reputation and the season grade ---------- */
+// Your reputation, and what your last season did to it
+function repPanel() {
+  const last = CAREER.seasons[CAREER.seasons.length - 1], r = myRep();
+  const why = last && last.g != null ? ` Your ${last.year} season graded ${gradeWord(last.g)} (${signed(last.g)}): reputation ${last.drep >= 0 ? "up" : "down"} ${Math.abs(last.drep).toFixed(1)}.` : "";
+  return `<section class="panel"><h3>Reputation</h3><p>${esc(repText(r) + why)}</p>
+    <p class="muted">Reputation is how the state's schools see you, from 0 to 100. Each season it moves with how you did against what your school expected, and more at a bigger class.</p></section>`;
+}
+// The season's grade on the summary: against what was expected, and what it did to your reputation
+function gradePanel() {
+  const r = SEASON.results && SEASON.results[SEASON.myId], last = CAREER && CAREER.seasons.find(x => x.seed === SEASON.seed);
+  if (!r || !last || last.g == null) return "";
+  return `<section class="panel"><h3>Season grade: ${esc(capFirst(gradeWord(last.g)))} (${signed(last.g)})</h3>
+    <p>${esc(gradeWhy(r, expectOf(SEASON.myId)))}</p>
+    <p>${esc(`${repText(last.rep)} That's ${last.drep >= 0 ? "up" : "down"} ${Math.abs(last.drep).toFixed(1)}.`)}</p></section>`;
 }
 
 /* ---------- XP ---------- */
@@ -157,6 +175,7 @@ function vSummary() {
     </div>
     ${x.champ ? `<section class="panel teamcard" style="--team:${s.color}"><p class="eyebrow">Class ${SEASON.cls} state champions</p><h3>You won it all</h3></section>` : ""}
     <section class="panel"><h3>The record</h3>${list(record)}</section>
+    ${gradePanel()}
     ${memorable.length ? `<section class="panel"><h3>Games to remember</h3>${list(memorable)}</section>` : ""}
     ${ld.length ? `<section class="panel"><h3>Leaders</h3>${list(ld)}</section>` : ""}
     <section class="panel"><h3>Most improved</h3>${better.length ? list(better) : `<p>Nobody's overall rating went up this season.</p>`}</section>
