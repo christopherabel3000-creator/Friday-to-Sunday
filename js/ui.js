@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 8;
+const BUILD = 9;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -94,6 +94,8 @@ function upgradeSave(s) {
   const co = s.career && s.career.coach;
   if (co && co.pbd == null) co.pbd = co.bg ? COACH_START : COACH_LEVEL["1A"];
   if (se6 && se6.schools && !se6.summer) se6.summer = newSummer();
+  // Version 9: the whole state, 1A to 6A. A state from before then gets the other five classes.
+  if (se6 && se6.schools) { if (!se6.cls) se6.cls = "1A"; addClasses(se6); }
   s.build = BUILD;
   return s;
 }

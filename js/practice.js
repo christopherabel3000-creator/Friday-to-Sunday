@@ -88,8 +88,9 @@ const roomMul = (p, pos) => clamp((p.pot - ovr(p, pos)) / 4, 0, 1);
 // at a time. Notes what changed in rep.
 function growPlayer(p, attrs, pos, amount, rng, rep) {
   p.gx = p.gx || {};
+  // Room to grow changes only when a rating goes up, so it's worked out again only then
+  let room = roomMul(p, pos);
   for (const a in attrs) {
-    const room = roomMul(p, pos);
     if (room <= 0) continue;
     // Everyone starts partway to his next point, so improvement shows from the first week
     if (p.gx[a] == null) p.gx[a] = rng();
@@ -98,6 +99,7 @@ function growPlayer(p, attrs, pos, amount, rng, rep) {
       p.gx[a] -= 1;
       if (rep) { const g = rep.grew[p.id] || (rep.grew[p.id] = {}); if (!g[a]) g[a] = [p.r[a], p.r[a]]; g[a][1] = p.r[a] + 1; }
       p.r[a]++;
+      room = roomMul(p, pos);
     }
     // (kept to three places, so saves stay small)
     p.gx[a] = Math.round(p.gx[a] * 1000) / 1000;

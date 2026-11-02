@@ -11,7 +11,10 @@ const fresh = () => { const sb = load(); return { sb, g: sb.__get, F: sb.__fts }
   const { g } = fresh();
   g("newSeason(4242)");
   const S0 = g("SEASON");
-  const ids = Object.keys(S0.schools);
+  const all = Object.keys(S0.schools), ids = all.filter(id => S0.schools[id].cls === "1A");
+  ok(all.length === 384 && ["1A", "2A", "3A", "4A", "5A", "6A"].every(c => all.filter(id => S0.schools[id].cls === c).length === 64), "six classes of 64 schools");
+  ok(new Set(all.map(id => S0.schools[id].town)).size === 384, "every town in the state is different");
+  ok(all.every(id => S0.schools[id].cls === "1A" || !S0.schools[id].players), "nobody outside your district is saved with players");
   ok(ids.length === 64 && S0.districts.length === 8 && S0.districts.every(d => d.ids.length === 8), "8 districts of 8 schools");
   ok(new Set(ids.map(id => S0.schools[id].town)).size === 64, "every town is different");
   ok(new Set(ids.map(id => S0.schools[id].mascot)).size === 64, "every mascot is different");
@@ -56,8 +59,9 @@ const fresh = () => { const sb = load(); return { sb, g: sb.__get, F: sb.__fts }
     ok(Object.values(opp).every(ds => new Set(ds).size === 3), "the three non-district games are against three different districts");
     const dhome = {};
     S0.weeks.slice(3).forEach(w => w.games.forEach(gm => { dhome[gm.h] = (dhome[gm.h] || 0) + 1; }));
-    ok(Object.keys(S0.schools).every(id => (dhome[id] || 0) >= 3 && (dhome[id] || 0) <= 4), "three or four district home games each");
-    ok(Object.keys(S0.schools).every(id => (home[id] || 0) >= 3 && (home[id] || 0) <= 7), "between three and seven home games each");
+    const mine = Object.keys(S0.schools).filter(id => S0.schools[id].cls === "1A");
+    ok(mine.every(id => (dhome[id] || 0) >= 3 && (dhome[id] || 0) <= 4), "three or four district home games each");
+    ok(mine.every(id => (home[id] || 0) >= 3 && (home[id] || 0) <= 7), "between three and seven home games each");
   }
 }
 

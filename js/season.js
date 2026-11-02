@@ -1,12 +1,22 @@
-// Friday to Sunday: the season. The state's 1A schools, the schedule, results, district standings,
+// Friday to Sunday: the season. The state's schools, the schedule, results, district standings,
 // the state playoffs, and quick sims of the games nobody's watching.
 "use strict";
 
 /* ---------- The state ---------- */
-// Class 1A has 8 districts of 8 schools. The schools in your district have full rosters, and their
-// games against each other run on the full engine. Everyone else is kept as a summary: ratings, plus
-// the seed that rebuilds the whole school whenever you play them or look at their roster.
+// Six classes (team.js: CLASSES), each with 8 districts of 8 schools. The schools in your district
+// have full rosters, and their games against each other run on the full engine. Everyone else is kept
+// as a summary: ratings, plus the seed that rebuilds the whole school whenever you play them or look at
+// their roster. Your class plays its season week by week; the other classes play theirs on paper when
+// yours is over.
 const DISTRICTS = 8, PER_DISTRICT = 8;
+// School ids: d3s5 is 1A's district 3, school 5 (as before there were classes); 4Ad3s5 is 4A's
+const schoolIdOf = (cls, d, k) => `${cls === "1A" ? "" : cls}d${d}s${k}`;
+// A class's districts: [{ n, ids }]
+function classDistricts(cls) {
+  const out = [];
+  for (let d = 1; d <= DISTRICTS; d++) { const ids = []; for (let k = 1; k <= PER_DISTRICT; k++) ids.push(schoolIdOf(cls, d, k)); out.push({ n: d, ids }); }
+  return out;
+}
 // A school's strength for quick sims: the average rating of its starters on each side, and its coach
 function schoolRating(s) {
   return { off: sideRating(s, "off"), def: sideRating(s, "def"), c: Math.round((s.coach.off + s.coach.def) / 2) };
@@ -19,25 +29,41 @@ function schoolSummary(s) {
   return out;
 }
 const isFull = s => !!(s && s.players);
-// Builds the state: every school, with full rosters only for the schools in district homeD
-function genWorld(seed, homeD) {
-  const g = dice(seed), towns = new Set(), mascots = g.shuffle(MASCOTS), schools = {}, districts = [];
+// One class's schools, added to schools, with full rosters for district fullD. 1A rolls the state's
+// own seed (the state as it was before there were classes); each other class has its own.
+function genClassSchools(seed, cls, towns, schools, fullD) {
+  const g = cls === "1A" ? dice(seed) : dice(hashSeed(`${seed}:${cls}`)), mascots = g.shuffle(MASCOTS);
   for (let d = 1; d <= DISTRICTS; d++) {
     // Every school in a district has its own color family, so district games never clash
-    const ids = [], used = new Set();
+    const used = new Set();
     for (let k = 1; k <= PER_DISTRICT; k++) {
-      const id = `d${d}s${k}`, color = g.pick(SCHOOL_COLORS.filter(c => !used.has(c[2])));
+      const id = schoolIdOf(cls, d, k), color = g.pick(SCHOOL_COLORS.filter(c => !used.has(c[2])));
       used.add(color[2]);
-      const opts = { id, cls: "1A", mascot: mascots[(d - 1) * PER_DISTRICT + k - 1], town: townName(g, towns), color, trad: clamp(Math.round(g.n(45, 18)), 5, 95) };
-      const sseed = g.seed(), s = genSchool(dice(sseed), opts);
-      Object.assign(s, { seed: sseed, district: d, colorFam: color[2] });
-      s.rating = schoolRating(s);
-      schools[id] = d === homeD ? s : schoolSummary(s);
-      ids.push(id);
+      const opts = { id, cls, mascot: mascots[(d - 1) * PER_DISTRICT + k - 1], town: townName(g, towns), color, trad: clamp(Math.round(g.n(45, 18)), 5, 95) };
+      const sseed = g.seed(), sc = genSchool(dice(sseed), opts);
+      Object.assign(sc, { seed: sseed, district: d, colorFam: color[2] });
+      sc.rating = schoolRating(sc);
+      schools[id] = d === fullD ? sc : schoolSummary(sc);
     }
-    districts.push({ n: d, ids });
   }
-  return { schools, districts };
+}
+// Builds the state: every school in every class, with full rosters only for 1A's district homeD
+function genWorld(seed, homeD) {
+  const towns = new Set(), schools = {};
+  CLASSES.forEach(cls => genClassSchools(seed, cls, towns, schools, cls === "1A" ? homeD : 0));
+  return { schools, districts: classDistricts("1A") };
+}
+// A state from before there were classes gets the other five, as they'd have been in its first year,
+// then rebuilt on paper for this one
+function addClasses(se) {
+  if (se.schools[schoolIdOf("2A", 1, 1)]) return;
+  const towns = new Set(Object.values(se.schools).map(x => x.town)), keep = SEASON;
+  CLASSES.forEach(cls => { if (cls !== "1A") genClassSchools(se.world, cls, towns, se.schools, 0); });
+  if (se.year > se.year0) {
+    SEASON = se;
+    try { for (const id in se.schools) { const x = se.schools[id]; if (x.cls !== "1A" && !isFull(x)) x.rating = schoolRating(rosterAt(x, se.year)); } }
+    finally { SEASON = keep; }
+  }
 }
 // Rebuilds a whole school from its summary: the same seed builds the same school, as it stands at the
 // start of this season (years.js). weeks: how many weeks of practice it has had this season, camp
@@ -159,7 +185,9 @@ function nextSeason() {
   const old = SEASON;
   if (!old || old.phase !== "offseason" || !old.myId) return null;
   keepCareerStats();
-  const champ = old.champion, history = (old.history || []).concat(champ ? [{ year: old.year, id: champ, name: nameOf(champ) }] : []);
+  // Every class's state champion goes into the history
+  const champs = old.champs || (old.champion ? { [old.cls || "1A"]: old.champion } : {});
+  const history = (old.history || []).concat(CLASSES.filter(c => champs[c]).map(c => ({ year: old.year, cls: c, id: champs[c], name: nameOf(champs[c]) })));
   // Your summer program (program.js), before the year turns over for everyone
   const me = mySchool(), before = {};
   me.players.forEach(p => { before[p.id] = ovr(p, p.pos); });
@@ -327,12 +355,47 @@ function eliminatedIn(id) {
   return 0;
 }
 
+/* ---------- The whole state's results ---------- */
+// Each school's season, kept when it's over: { w, l (with the playoffs), rw, rl (the regular season),
+// pf, pa, pw (playoff wins), po (made the playoffs), dt (won its district), ch (won the state) }
+function classResults(ds) {
+  const out = {};
+  ds.forEach(dist => standings(dist.n).forEach(r => {
+    const f = fullRecord(r.id);
+    out[r.id] = { w: f.w, l: f.l, rw: r.w, rl: r.l, pf: r.pf, pa: r.pa, pw: playoffWins(r.id), po: inPlayoffs(r.id) ? 1 : 0, dt: r.place === 1 ? 1 : 0, ch: SEASON.champion === r.id ? 1 : 0 };
+  }));
+  return out;
+}
+// Another class's whole season, quick-simmed on paper with its own schedule: { results, champion }
+function playClassOnPaper(cls) {
+  const keep = { districts: SEASON.districts, weeks: SEASON.weeks, bracket: SEASON.bracket, champion: SEASON.champion, phase: SEASON.phase, week: SEASON.week };
+  try {
+    const ds = classDistricts(cls);
+    Object.assign(SEASON, { districts: ds, weeks: makeSchedule(ds, dice(hashSeed(`${SEASON.seed}:${cls}:schedule`))), bracket: null, champion: null });
+    SEASON.weeks.forEach(w => w.games.forEach(quickGame));
+    makeBracket();
+    for (let guard = 0; guard < 8 && SEASON.phase !== "over"; guard++) { SEASON.bracket.rounds[SEASON.bracket.rounds.length - 1].forEach(gm => { if (!played(gm)) quickGame(gm); }); nextRound(); }
+    return { results: classResults(ds), champion: SEASON.champion };
+  } finally { Object.assign(SEASON, keep); }
+}
+// When your season is over, the other classes play theirs, and every school's season is kept
+// (SEASON.results, and each class's champion in SEASON.champs)
+function finishState() {
+  if (SEASON.results) return SEASON.results;
+  const res = classResults(SEASON.districts), champs = { [SEASON.cls]: SEASON.champion };
+  CLASSES.forEach(c => { if (c === SEASON.cls) return; const r = playClassOnPaper(c); Object.assign(res, r.results); champs[c] = r.champion; });
+  SEASON.results = res; SEASON.champs = champs;
+  return res;
+}
+
 /* ---------- Quick sims ---------- */
 // Fit to the full engine (tests/season.js checks they agree): expected points from the offense's
 // starters against the defense's, home field and the coaches. The points come from about 14 drives,
 // each one ending in a touchdown now and then and a field goal once in a while, so the scores look
-// like football scores.
-const QUICK = { base: 9.56, off: 1.196, def: -.961, home: 2, coach: .147, drives: 14, fg: .12,
+// like football scores. Refit for the six classes (Nov 2026): the margin moves 2.16 points per
+// point of starters, as before, but scoring barely rises with the level of play (about 18 points a
+// team at 1A and 20 at 6A in the full engine), so offense and defense count nearly the same.
+const QUICK = { base: 13.48, off: 1.1235, def: -1.0335, home: 2, coach: .147, drives: 14, fg: .12,
   // A touchdown and its try: the kick is good about two times in three, and plenty of small schools go for two
   td: [[7, .52], [6, .375], [8, .105]] };
 const TD_AVG = QUICK.td.reduce((s, [v, p]) => s + v * p, 0);
@@ -573,7 +636,7 @@ function finishWeek() {
   else if (n > REGULAR_WEEKS) nextRound();
   writeNews(n);
   // A finished season goes into your career (career.js)
-  if (SEASON.phase === "over") { seasonEndXP(n); recordCareerSeason(); }
+  if (SEASON.phase === "over") { finishState(); seasonEndXP(n); recordCareerSeason(); }
   return n;
 }
 // Sims everything up to the week before stopAt (the end of the season by default), your games too,
@@ -615,6 +678,6 @@ function writeNews(n) {
     const r = recordOf(id, n);
     if (id !== me && r.l === 0 && r.w >= 5) lines.push({ p: 1, t: `${nameOf(id)} are still unbeaten at ${recText(r)}.` });
   });
-  if (n === LAST_WEEK && SEASON.champion) lines.push({ p: 10, t: `${nameOf(SEASON.champion)} are the 1A state champions.` });
+  if (n === LAST_WEEK && SEASON.champion) lines.push({ p: 10, t: `${nameOf(SEASON.champion)} are the ${SEASON.cls} state champions.` });
   SEASON.news[n] = lines.sort((a, b) => b.p - a.p).slice(0, 5).map(x => x.t);
 }

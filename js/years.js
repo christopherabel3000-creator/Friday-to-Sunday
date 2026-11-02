@@ -9,9 +9,13 @@
 // rebuilt exactly in a later year, even after its tradition has changed.
 // Your youth program (program.js: youth camp builds it) and the coach's Program building bring out
 // more freshmen, and better ones.
+// Bigger classes bring out more freshmen in proportion to their rosters (classScale), and enrollment
+// counts against the middle of the class's range.
 function classParams(s, year) {
   const g = dice(hashSeed(`${s.seed}:${year}:class`)), y = s.youth || 0, pb = coachPbd(s.coach) - 42;
-  const n = clamp(Math.round(4.5 + (s.enroll || 135) * .025 + ((s.trad || 50) - 50) * .03 + y * .25 + pb * .04 + g.n(0, 1.2)), 4, 13);
+  const cls = s.cls || "1A", k = classScale(cls), [lo, hi] = CLASS_INFO[cls].enroll, mid = (lo + hi) / 2;
+  const enroll = cls === "1A" ? (s.enroll || 135) : 135 + ((s.enroll || mid) - mid) * 135 / mid;
+  const n = clamp(Math.round(k * (4.5 + enroll * .025 + ((s.trad || 50) - 50) * .03 + y * .25 + pb * .04 + g.n(0, 1.2))), Math.round(4 * k), Math.round(13 * k));
   const lv = CLASS_LEVEL[s.cls || "1A"] + Math.round(((s.trad || 50) - 50) * .06 + y * .8 + pb * .03 + g.n(0, 2));
   return { n, lv };
 }
@@ -20,10 +24,15 @@ const classOf = (s, year) => (s.classes && s.classes[year]) || classParams(s, ye
 // fast skill player and a defensive back. A passer comes out every other year and a kicker every
 // other year too, so a roster almost always has a quarterback and a kicker.
 const CLASS_POOL = { lineman: 2, speed: 1, runner: 3, bigath: 3, backer: 3 };
+// Bigger classes get more of each: a passer and a kicker every other year per 1A-sized share.
 function classArchs(s, year, n, g) {
-  const out = ["lineman", "lineman", "speed", "dback"];
-  if ((year + s.seed) % 2 === 0) out.push(g.f() < .5 ? "passer" : "dual");
-  if ((year + Math.floor(s.seed / 2)) % 2 === 0) out.push("kicker");
+  const k = classScale(s.cls || "1A"), out = [];
+  for (let i = 0; i < Math.round(2 * k); i++) out.push("lineman");
+  for (let i = 0; i < Math.round(k); i++) out.push("speed");
+  for (let i = 0; i < Math.round(k); i++) out.push("dback");
+  const every = (half, odd) => Math.floor(half) + (odd && half % 1 >= .25 ? 1 : 0);
+  for (let i = every(k / 2, (year + s.seed) % 2 === 0); i > 0; i--) out.push(g.f() < .5 ? "passer" : "dual");
+  for (let i = Math.min(1, every(k / 2, (year + Math.floor(s.seed / 2)) % 2 === 0)); i > 0; i--) out.push("kicker");
   while (out.length < n) out.push(g.w(CLASS_POOL));
   return out;
 }
@@ -145,13 +154,13 @@ function newTradition(s, w, l, poWins, champ) {
 // field (not starting or first off the bench anywhere) quit, 3 percent more for each player past 32
 const BIG_ROSTER = 32;
 function benchQuits(s, year) {
-  const n = s.players.length, plays = new Set();
-  if (n <= BIG_ROSTER) return [];
+  const n = s.players.length, plays = new Set(), big = Math.round(BIG_ROSTER * classScale(s.cls || "1A"));
+  if (n <= big) return [];
   for (const pos in s.depth) (s.depth[pos] || []).slice(0, (STARTERS[pos] || 1) + 1).forEach(id => plays.add(id));
   const out = [];
   s.players = s.players.filter(p => {
     if (plays.has(p.id) || STAY_ARCHS.has(p.arch) || p.yr >= 12) return true;
-    if (seededRandom(hashSeed(`${s.seed}:${p.id}:${year}:bench`))() < .03 * (n - BIG_ROSTER)) { out.push(p); return false; }
+    if (seededRandom(hashSeed(`${s.seed}:${p.id}:${year}:bench`))() < .03 * (n - big)) { out.push(p); return false; }
     return true;
   });
   return out;
@@ -192,12 +201,12 @@ function playoffWins(id) {
 // is set, then your district's schools graduate and grow for real and everyone else is rebuilt on
 // paper for the new year (their quick-sim ratings come from that). Returns your school's report.
 function advanceState() {
-  const year = SEASON.year, next = year + 1;
+  const year = SEASON.year, next = year + 1, res = finishState();
   let mine = null;
   for (const id in SEASON.schools) {
-    const s = SEASON.schools[id], r = fullRecord(id);
+    const s = SEASON.schools[id], r = res[id] || { w: 0, l: 0, pw: 0, ch: 0 };
     if (s.trad0 == null) s.trad0 = s.trad;
-    s.trad = newTradition(s, r.w, r.l, playoffWins(id), SEASON.champion === id);
+    s.trad = newTradition(s, r.w, r.l, r.pw, !!r.ch);
     s.classes = s.classes || {};
     for (const k in s.classes) if (+k < next - 3) delete s.classes[k];
     s.classes[next] = classParams(s, next);

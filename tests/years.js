@@ -78,7 +78,8 @@ const nextYear = g => { g("simSeason()"); g(`SEASON.phase = "offseason"`); retur
   const report = g("nextSeason()");
   ok(g("SEASON.year") === 2027 && g("SEASON.seed") !== oldSeed && g("SEASON.world") === 99 && g("SEASON.phase") === "preseason" && g("SEASON.camp") === 1, "the next season: 2027, a new seed, camp first");
   ok(g("SEASON.myId") === me && g("SEASON.weeks.length") === 10 && g("SEASON.weeks.every(w => w.games.every(gm => gm.hs === null))") && g("SEASON.week") === 1, "the same school, and a new schedule nobody has played");
-  ok(JSON.stringify(g("SEASON.history")) === JSON.stringify([{ year: 2026, id: champ, name: g(`nameOf("${champ}")`) }]), "the state champion goes in the history");
+  const hist = g("SEASON.history");
+  ok(hist.length === 6 && JSON.stringify(hist[0]) === JSON.stringify({ year: 2026, cls: "1A", id: champ, name: g(`nameOf("${champ}")`) }) && hist.map(h => h.cls).join() === "1A,2A,3A,4A,5A,6A" && hist.every(h => g(`SEASON.schools["${h.id}"].cls`) === h.cls), "every class's state champion goes in the history");
   const now = g("mySchool().players");
   ok(seniors.every(id => !now.some(p => p.id === id)) && report.grads.length === seniors.length, `the seniors graduated (${seniors.length})`);
   const back = roster.filter(([id, yr]) => yr < 12 && now.some(p => p.id === id));
@@ -105,7 +106,7 @@ const nextYear = g => { g("simSeason()"); g(`SEASON.phase = "offseason"`); retur
 {
   const { g } = fresh();
   start(g, 31337);
-  const level = () => g(`(() => { const f = [], p = []; for (const id in SEASON.schools) { const s = SEASON.schools[id]; (isFull(s) ? f : p).push((s.rating.off + s.rating.def) / 2); } const a = x => x.reduce((s, v) => s + v, 0) / x.length; return [a(f), a(p)]; })()`);
+  const level = () => g(`(() => { const f = [], p = []; for (const id in SEASON.schools) { const s = SEASON.schools[id]; if (s.cls === "1A") (isFull(s) ? f : p).push((s.rating.off + s.rating.def) / 2); } const a = x => x.reduce((s, v) => s + v, 0) / x.length; return [a(f), a(p)]; })()`);
   const y0 = level(), lv = [];
   for (let y = 0; y < 5; y++) { nextYear(g); lv.push(level()); }
   const late = lv.slice(2), avg = i => late.reduce((s, x) => s + x[i], 0) / late.length;

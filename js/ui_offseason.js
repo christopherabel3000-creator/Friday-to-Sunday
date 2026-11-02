@@ -54,7 +54,7 @@ function vOffseason() {
       <p>${CAREER.xp || 0} XP to spend on ratings and perks.</p>
       <button class="btn ghost" data-a="coach">Spend XP</button>
     </section>
-    ${champ ? `<p class="muted">${champ === s.id ? `Your team won the ${SEASON.year} Class 1A state championship.` : `${SEASON.year} Class 1A state champions: the ${esc(nameOf(champ))}.`}</p>` : ""}
+    ${champ ? `<p class="muted">${champ === s.id ? `Your team won the ${SEASON.year} Class ${SEASON.cls} state championship.` : `${SEASON.year} Class ${SEASON.cls} state champions: the ${esc(nameOf(champ))}.`}</p>` : ""}
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>
     <button class="btn ghost" data-a="summary">${SEASON.year} season summary</button>`;
 }

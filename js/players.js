@@ -30,10 +30,12 @@ const POS_INFO = {
   P: { name: "punter", group: "Punters", skills: ["leg", "kac"], w: { leg: .65, kac: .35 } }
 };
 const YEAR_NAMES = { 9: "freshman", 10: "sophomore", 11: "junior", 12: "senior" };
-// A player's overall rating at a position
+// A player's overall rating at a position (the weights as arrays, made once, since this runs a lot)
+const POS_W = {};
+for (const pos in POS_INFO) POS_W[pos] = [Object.keys(POS_INFO[pos].w), Object.values(POS_INFO[pos].w)];
 function ovr(p, pos) {
-  const w = POS_INFO[pos].w; let v = 0;
-  for (const a in w) v += w[a] * p.r[a];
+  const [ks, ws] = POS_W[pos], r = p.r; let v = 0;
+  for (let i = 0; i < ks.length; i++) v += ws[i] * r[ks[i]];
   return Math.round(v);
 }
 // Kick and punt returners: speed and moves, and hanging on to the ball
@@ -82,7 +84,7 @@ function genPlayer(g, opts) {
 // side of the ball (or kicking for a kicker)
 function setPositions(p) {
   const pref = ARCHETYPES[p.arch].pref, fit = pos => ovr(p, pos) + (pref[pos] || -6);
-  const best = list => list.slice().sort((a, b) => fit(b) - fit(a))[0];
+  const best = list => { const f = {}; list.forEach(pos => { f[pos] = fit(pos); }); return list.slice().sort((a, b) => f[b] - f[a])[0]; };
   if (p.arch === "kicker") { p.pos = fit("K") >= fit("P") ? "K" : "P"; p.pos2 = p.pos === "K" ? "P" : "K"; return; }
   const o = best(OFF_POS), d = best(DEF_POS);
   if (fit(o) >= fit(d)) { p.pos = o; p.pos2 = d; } else { p.pos = d; p.pos2 = o; }
@@ -97,11 +99,16 @@ function jerseyFor(g, pos, used) {
   for (let n = 1; n < 100; n++) if (!used.has(n)) { used.add(n); return n; }
   return 0;
 }
-function genRoster(g, schoolId, level) {
-  const lasts = g.shuffle(LAST_NAMES), archs = [], players = [];
-  const recipe = ROSTER_1A.map(([a, n]) => [a, n]);
-  // Not every small school has a full roster: drop a few players at random
-  for (let drop = g.i(0, 4); drop > 0; drop--) { const k = g.pick(recipe.filter(x => x[1] > (x[0] === "lineman" ? 8 : 1) && !["kicker", "passer", "dual"].includes(x[0]))); if (k) k[1]--; }
+// The roster recipe for a class: 1A's, scaled up to the class's roster size. Kickers top out at two.
+function rosterRecipe(cls) {
+  const k = classScale(cls || "1A");
+  return ROSTER_1A.map(([a, n]) => [a, a === "kicker" ? Math.min(2, Math.round(n * k)) : Math.round(n * k)]);
+}
+function genRoster(g, schoolId, level, cls) {
+  const lasts = g.shuffle(LAST_NAMES), archs = [], players = [], k = classScale(cls || "1A");
+  const recipe = rosterRecipe(cls);
+  // Not every school has a full roster: drop a few players at random
+  for (let drop = g.i(0, Math.round(4 * k)); drop > 0; drop--) { const x = g.pick(recipe.filter(r => r[1] > (r[0] === "lineman" ? Math.round(8 * k) : 1) && !["kicker", "passer", "dual"].includes(r[0]))); if (x) x[1]--; }
   recipe.forEach(([arch, n]) => { for (let i = 0; i < n; i++) archs.push(arch); });
   const used = new Set();
   archs.forEach((arch, i) => {

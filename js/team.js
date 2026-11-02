@@ -2,8 +2,23 @@
 "use strict";
 
 /* ---------- Schools ---------- */
-// The average ability of a junior at a school of each class (more classes come with later milestones)
-const CLASS_LEVEL = { "1A": 37 };
+// The state's six classes, smallest to largest. Each class has its enrollment range, its usual roster
+// size, and level: the average ability of a junior there. Bigger schools have more players to choose
+// from, so their starters are better on top of the higher level.
+const CLASSES = ["1A", "2A", "3A", "4A", "5A", "6A"];
+const CLASS_INFO = {
+  "1A": { enroll: [80, 190], roster: 30, level: 37 },
+  "2A": { enroll: [190, 400], roster: 38, level: 38 },
+  "3A": { enroll: [400, 750], roster: 46, level: 40 },
+  "4A": { enroll: [750, 1200], roster: 56, level: 42 },
+  "5A": { enroll: [1200, 1900], roster: 68, level: 44 },
+  "6A": { enroll: [1900, 3200], roster: 85, level: 46 }
+};
+const CLASS_LEVEL = {};
+CLASSES.forEach(c => { CLASS_LEVEL[c] = CLASS_INFO[c].level; });
+// How many times a 1A school's numbers a class's rosters and freshman classes are
+const classScale = cls => (CLASS_INFO[cls] || CLASS_INFO["1A"]).roster / 30;
+const classIndex = cls => Math.max(0, CLASSES.indexOf(cls));
 function townName(g, taken) {
   for (let i = 0; i < 50; i++) {
     const t = g.f() < .55 ? g.pick(TOWN_FIRST) + g.pick(TOWN_LAST) : g.pick(TOWNS);
@@ -29,7 +44,7 @@ function genSchool(g, opts) {
   const col = opts.color || g.pick(SCHOOL_COLORS.filter(c => !opts.colorsTaken || !opts.colorsTaken.has(c[2])));
   if (opts.colorsTaken) opts.colorsTaken.add(col[2]);
   const s = { id, town, mascot: opts.mascot, cls: opts.cls, level, trad, color: col[0], colorName: col[1],
-    enroll: g.i(80, 190), coach: genCoach(g, opts.cls), players: genRoster(g, id, level) };
+    enroll: g.i(...CLASS_INFO[opts.cls].enroll), coach: genCoach(g, opts.cls), players: genRoster(g, id, level, opts.cls) };
   s.abbr = schoolAbbr(town, opts.otherAbbr);
   s.off = s.coach.off_style; s.def = s.coach.def_style;
   s.depth = autoDepth(s);
@@ -65,21 +80,35 @@ const slotGroup = pos => SLOT_GROUPS[pos] || POS_INFO[pos].group;
 // A player's rating for a depth chart slot
 const slotRating = (p, pos) => pos === "KR" || pos === "PR" ? retRating(p) : ovr(p, pos);
 // Builds the whole depth chart from the ratings. On each side of the ball, the best fits are placed
-// first, and a player starts at only one position per side (many start on both sides).
-function autoDepth(team) {
-  const ps = team.players.filter(p => !p.inj), d = {};
+// first, and a player starts at only one position per side. A player who would start on both sides
+// then counts the two-way gap less on the side that isn't his main position's, so he starts both ways
+// only when he's that much better than whoever would play just that side. The gap is 5 points at 1A
+// and grows with the roster, so most small-school starters still go both ways and almost nobody does
+// at the biggest schools.
+const TWO_WAY_GAP = 5;
+const posSide = pos => OFF_POS.includes(pos) ? "off" : DEF_POS.includes(pos) ? "def" : "";
+function depthSide(ps, side, d, pen) {
+  side.forEach(pos => { d[pos] = []; });
+  const taken = new Set(), cands = [];
   const bonus = (p, pos) => p.pos === pos ? 4 : p.pos2 === pos ? 2 : -2;
-  [OFF_POS, DEF_POS].forEach(side => {
-    side.forEach(pos => { d[pos] = []; });
-    const taken = new Set(), cands = [];
-    // The quarterback comes first: the best one plays there, even if he'd also be a good tight end
-    if (side === OFF_POS) { const qv = p => ovr(p, "QB") + (p.pos === "QB" ? 1 : 0), qb = ps.slice().sort((a, b) => qv(b) - qv(a))[0]; if (qb) { d.QB.push(qb.id); taken.add(qb.id); } }
-    ps.forEach(p => side.forEach(pos => cands.push({ p, pos, v: ovr(p, pos) + bonus(p, pos) })));
-    cands.sort((a, b) => b.v - a.v);
-    cands.forEach(c => { if (!taken.has(c.p.id) && d[c.pos].length < DEPTH_SIZE[c.pos]) { d[c.pos].push(c.p.id); taken.add(c.p.id); } });
-    // Anyone left over backs up wherever he fits best (a depth chart never runs dry)
-    side.forEach(pos => { if (d[pos].length < DEPTH_SIZE[pos]) ps.filter(p => !d[pos].includes(p.id)).sort((a, b) => ovr(b, pos) - ovr(a, pos)).slice(0, DEPTH_SIZE[pos] - d[pos].length).forEach(p => d[pos].push(p.id)); });
-  });
+  // The quarterback comes first: the best one plays there, even if he'd also be a good tight end
+  if (side === OFF_POS) { const qv = p => ovr(p, "QB") + (p.pos === "QB" ? 1 : 0), qb = ps.slice().sort((a, b) => qv(b) - qv(a))[0]; if (qb) { d.QB.push(qb.id); taken.add(qb.id); } }
+  ps.forEach(p => side.forEach(pos => cands.push({ p, pos, v: ovr(p, pos) + bonus(p, pos) - pen(p) })));
+  cands.sort((a, b) => b.v - a.v);
+  cands.forEach(c => { if (!taken.has(c.p.id) && d[c.pos].length < DEPTH_SIZE[c.pos]) { d[c.pos].push(c.p.id); taken.add(c.p.id); } });
+  // Anyone left over backs up wherever he fits best (a depth chart never runs dry)
+  side.forEach(pos => { if (d[pos].length < DEPTH_SIZE[pos]) { const o = new Map(ps.map(p => [p, ovr(p, pos)])); ps.filter(p => !d[pos].includes(p.id)).sort((a, b) => o.get(b) - o.get(a)).slice(0, DEPTH_SIZE[pos] - d[pos].length).forEach(p => d[pos].push(p.id)); } });
+}
+function autoDepth(team) {
+  const ps = team.players.filter(p => !p.inj), d = {}, none = () => 0;
+  depthSide(ps, OFF_POS, d, none); depthSide(ps, DEF_POS, d, none);
+  const starts = side => { const out = new Set(); side.forEach(pos => d[pos].slice(0, STARTERS[pos]).forEach(id => out.add(id))); return out; };
+  const so = starts(OFF_POS), sd = starts(DEF_POS), two = new Set([...so].filter(id => sd.has(id)));
+  if (two.size) {
+    const gap = TWO_WAY_GAP * classScale(team.cls || "1A");
+    depthSide(ps, OFF_POS, d, p => two.has(p.id) && posSide(p.pos) === "def" ? gap : 0);
+    depthSide(ps, DEF_POS, d, p => two.has(p.id) && posSide(p.pos) !== "def" ? gap : 0);
+  }
   ["K", "P", "KR", "PR"].forEach(pos => {
     d[pos] = ps.slice().sort((a, b) => slotRating(b, pos) + (b.pos === pos ? 4 : 0) - slotRating(a, pos) - (a.pos === pos ? 4 : 0))
       // The starting quarterback doesn't return kicks

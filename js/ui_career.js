@@ -151,11 +151,11 @@ function vSummary() {
   record.push(`${x.finish}.`, `Scored ${numText(x.pf)} points and allowed ${numText(x.pa)}, about ${Math.round(x.pf / n)} to ${Math.round(x.pa / n)} a game.`);
   return `
     <div class="masthead" style="--team:${s.color}">
-      <p class="eyebrow">Season summary · Class 1A, District ${SEASON.district}</p>
+      <p class="eyebrow">Season summary · Class ${SEASON.cls}, District ${SEASON.district}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(me))}</h2>
       <p class="muted">${esc(`${recText(x.all)}. ${x.finish}.`)}</p>
     </div>
-    ${x.champ ? `<section class="panel teamcard" style="--team:${s.color}"><p class="eyebrow">Class 1A state champions</p><h3>You won it all</h3></section>` : ""}
+    ${x.champ ? `<section class="panel teamcard" style="--team:${s.color}"><p class="eyebrow">Class ${SEASON.cls} state champions</p><h3>You won it all</h3></section>` : ""}
     <section class="panel"><h3>The record</h3>${list(record)}</section>
     ${memorable.length ? `<section class="panel"><h3>Games to remember</h3>${list(memorable)}</section>` : ""}
     ${ld.length ? `<section class="panel"><h3>Leaders</h3>${list(ld)}</section>` : ""}

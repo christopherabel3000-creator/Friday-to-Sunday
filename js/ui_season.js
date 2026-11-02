@@ -85,7 +85,7 @@ function vPick() {
   };
   return `
     <div class="masthead">
-      <p class="eyebrow">${c && c.last ? `${esc(coachFullName(c))} · ` : ""}Class 1A, District ${d}</p>
+      <p class="eyebrow">${c && c.last ? `${esc(coachFullName(c))} · ` : ""}Class ${SEASON.cls}, District ${d}</p>
       <h2 data-focus tabindex="-1">Pick your school</h2>
       <p class="muted">Every school in District ${d} needs a head coach. They're listed from the most talent to the least. Tradition is how the program has done over the years.${mine ? ` You bring your schemes, the ${OFF_STYLES[off].name} offense and the ${DEF_STYLES[def].name} defense. Each team still knows its last coach's playbook, and learns yours in practice.` : ""}</p>
     </div>
@@ -124,7 +124,7 @@ function vSeason() {
   else if (SEASON.phase === "over") {
     const ch = SEASON.champion, mine = ch === id, fin = SEASON.bracket.rounds[PLAYOFF_ROUNDS.length - 1][0];
     main = `<section class="panel final handoff" style="--team:${SEASON.schools[ch].color}">
-      <p class="eyebrow">Class 1A state champions</p>
+      <p class="eyebrow">Class ${SEASON.cls} state champions</p>
       <h3>${mine ? "Your team won it all" : esc(nameOf(ch))}</h3>
       <p>${mine ? `The ${esc(me.mascot)} beat the ${esc(nameOf(loserOf(fin)))} ${Math.max(fin.hs, fin.as)}-${Math.min(fin.hs, fin.as)} in the final.` : `They beat the ${esc(nameOf(loserOf(fin)))} ${Math.max(fin.hs, fin.as)}-${Math.min(fin.hs, fin.as)} in the final.`}</p>
       <button class="btn" data-a="summary">Season summary</button>
@@ -218,7 +218,7 @@ function vStandings() {
   const upTo = Math.min(weeksDone(), REGULAR_WEEKS);
   return `
     <div class="masthead">
-      <p class="eyebrow">Class 1A${upTo ? ` · Through ${weekName(upTo).toLowerCase()}` : ""}</p>
+      <p class="eyebrow">Class ${SEASON.cls}${upTo ? ` · Through ${weekName(upTo).toLowerCase()}` : ""}</p>
       <h2 data-focus tabindex="-1">Standings</h2>
       <p class="muted">The top two in each district make the state playoffs. Ties go to head-to-head, then the overall record, then point differential in district games, up to 14 points a game.</p>
     </div>
@@ -317,14 +317,18 @@ function vBracket() {
   const line = gm => played(gm) ? scoreText(gm) : gm.neutral ? `${team(gm.h)} vs. ${team(gm.a)}` : `${team(gm.a)} at ${team(gm.h)}`;
   return `
     <div class="masthead">
-      <p class="eyebrow">Class 1A state playoffs</p>
+      <p class="eyebrow">Class ${SEASON.cls} state playoffs</p>
       <h2 data-focus tabindex="-1">Playoff bracket</h2>
       <p class="muted">District champions host the first round. After that the better record hosts, and the state championship is at a neutral site.${SEASON.champion ? ` Champions: the ${esc(nameOf(SEASON.champion))}.` : ""}</p>
     </div>
     ${b.rounds.map((round, r) => `<section class="panel"><h3>${PLAYOFF_ROUNDS[r]}</h3><ul class="hlist">${round.map(gm => `<li${gameHas(gm, me) ? ' class="me"' : ""}>${esc(line(gm))}</li>`).join("")}</ul></section>`).join("")}
-    ${(SEASON.history || []).length ? `<section class="panel"><h3>Past champions</h3><ul class="hlist">${SEASON.history.slice().reverse().map(x => `<li>${x.year}: ${esc(x.name)}</li>`).join("")}</ul></section>` : ""}
+    ${SEASON.champs ? `<section class="panel"><h3>${SEASON.year} champions in every class</h3><ul class="hlist">${CLASSES.filter(c => SEASON.champs[c]).map(c => `<li>${c}: ${esc(nameOf(SEASON.champs[c]))}</li>`).join("")}</ul></section>` : ""}
+    ${pastChamps().length ? `<section class="panel"><h3>Past ${SEASON.cls} champions</h3><ul class="hlist">${pastChamps().slice().reverse().map(x => `<li>${x.year}: ${esc(x.name)}</li>`).join("")}</ul></section>` : ""}
     <button class="btn ghost" data-a="back">Back</button>`;
 }
+
+// Past state champions in your class (entries from before there were classes are 1A's)
+const pastChamps = () => (SEASON.history || []).filter(x => (x.cls || "1A") === SEASON.cls);
 
 /* ---------- Simming the season ---------- */
 // A long sim runs a week at a time, so the screen can show how far along it is

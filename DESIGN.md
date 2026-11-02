@@ -142,7 +142,7 @@ Not in this milestone: contracts and buyouts, schools making counteroffers (that
 
 Build steps, each one playable and tested before the next:
 
-1. The whole state, 1A to 6A: enrollment, rosters, freshman classes and talent by class, two-way play, districts and playoffs for every class, and the quick sim checked at every class.
+1. **Done:** the whole state, 1A to 6A: enrollment, rosters, freshman classes and talent by class, two-way play, districts and playoffs for every class, and the quick sim checked at every class.
 2. Expectations, the season grade and reputation.
 3. Job security, the athletic director's review, the hot seat and firing.
 4. Computer coaches' careers and the coaching carousel.
@@ -178,6 +178,16 @@ Milestone 3a is done when:
 - Your district plays on the full engine and keeps full rosters. The other 376 schools stay on paper, rebuilt from their seeds and their last four classes. When you take a job, the new school's district is rebuilt in full and your old district goes back to paper.
 - The quick sim was fit from 1A games. It gets checked against full-engine games at every class and refit if the bigger classes don't match.
 - To measure first: rebuilding all six classes on paper at the turn of the year (about 4 ms a school now, more for 85-player rosters), and the save with a 6A district kept in full, which could be up to three times today's. If either is too much, the other schools in your district can be rebuilt from paper when they're needed instead of being saved.
+
+### How it's built (step 1)
+
+- Each class has an enrollment range, a usual roster (30, 38, 46, 56, 68 and 85) and a level, the average ability of a junior there (37, 38, 40, 42, 44 and 46). Bigger rosters let the best players start, so starters land about 42, 45, 48, 51.5, 54.5 and 57.5 after five years, measured over a whole state. Coaches start a little better at bigger schools (a typical 1A coach is 42, a 6A coach 52), and bigger schools' coaches throw a little more.
+- A class's roster, its freshman classes and its roster limit (32 at 1A, past which bench players quit) are 1A's, scaled by its roster size. A class's freshman count uses enrollment against the middle of its range. 1A schools are built exactly as before, roll for roll, so older states rebuild the same.
+- Two-way play: the depth chart is set once with no penalty, and then again with each player who started on both sides counting the gap less on the side that isn't his main position's. The gap is 5 points at 1A, scaled by roster size (about 14 at 6A), since 5 points alone left four or five two-way starters at 6A. Brand-new schools average 6 two-way starters at 1A (7.4 before this change) and 2.4 at 6A, with offense and defense even at every class.
+- School ids: 1A keeps d3s5; other classes add the class, as in 4Ad3s5. 1A rolls the state's own seed and every other class its own, so a save from before classes gets exactly the classes a new state with its seed would have, rebuilt on paper for its year.
+- Your class plays its season week by week as before. When it's over, each other class plays its season on paper: its own schedule, quick sims, the same standings, tiebreakers and bracket. Every school's season is kept (record, playoff wins, district title, state title) for tradition and, in later steps, expectations and grades, and every class's champion goes into the history.
+- The quick sim was refit from full-engine games at 1A, 3A and 6A. The margin still moves 2.16 points per point of starters, but scoring barely rises with the level of play (about 18 to 19 points a team at 1A and 20 at 6A), so expected points are 13.48 + 1.1235 × offense − 1.0335 × defense, plus home field and coaching as before.
+- Speed, in a desktop browser: a new state of 384 schools takes about half a second, and each new year (rebuilding every school on paper) about 1.1 seconds. The save is about 400 KB at 1A, up from 260.
 
 ### Expectations
 
