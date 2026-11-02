@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 and 2 are done: a career at a 1A school that goes on season after season, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, and the offseason program. Next is Milestone 3a, the high school job market. Its design is below, with a few open questions left before it's built.
+Status: Milestones 1 and 2 are done: a career at a 1A school that goes on season after season, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, and the offseason program. Next is Milestone 3a, the high school job market. Its design is done, below.
 
 ## The pitch
 
@@ -201,7 +201,7 @@ The grade in words: under −3 far below expectations, −3 to −1 below, −1 
 
 - 0 to 100, shown as a number and in words: under 25 an unknown, 25 to 39 a rising name, 40 to 54 a respected coach, 55 to 69 a proven winner, 70 to 84 one of the state's best, and 85 and up a legend.
 - A new coach starts at 20.
-- Each season reputation moves by 3 times the season grade, times the class's stage: 1A 1.0, 2A 1.15, 3A 1.3, 4A 1.45, 5A 1.6 and 6A 1.75. A bigger class is a bigger stage, so the same season builds more reputation there.
+- Each season reputation moves by 3 times the season grade, times the class's stage: 1A 1.0, 2A 1.15, 3A 1.3, 4A 1.45, 5A 1.6 and 6A 1.75. A bigger class is a bigger stage, so the same season builds more reputation there. A bad season costs a little more at a bigger class too, but only half as much more: a grade below zero uses half the stage's extra (1A 1.0, 2A 1.075, 3A 1.15, 4A 1.225, 5A 1.3 and 6A 1.375).
 - No fading with time. A coach who keeps meeting expectations holds steady. Reputation only falls when seasons fall short, so a school that's happy with 6-4 from a team that should go 5-5 keeps its coach, and his reputation doesn't slip.
 - Your coach's page shows reputation, this season's change and why.
 
@@ -209,7 +209,7 @@ The grade in words: under −3 far below expectations, −3 to −1 below, −1 
 
 - Job security runs from 0 to 100, and a new hire starts at 60. Each season it moves by 10 times the season grade. A grade below zero counts 1 + (tradition − 50) / 100 times as much, so a proud program (1.4 at a tradition of 90) is far less patient than a losing one (0.6 at 10).
 - At the year-end review, the athletic director tells you where you stand: 70 and up, your job is safe; 45 to 69, the AD expects improvement; 25 to 44, you're on the hot seat; under 25, you're fired.
-- Two full years: nobody is fired after his first season. After his second, a coach is fired if both seasons were below expectations (graded under −1). From the third season on, job security decides.
+- Two full years: nobody is fired after his first season. After his second, a coach is fired if both seasons were a win short of expectations or worse (graded −1 or lower). From the third season on, job security decides.
 - Firing happens only at the year-end review. There are no warnings during the season.
 - Computer coaches follow the same rules.
 
@@ -238,7 +238,7 @@ The carousel news covers anything involving you, every coaching change in your d
 - Each job lists the school, class, district, enrollment, tradition, stipend, the expectation for next season, the athletic director's patience in words, and its interest in you.
 - A detailed look at any job: next season's roster (the players coming back, every rating, as on any roster screen), its last coach's schemes and how much of your playbook it knows, and last season's record.
 - Sort by interest, class, tradition or talent, and filter by class. It starts sorted by interest, then class.
-- You pursue one job at a time, and the school answers right away: an offer (85 percent of the time at high interest, 55 at medium and 25 at low) or a no. A no takes that job off your list. The rest stay open until you take a job.
+- You pursue one job at a time, and the school answers right away: an offer (85 percent of the time at high interest, 55 at medium and 25 at low) or a no. An offer has to be answered right away: take it, or turn it down and it comes off your list. A no takes that job off your list too. The rest stay open until you take a job.
 - Stay where you are any time and the market closes. Staying doesn't change anything else.
 - No minimum stay: you can leave after any season. Any move is allowed, up, sideways or down. A lower class pays less and builds reputation more slowly.
 - If you're fired, the market works the same, except you can't stay. If every school says no, the 1A school with the weakest roster offers you its job, letting its coach go if it has to. You always have a job.
@@ -248,30 +248,19 @@ The carousel news covers anything involving you, every coaching change in your d
 
 - You keep your coach, ratings, XP, perks and schemes. The new team keeps its own playbook mastery, so whatever it doesn't know has to be installed, as when you took your first job.
 - Your old school goes to the carousel, and its players aren't followed.
-- Transfers: each of your five best returning players (by overall, not counting seniors) follows you with a 15 percent chance. Most moves bring none or one, and now and then two or three.
+- Transfers: each of your five best returning players (by overall, not counting seniors) follows you with a 15 percent chance. Most moves bring none or one, and now and then two or three. They're eligible from week 1.
 - Your coach's page gets a career history by school: the years, record, playoff record, district and state titles, and the stipend, beside the season-by-season list.
 
 ### The stipend
 
 - High school head coaches are mostly teachers paid a coaching stipend on top. Each job's stipend comes from its class: 1A $4,000, 2A $5,500, 3A $7,000, 4A $9,000, 5A $11,500 and 6A $15,000, plus $50 a point of tradition over 50 (up to $2,000 more).
-- Year to year, with no contracts. A 3 percent raise for each season you stay.
+- Year to year, with no contracts. A 3 percent raise for each of your first five seasons at a school, then it stays there.
 - Your coach's page shows this year's stipend and your career earnings. Money doesn't buy anything until 3b.
 
 ### Screens
 
 - After the season summary: the athletic director's review (your grade and why, the reputation change and where you stand), the carousel news, the job market, and then the offseason program.
 - Each new screen moves VoiceOver to its heading. Changes are announced once, briefly, with no repeated instructions.
-
-### Open questions for 3a
-
-1. Expectations come only from talent and schedule, with tradition making the AD less patient. Should tradition also raise what the school expects?
-2. For the two-year rule, does "underperformed" mean a grade under −1 (about a win short), or anything below zero?
-3. Should a bigger class's stage also make bad seasons cost more reputation, or only make good seasons count more?
-4. An offer you've received: does it stay good while you pursue other jobs, so you can come back to it, or do you have to answer it before pursuing another?
-5. The fallback job when you're fired: the 1A school with the weakest roster, the lowest tradition, or both together?
-6. Transfers: eligible right away, or should they sit out some games, as many states require?
-7. A 3 percent raise each year you stay, and more at proud programs: right?
-8. Do the numbers in the class table look right for how big and how good each class should be?
 
 ## The world
 
@@ -646,4 +635,4 @@ How it's built (step 5):
 
 ## Open questions
 
-See Open questions for 3a, at the end of Milestone 3a.
+None right now.
