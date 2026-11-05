@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1, 2 and 3a are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel and the job market. Next is Milestone 3b, money: boosters, budgets and facilities.
+Status: Milestones 1, 2 and 3a are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel and the job market. Next is Milestone 3b: boosters, the program fund, facilities, college offers for your players, and key moments.
 
 ## The pitch
 
@@ -290,6 +290,152 @@ The carousel news covers anything involving you, every coaching change in your d
 - After the season summary: the athletic director's review (your grade and why, the reputation change and where you stand), the carousel news, the job market, and then the offseason program.
 - Each new screen moves VoiceOver to its heading. Changes are announced once, briefly, with no repeated instructions.
 
+## Milestone 3b: money and college offers
+
+Your program finally has money to spend, and your players have somewhere to go. Boosters raise money and expect results. The program fund pays for better facilities and for one-season extras like team camp. Your own stipend pays for coaching clinics. Your best players draw interest from colleges, sign on signing day, and every player you send on helps your name and your program. All the numbers below are starting points, tuned with simulated careers like everything else.
+
+In this milestone:
+
+- A booster club at every school, with an enthusiasm that follows results.
+- A program fund: the school's yearly money, booster giving and fundraisers.
+- Fundraisers in the offseason, which cost summer time past the first one.
+- Five facilities, each one making an existing system better.
+- One-season purchases: team camp, a summer strength coach and a tutor.
+- Coaching clinics, paid from your own career earnings, for XP.
+- A fictional college world of 120 programs in three tiers, which Milestone 4 will use.
+- College interest and offers for your juniors and seniors, and signing day.
+- Rewards for sending players to college: XP, reputation, boosters and turnout.
+- Key moments: sim a game until it's close late, then call it yourself.
+
+Not in this milestone: assistant coaches, contracts, a stadium you name, ticket sales by game, recruiting for computer schools outside your district, and anything about where your former players go after they sign.
+
+Build steps, each one playable and tested before the next:
+
+1. Boosters, the program fund, fundraisers and coaching clinics.
+2. Facilities and one-season purchases, for every school, and in the job market.
+3. The colleges, recruiting interest, offers, signing day and its rewards.
+4. Key moments.
+
+Milestone 3b is done when:
+
+- Money is a real choice every offseason: a 1A program can afford one facility upgrade every two or three years, and a 6A program about one a year.
+- Better facilities help, but a well-run program with poor facilities can still beat a rich one.
+- A 1A school sends a player to college about every other year, and a 6A school sends about four a year, with one to a top program.
+- A career game can be played start to finish with key moments.
+- Every new screen works with VoiceOver, on iPhone and on a computer.
+
+### The booster club
+
+- Every school has booster enthusiasm from 0 to 100. A school starts at 20 + 0.6 × tradition, give or take 10, between 5 and 95.
+- In words: under 25 grumbling, 25 to 44 lukewarm, 45 to 64 behind you, 65 to 84 fired up, and 85 and up all in.
+- Each season it moves by 4 times the season grade, plus 3 for a district title and 6 for a state title, then slips 10 percent of the way back to where the school's tradition would start it. Players signing with colleges add to it too (see Rewards).
+- Pressure: boosters who care a lot are also less patient. A grade below zero moves job security that much more at a school with enthusiasm over 60: 1 + (enthusiasm − 60) / 100 times, up to 1.35, on top of tradition's patience. A happy booster club with a bad season is the dangerous one.
+- Enthusiasm stays with the school when you leave.
+
+### The program fund
+
+- Money you control goes into the program fund. It belongs to the school, so it stays behind when you move, and your new school has its own.
+- Each year, at the start of the offseason, the fund gets:
+  - The school's football money, by class: 1A $3,000, 2A $4,500, 3A $6,000, 4A $8,000, 5A $10,000 and 6A $13,000.
+  - Booster giving: 1A $4,000, 2A $7,000, 3A $11,000, 4A $17,000, 5A $26,000 and 6A $40,000, times 0.5 + enthusiasm / 100.
+  - The fundraisers you ran.
+- Upkeep comes out first: each facility costs 4 percent of what it took to build it each year, paid automatically. If the fund can't cover it, the newest upgrade slips a level, and the report says so.
+- The rest carries over from year to year, so saving up for a big upgrade works.
+- The offseason screen shows the fund in one line: what came in, what upkeep took and what's left.
+
+### Fundraisers
+
+Pick fundraisers in the offseason. The picks stay in place every year until you change them, like the practice plan. The first one is free; each one after it takes one of the eight summer weeks away from the summer program.
+
+| Fundraiser | Base at 1A | Grows with | Also |
+|---|---|---|---|
+| Car wash | $1,200 | enrollment | Always works |
+| Sponsor signs on the fence | $1,800 | enrollment and tradition | |
+| Discount cards | $2,000 | enrollment | Players sell them, so summer attendance drops 5 points |
+| Golf tournament | $3,500 | booster enthusiasm | Needs enthusiasm of 45 or more |
+| Booster banquet | $1,500 | booster enthusiasm | Adds 3 to enthusiasm |
+
+Each fundraiser's money is its base times the class's size (1A 1, 2A 1.5, 3A 2.2, 4A 3, 5A 4 and 6A 5.5), times what it grows with, give or take 20 percent. Each school's result is rolled once a season, so reloading never changes it.
+
+### Facilities
+
+Every school has five facilities, each rated 1 to 5: poor, basic, good, great and elite. Each one makes something already in the game work better.
+
+| Facility | What it does, by level (1 / 2 / 3 / 4 / 5) |
+|---|---|
+| Weight room | Strength growth from summer weights and practice times 0.85 / 1 / 1.1 / 1.2 / 1.3, and 2 more points of summer attendance a level over 2 |
+| Film room | The prep edge times 0.9 / 1 / 1.05 / 1.1 / 1.15, and at level 4 and up the scouting report is one level fuller |
+| Practice field | Practice injuries times 1.15 / 1 / 0.92 / 0.85 / 0.78, and recovery heals a little faster at level 4 and up |
+| Equipment | Game injuries times 1.1 / 1 / 0.95 / 0.9 / 0.85, and full pads' extra practice injuries cut by 0, 0, 10, 20 and 30 percent |
+| Locker room and stadium | Booster giving 6 percent more a level over 2, and 2 more points on every hallway pitch a level over 2 |
+
+- Upgrading one level costs, to reach level 2 $8,000, level 3 $20,000, level 4 $45,000 and level 5 $90,000, at every class. Bigger schools reach the top because they have more money, not because it's cheaper.
+- You can upgrade any number of facilities in the offseason, as far as the fund goes. Building happens over the summer, and the upgrade works from the start of camp (the weight room's summer bonus starts the next summer).
+- Schools start with facilities from their class and tradition: about 1 + 0.4 a class above 1A + (tradition − 50) / 30, give or take 1, between 1 and 5. A typical 1A school is basic, and a typical 6A school is great.
+- Computer schools upgrade on paper: each one moves one facility a level toward where its class and tradition would start it every three years, from its own seed.
+- Computer schools get the same effects: in full in your district, and on paper elsewhere (the weight room and the practice field in their rebuilt practice and summer).
+- The job market and the closer look at each job show the school's facilities, its fund and its booster enthusiasm.
+
+### One-season purchases
+
+Bought in the offseason from the program fund. They last one summer and season, and the picks don't carry over.
+
+- Team camp at a college: $250 a player who attends (attendance is the summer's attendance roll). Counts as 1.5 more weeks of 7-on-7, adds 20 install points spread over the playbook before camp, and gives everyone who attends college exposure (see College offers).
+- A summer strength coach: $3,000 at every class. Summer weights count 1.25 times.
+- A tutor: $1,500 at every class. Study hall counts 1.5 times, and report cards rule a player ineligible 30 percent less often.
+
+### Coaching clinics
+
+Your career earnings (the stipends you've been paid) finally buy something. Each offseason you can attend up to two clinics:
+
+- A state clinic: $600 for 30 XP.
+- A national clinic: $2,000 for 70 XP.
+
+You can also give any amount of your earnings to the program fund. Earnings never go below zero, and computer coaches don't attend clinics.
+
+### The colleges
+
+- The state's players are recruited by 120 fictional college programs, built from the seed: 24 in Tier 1 (the top programs), 36 in Tier 2 and 60 in Tier 3 (small colleges). Each has a name, a town and colors, made up like the high schools. Milestone 4 will put you in this same college world.
+- Each year, each college needs players at a few positions: about 2 to 4 at each of OL and DL, and 0 to 3 at each other position, from its seed for that year.
+
+### College offers
+
+- Colleges look at your juniors and seniors, and at every junior and senior in your district (those schools keep full rosters), but not at schools on paper.
+- How a college sees a player, his recruit rating: his overall at his best position, plus 0.4 times the gap to his true potential (colleges see past your staff's estimate), plus 0.15 a point of speed over 50 at the skill spots and the secondary, or of strength over 50 on the lines.
+- Each tier has a bar: Tier 3 at 50, Tier 2 at 58 and Tier 1 at 66. A player has to clear a tier's bar for its colleges to get interested.
+- Exposure, from 0.5 to 1.2: 1A 0.55, 2A 0.65, 3A 0.75, 4A 0.85, 5A 0.95 and 6A 1.0, plus 0.1 for team camp, and 0.05 a playoff game played (up to 0.15). Small-school stars are easy to miss, which is real, and team camp and a playoff run are how they get seen.
+- Offers come in five windows: the spring after his junior season (in the offseason), the summer (team camp), after weeks 4 and 8 of his senior season, and after the playoffs. In each window, each college that needs his position and whose bar he clears offers with a chance of 0.08 × exposure × (1 + (recruit rating − bar) / 5), up to 50 percent. Each window is rolled once, so reloading never changes it.
+- Grades matter: a Tier 1 or Tier 2 offer needs grades of 60 or more on signing day. Under that, it's listed as pending grades, and study hall and the tutor help.
+- Signing day comes after the season summary and before the athletic director's review. Each senior with an offer he qualifies for signs with the highest tier that offered, the college with the most need at his position if there's more than one.
+- Targets to tune against, over simulated careers: a 1A school signs about 0.5 players a year (nearly all Tier 3, a Tier 1 about once a decade), a 3A school about 1.5, and a 6A school about 4, about one of them Tier 1.
+
+### Rewards
+
+- XP: 5 for each player's first offer from each tier, and on signing day 10 for a Tier 3 signee, 20 for Tier 2 and 40 for Tier 1.
+- Reputation: 0.5 for each Tier 3 signee, 1 for Tier 2 and 2 for Tier 1, up to 4 a year, on top of the season grade's change. A coach known for sending players on gets noticed.
+- Boosters: 1, 2 or 4 enthusiasm by tier.
+- The program: for every player you signed in the last four years at this school, hallway pitches get 2 more points and freshman classes 0.1 more players. Word gets around.
+
+### Key moments
+
+- A third way to play a game, beside playing every snap and simming: the computer calls your plays until the game is close late, then hands it to you.
+- It's close late from the start of the fourth quarter whenever the score is within 8 points, and in overtime. Once you have it, you keep it to the end. If it never gets close, the game sims to the end.
+- When you take over, one sentence says where things stand, for example: "Key moment. 4th quarter, 9:12 left. You trail 14 to 10, ball on your 35, 1st and 10." Then a short list of the scoring plays so far, and the call sheet.
+- Your coach's calls and XP work as when you sim: the snaps the computer called don't earn snap XP, and the ones you call do.
+- You can still take over at any time with a button, or sim the rest.
+
+### Screens
+
+- The offseason gets three new parts, in this order after the job market: signing day (if you have seniors with offers), the program fund (fund, upkeep, fundraisers, facilities and one-season purchases on one screen), and your clinics on your coach's page.
+- A recruiting screen lists your juniors and seniors with college interest: each one's recruit rating in words, his offers by tier, and anything pending grades.
+- New offers are announced once in the week's results, for example: "Marcus Hill got an offer from Tier 2 Lakeshore State." The news can mention the district's top recruits.
+- Each player's page shows his offers, and the season summary lists your signees. Your coach's page counts the players you've sent to college by tier.
+- Every new screen moves VoiceOver to its heading, and choices are buttons, as everywhere else.
+
+### Saves
+
+- An older save gets boosters, facilities and the colleges from the seed, a program fund of one year's money, and no offers until the next window.
+
 ## The world
 
 - A fictional state with six classes, from 1A (the smallest schools) to 6A (the largest). Bigger schools have more students to draw players from. All six arrive in Milestone 3a.
@@ -486,7 +632,7 @@ How it's built (step 4):
 
 ## Game day
 
-- Play every snap or sim the game. A key-moments mode, which sims until the game is close and late, comes later.
+- Play every snap or sim the game. Key moments, which sims until the game is close and late, comes in Milestone 3b.
 - Gridiron Duel's systems carry over: the game clock, timeouts, spikes and sideline routes, audibles, disguises and penalties. Their rules follow the level being played (see Rules by level).
 - Running the clock: in the 4th quarter, the team with the lead can choose to run the clock, using 36 to 39 seconds between plays (the top of the usual range when the clock only restarts on the ready). It can't be combined with no huddle or a spike. Computer coaches always do it with a 4th-quarter lead.
 - You can change the lineup between plays (see Depth chart and personnel).
@@ -587,9 +733,9 @@ See Milestone 2 near the top.
 
 See Milestone 3a near the top.
 
-### Milestone 3b: money
+### Milestone 3b: money and college offers
 
-Boosters and fundraisers, budgets and facilities. The coaching stipend from 3a starts buying things here.
+See Milestone 3b near the top.
 
 ### Milestone 4: college
 
