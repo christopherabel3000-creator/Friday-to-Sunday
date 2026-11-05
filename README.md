@@ -4,10 +4,14 @@ A single-player football coaching career. Start as the head coach of a tiny high
 
 ## Status
 
-Milestones 1, 2 and 3a are built (see [DESIGN.md](DESIGN.md)): create your coach, take over a made-up 1A school, and coach season after season, climbing through a state of six classes, 1A to 6A, through the job market. Each season opens with three weeks of preseason camp, then a full schedule to the state championship under high school rules, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, a depth chart you can change, and a season summary at the end. In the offseason you plan the summer, talk athletes into coming out for football and spend your coach's XP; your seniors graduate and a new class of freshmen comes out. Saves move between devices with a save code, or with a cloud save once the database rules are published (see Cloud saves below). An exhibition game is on the main menu too.
+Milestones 1, 2, 3a and 3b are built (see [DESIGN.md](DESIGN.md)): create your coach, take over a made-up 1A school, and coach season after season, climbing through a state of six classes, 1A to 6A, through the job market, with boosters, a program fund to spend on facilities, and college offers for your best players. Each season opens with three weeks of preseason camp, then a full schedule to the state championship under high school rules, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, a depth chart you can change, and a season summary at the end. In the offseason you plan the summer, talk athletes into coming out for football and spend your coach's XP; your seniors graduate and a new class of freshmen comes out. Saves move between devices with a save code, or with a cloud save once the database rules are published (see Cloud saves below). An exhibition game is on the main menu too.
 
 ## What's in it so far
 
+- Key moments: a third way to play a game. The computer calls it until it's close late (the fourth quarter or overtime, within 8 points), then you take over with a summary of where things stand and the scoring so far.
+- Boosters at every school: their enthusiasm follows results, and keen boosters make a bad season cost more job security.
+- The program fund: each offseason the school's money, booster giving and your fundraisers come in, and upkeep goes out. Five fundraisers (each past the first takes a summer week), five facilities from poor to elite (weight room, film room, practice field, equipment, locker room and stadium), each improving something already in the game, and one-season purchases: team camp, a summer strength coach and a tutor. Your own earnings pay for coaching clinics, for XP.
+- College recruiting: 120 fictional colleges in three tiers. Your juniors and seniors draw offers in five windows, by their ratings, potential, speed or strength, and exposure (bigger schools, team camp, playoff games). Signing day after the season: the best tier each senior qualifies for (Tier 1 and 2 need grades of 60). Signings bring XP, reputation, booster enthusiasm, better hallway pitches and more freshmen.
 - A state of six classes, 1A to 6A, each with 8 districts of 8 schools and its own playoffs and champion. Bigger schools have bigger rosters (about 30 at 1A to 85 at 6A), better players, more passing coaches and fewer two-way starters. Your class plays week by week; the others play their seasons on paper.
 - Expectations: before each season every school's expectation comes from its talent and its schedule (each class's season played on paper 200 times). After the season, your grade is how you did against it, with credit for playoff wins and titles.
 - Reputation, 0 to 100, in words and numbers: it moves with each season's grade, and more at a bigger class.
@@ -79,16 +83,18 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `fatigue.js`: energy, how it runs down and comes back, rotation, and injuries in games
 - `engine.js`: Gridiron Duel's game flow, clock, overtime, coin toss and audibles
 - `sim.js`: the snap, rolled from the players on the field, plus penalties, kicking and tries
-- `ai.js`: scouting, the computer coordinator, and simming a game
+- `ai.js`: scouting, the computer coordinator, simming a game, and key moments
 - `practice.js`: the practice plan, player growth, installs, conditioning, recovery, practice injuries, and film study
 - `season.js`: the state's schools, the schedule, standings, the playoffs, quick sims and the news
 - `career.js`: your career's coach, the seasons you've finished, and the season summary
 - `years.js`: the passing of years: graduation, summer growth, freshman classes, tradition, and schools on paper rebuilt for any year
 - `program.js`: the offseason program: the summer, hallway recruiting, and grades and eligibility
 - `jobs.js`: the high school job market: expectations, the season grade, reputation, job security, the stipend, computer coaches' careers, the coaching carousel, the market and moving schools
+- `money.js`: boosters, the program fund, fundraisers, facilities, one-season purchases and coaching clinics
+- `recruit.js`: the colleges, recruit ratings, offers, signing day and its rewards
 - `cloud.js`: save codes, cloud saves and backups
 - `sound.js`: crowd and horn, synthesized in the browser
-- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js`, `ui_offseason.js`, `ui_jobs.js` and `ui.js`: the screens (the game; rosters and the depth chart; practice and scouting reports; the season and camp; creating your coach, your coach's page, the season summary and saves; the offseason, hallway recruiting and how the team changed; the athletic director's review, the coaching changes and the job market; the main menu, the exhibition, help and screen reader support)
+- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js`, `ui_offseason.js`, `ui_jobs.js`, `ui_money.js` and `ui.js`: the screens (the game and key moments; rosters and the depth chart; practice and scouting reports; the season and camp; creating your coach, your coach's page, the season summary and saves; the offseason, hallway recruiting and how the team changed; the athletic director's review, the coaching changes and the job market; the program fund, signing day and college recruiting; the main menu, the exhibition, help and screen reader support)
 
 ## Tests
 
@@ -103,5 +109,6 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `node tests/state.js`: the six classes: schools, rosters and talent by class, two-way play, every class's season on paper, a state that stays at each class's level for years, and saves from before classes
 - `node tests/jobs.js`: the job market: expectations, the season grade, reputation, job security, the stipend, the review, the carousel, getting fired, the market, moving up a class with players following, and careers from before job security
 - `node tests/years.js`: preseason camp, schools on paper rebuilt for any year, graduation, freshmen, career stats, tradition, a state that stays at the same level for five years, and saves from before more seasons
+- `node tests/money.js`: boosters, the fund, fundraisers, facilities and their effects, purchases, clinics, moving schools, the colleges, offers and signing day, key moments, and saves from before money
 - `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a career from creating your coach through camp and a season to the summary, the offseason and the next season's camp, with practice, installs and scouting reports, focus checks, reloads, save codes and cloud saves on two devices
 - `node tests/balance.js 300`: plays 300 computer games and prints the numbers to tune against

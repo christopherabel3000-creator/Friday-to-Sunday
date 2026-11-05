@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1, 2 and 3a are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel and the job market. Next is Milestone 3b: boosters, the program fund, facilities, college offers for your players, and key moments.
+Status: Milestones 1, 2, 3a and 3b are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments. Next is Milestone 4, college.
 
 ## The pitch
 
@@ -311,16 +311,16 @@ Not in this milestone: assistant coaches, contracts, a stadium you name, ticket 
 
 Build steps, each one playable and tested before the next:
 
-1. Boosters, the program fund, fundraisers and coaching clinics.
-2. Facilities and one-season purchases, for every school, and in the job market.
-3. The colleges, recruiting interest, offers, signing day and its rewards.
-4. Key moments.
+1. **Done:** boosters, the program fund, fundraisers and coaching clinics.
+2. **Done:** facilities and one-season purchases, for every school, and in the job market.
+3. **Done:** the colleges, recruiting interest, offers, signing day and its rewards.
+4. **Done:** key moments.
 
 Milestone 3b is done when:
 
 - Money is a real choice every offseason: a 1A program can afford one facility upgrade every two or three years, and a 6A program about one a year.
 - Better facilities help, but a well-run program with poor facilities can still beat a rich one.
-- A 1A school sends a player to college about every other year, and a 6A school sends about four a year, with one to a top program.
+- A 1A school sends a player to college about every year or two, and a 6A school sends about eight a year, with one to a Tier 1 program most years.
 - A career game can be played start to finish with key moments.
 - Every new screen works with VoiceOver, on iPhone and on a computer.
 
@@ -370,8 +370,8 @@ Every school has five facilities, each rated 1 to 5: poor, basic, good, great an
 | Locker room and stadium | Booster giving 6 percent more a level over 2, and 2 more points on every hallway pitch a level over 2 |
 
 - Upgrading one level costs, to reach level 2 $8,000, level 3 $20,000, level 4 $45,000 and level 5 $90,000, at every class. Bigger schools reach the top because they have more money, not because it's cheaper.
-- You can upgrade any number of facilities in the offseason, as far as the fund goes. Building happens over the summer, and the upgrade works from the start of camp (the weight room's summer bonus starts the next summer).
-- Schools start with facilities from their class and tradition: about 1 + 0.4 a class above 1A + (tradition − 50) / 30, give or take 1, between 1 and 5. A typical 1A school is basic, and a typical 6A school is great.
+- You can upgrade any number of facilities in the offseason, as far as the fund goes, and cancel an upgrade made this offseason for a refund. Upgrades work from that summer on.
+- Schools start with facilities from their class and tradition: about 2 + 0.4 a class above 1A + (tradition − 50) / 30, give or take about a level, between 1 and 5. A typical 1A school is basic, and a typical 6A school is great.
 - Computer schools upgrade on paper: each one moves one facility a level toward where its class and tradition would start it every three years, from its own seed.
 - Computer schools get the same effects: in full in your district, and on paper elsewhere (the weight room and the practice field in their rebuilt practice and summer).
 - The job market and the closer look at each job show the school's facilities, its fund and its booster enthusiasm.
@@ -386,7 +386,7 @@ Bought in the offseason from the program fund. They last one summer and season, 
 
 ### Coaching clinics
 
-Your career earnings (the stipends you've been paid) finally buy something. Each offseason you can attend up to two clinics:
+Your career earnings (the stipends you've been paid) finally buy something. Each offseason, on the program fund screen, you can attend up to two clinics:
 
 - A state clinic: $600 for 30 XP.
 - A national clinic: $2,000 for 70 XP.
@@ -402,12 +402,12 @@ You can also give any amount of your earnings to the program fund. Earnings neve
 
 - Colleges look at your juniors and seniors, and at every junior and senior in your district (those schools keep full rosters), but not at schools on paper.
 - How a college sees a player, his recruit rating: his overall at his best position, plus 0.4 times the gap to his true potential (colleges see past your staff's estimate), plus 0.15 a point of speed over 50 at the skill spots and the secondary, or of strength over 50 on the lines.
-- Each tier has a bar: Tier 3 at 50, Tier 2 at 58 and Tier 1 at 66. A player has to clear a tier's bar for its colleges to get interested.
+- Each tier has a bar: Tier 3 at 58, Tier 2 at 66 and Tier 1 at 74. A player has to clear a tier's bar for its colleges to get interested. In words: a college prospect, a strong prospect and a top prospect.
 - Exposure, from 0.5 to 1.2: 1A 0.55, 2A 0.65, 3A 0.75, 4A 0.85, 5A 0.95 and 6A 1.0, plus 0.1 for team camp, and 0.05 a playoff game played (up to 0.15). Small-school stars are easy to miss, which is real, and team camp and a playoff run are how they get seen.
-- Offers come in five windows: the spring after his junior season (in the offseason), the summer (team camp), after weeks 4 and 8 of his senior season, and after the playoffs. In each window, each college that needs his position and whose bar he clears offers with a chance of 0.08 × exposure × (1 + (recruit rating − bar) / 5), up to 50 percent. Each window is rolled once, so reloading never changes it.
+- Offers come in five windows: the spring after his junior season (in the offseason), the summer (team camp), after weeks 4 and 8 of his senior season, and after the playoffs. The summer window is only for players at team camp. In each window, each college that needs his position and whose bar he clears offers with a chance of 0.01 × exposure × (1 + (recruit rating − bar) / 5), up to 50 percent. Each window is rolled once, so reloading never changes it.
 - Grades matter: a Tier 1 or Tier 2 offer needs grades of 60 or more on signing day. Under that, it's listed as pending grades, and study hall and the tutor help.
 - Signing day comes after the season summary and before the athletic director's review. Each senior with an offer he qualifies for signs with the highest tier that offered, the college with the most need at his position if there's more than one.
-- Targets to tune against, over simulated careers: a 1A school signs about 0.5 players a year (nearly all Tier 3, a Tier 1 about once a decade), a 3A school about 1.5, and a 6A school about 4, about one of them Tier 1.
+- Where it landed, over simulated careers: a 1A school signs about 0.8 players a year (nearly all Tier 3; a Tier 1 is rare, since small-school stars are easy to miss), a 3A school about 1.7, and a 6A school about 8, about one of them Tier 1. Bigger schools have far more good seniors, so a 6A school sends many more.
 
 ### Rewards
 
@@ -422,19 +422,30 @@ You can also give any amount of your earnings to the program fund. Earnings neve
 - It's close late from the start of the fourth quarter whenever the score is within 8 points, and in overtime. Once you have it, you keep it to the end. If it never gets close, the game sims to the end.
 - When you take over, one sentence says where things stand, for example: "Key moment. 4th quarter, 9:12 left. You trail 14 to 10, ball on your 35, 1st and 10." Then a short list of the scoring plays so far, and the call sheet.
 - Your coach's calls and XP work as when you sim: the snaps the computer called don't earn snap XP, and the ones you call do.
-- You can still take over at any time with a button, or sim the rest.
+- Once you have it, Sim to the end still works as in any game.
 
 ### Screens
 
-- The offseason gets three new parts, in this order after the job market: signing day (if you have seniors with offers), the program fund (fund, upkeep, fundraisers, facilities and one-season purchases on one screen), and your clinics on your coach's page.
+- Signing day comes first in the offseason, before the athletic director's review, when your players have college news: who signed where, late offers, offers held back by grades, and the spring offers for your juniors.
+- After the job market, the offseason screen opens the program fund: the books, fundraisers, facilities, one-season purchases, and your own money (clinics and gifts to the fund), all on one screen.
 - A recruiting screen lists your juniors and seniors with college interest: each one's recruit rating in words, his offers by tier, and anything pending grades.
 - New offers are announced once in the week's results, for example: "Marcus Hill got an offer from Tier 2 Lakeshore State." The news can mention the district's top recruits.
-- Each player's page shows his offers, and the season summary lists your signees. Your coach's page counts the players you've sent to college by tier.
+- Each player's page shows his offers. The offseason screen and the graduation report say where your seniors signed, and your coach's page counts the players you've sent to college by tier.
 - Every new screen moves VoiceOver to its heading, and choices are buttons, as everywhere else.
 
 ### Saves
 
-- An older save gets boosters, facilities and the colleges from the seed, a program fund of one year's money, and no offers until the next window.
+- An older save gets boosters, facilities and the colleges from the seed, and no offers until the next window. Its fund starts from what its last coach saved.
+
+### How it's built (steps 1 to 4)
+
+- Files: money.js (boosters, the fund, fundraisers, facilities, purchases and clinics), recruit.js (the colleges, offers and signing day), ui_money.js (the program fund, signing day and recruiting screens). Key moments are in ai.js.
+- Boosters (s.bst) and facilities (s.fac, five levels) are kept with every school, summaries included, from their own seeded dice, so a state still builds the same. The program fund (s.fund) is kept only for schools you've coached; anywhere else it's estimated from the seed as up to a year's money.
+- The books open once an offseason, when the job market closes, at the school you'll coach: what was saved, the school's money, booster giving, upkeep, then your fundraisers. Starting the next season opens them if nobody did.
+- Upkeep, measured: a typical 1A school pays about $2,000 a year and nets about $6,500, so a level 3 upgrade every three years; a typical 6A school pays $15,000 to $30,000 and nets about $40,000.
+- Facility effects: the weight room scales strength wherever it grows (practice, conditioning, summer weights and practice on paper); the film room the prep edge and the report level; the practice field practice injuries and early returns; equipment every game injury roll (each game team's injk) and the extra injuries from full pads; the locker room and stadium booster giving and hallway pitches.
+- Colleges are built from the state's first seed whenever they're needed and never saved. Offers are kept with the player (p.off), signings with the player (p.sign), the school (s.sent by year) and your career (CAREER.sent by tier).
+- Key moments: the computer calls both sides, stopping after a play once the game is close late; you take over from the next snap. A panel with where things stand and the scoring so far gets VoiceOver's focus, and goes away after the next snap.
 
 ## The world
 
@@ -632,7 +643,7 @@ How it's built (step 4):
 
 ## Game day
 
-- Play every snap or sim the game. Key moments, which sims until the game is close and late, comes in Milestone 3b.
+- Play every snap, sim the game, or play its key moments: the computer calls it until it's close late, then you take over (Milestone 3b).
 - Gridiron Duel's systems carry over: the game clock, timeouts, spikes and sideline routes, audibles, disguises and penalties. Their rules follow the level being played (see Rules by level).
 - Running the clock: in the 4th quarter, the team with the lead can choose to run the clock, using 36 to 39 seconds between plays (the top of the usual range when the clock only restarts on the ready). It can't be combined with no huddle or a spike. Computer coaches always do it with a 4th-quarter lead.
 - You can change the lineup between plays (see Depth chart and personnel).
