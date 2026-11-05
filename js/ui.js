@@ -252,6 +252,7 @@ function vHelp() {
       "The top two in each district make the 16-team state playoffs. Ties in the standings go to head-to-head, then the overall record, then point differential in district games, up to 14 points a game.",
       "District champions host the first round. After that the better record hosts, and the state championship is at a neutral site.",
       "Each week, play your game snap by snap or sim it. Your coach calls the plays in a sim, and your players' stats count either way.",
+      "Key moments: the computer calls your game until it's close late, from the fourth quarter on with the score within 8, or in overtime. Then you take over and call it to the end. If it never gets close, the game sims to the end. Snaps the computer called don't earn snap XP.",
       "Games between schools in your district run on the full game engine behind the scenes. The rest of the state is simmed from each team's ratings.",
       "Your schemes, rotation and depth chart carry from week to week. A depth chart for the next game only goes back to normal after that game.",
       "Once there's a state champion, the season summary has your record and finish, the games to remember, your leaders and who improved the most."
@@ -265,6 +266,20 @@ function vHelp() {
       "If you're fired, someone always hires you, at worst the 1A school with the weakest roster.",
       "At a new job you keep your coach, XP, perks and schemes. The team keeps its own playbook, so yours gets installed in practice. A few of your best players may follow you.",
       "Head coaches are paid a stipend, more at bigger schools, with a raise for each of your first five seasons at a school."
+    ]))}
+    ${sec("Money and facilities", ul([
+      "Every school has a booster club. Its enthusiasm follows your results, and boosters who care a lot make a bad season count more against your job.",
+      "The program fund belongs to the school. Each offseason it gets the school's football money, booster giving and your fundraisers, and pays upkeep on the facilities first. What's left carries over.",
+      "Fundraisers: the first is free, and each one after it takes a week of the summer program. A golf tournament needs boosters who are behind the team, and a booster banquet fires them up.",
+      "Five facilities, each poor, basic, good, great or elite: the weight room (strength and summer attendance), the film room (opponent prep), the practice field (practice injuries), equipment (game injuries) and the locker room and stadium (booster money and hallway pitches).",
+      "One-season purchases: team camp at a college, a summer strength coach, and a tutor for the season.",
+      "Your own career earnings pay for coaching clinics, for XP, and you can give some to the program fund."
+    ]))}
+    ${sec("College recruiting", ul([
+      "Colleges look at your juniors and seniors: their overall, how far they could grow, and speed at the skill spots or strength on the lines. Bigger schools get seen more, and team camp and playoff games help.",
+      "Offers come in the spring after the junior season, at team camp, after weeks 4 and 8 of the senior season, and after the playoffs.",
+      "On signing day, after the season, each senior signs with the best tier that offered him. Tier 1 and Tier 2 offers need grades of 60, so study hall and a tutor matter.",
+      "Signings earn XP, reputation and booster enthusiasm, and for four years every player you sent on helps your hallway pitches and brings out a few more freshmen."
     ]))}
     ${sec("The offseason", ul([
       "After the job market comes the offseason. Your seniors graduate, and the offseason screen shows who's leaving and who's coming back.",
@@ -388,7 +403,7 @@ function render() {
   const homeBtn = APP.screen !== "home" && APP.screen !== "simming" && !helpOpen ? `<button class="soundbtn" data-a="gohome">Home</button>` : "";
   const top = `<div class="topbar">${homeBtn}<button class="soundbtn" data-a="help" aria-expanded="${helpOpen}">${helpOpen ? "Close How to play" : "How to play"}</button><button class="soundbtn" data-a="mute" aria-pressed="${on}">${icon}Sound ${on ? "on" : "off"}</button></div>`;
   const key = screenKey(view), prev = focusSig(app);
-  app.innerHTML = top + view() + (APP.screen === "game" && !helpOpen ? vExtras() : "");
+  app.innerHTML = top + (APP.screen === "game" && !helpOpen && S && S.teams ? keyPanel() : "") + view() + (APP.screen === "game" && !helpOpen ? vExtras() : "");
   placeFocus(app, key, prev);
 }
 
@@ -551,6 +566,15 @@ function act(a, ds) {
       CAREER = null; SEASON = null; APP.coachDraft = newDraft(); draftErr = false; APP.cloud = null;
       APP.screen = "newcoach"; scrollTop(); break;
     case "takejob": if (pickSchool(ds.v)) { APP.screen = "season"; scrollTop(); } break;
+    // Key moments: practice, then the computer calls the game until it's close late (ai.js)
+    case "keygame": {
+      if (!SEASON || !SEASON.myId) break;
+      if (isMyGame() && S.phase !== "final") { APP.screen = "game"; scrollTop(); break; }
+      if (liveExhibition()) { if (!confirmed(a)) break; S = null; }
+      if (!startMyGame()) break;
+      simToMoment();
+      APP.screen = "game"; focusNext = { id: "keymoment" }; scrollTop(); break;
+    }
     case "playgame": case "simgame": {
       if (!SEASON || !SEASON.myId) break;
       if (isMyGame() && S.phase !== "final") { APP.screen = "game"; scrollTop(); break; }

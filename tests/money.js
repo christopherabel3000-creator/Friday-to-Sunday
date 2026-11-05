@@ -1,5 +1,5 @@
-// Money and college offers: boosters, the program fund, fundraisers, facilities, one-season purchases,
-// coaching clinics, the colleges, offers, signing day and its rewards.
+// Milestone 3b: boosters, the program fund, fundraisers, facilities, one-season purchases, coaching
+// clinics, the colleges, offers, signing day and its rewards, and key moments.
 // Usage: node tests/money.js
 const { load } = require("./load.js");
 let fails = 0, checks = 0;
@@ -191,6 +191,30 @@ const toOffseason = g => g(`simSeason(); act("offseason"); autoMarket(); openBoo
   ok(/College recruiting/.test(g("vRecruits()")) && /sent to college/.test(g("vRecruits()")), "the recruiting screen");
   g(`autoMarket(); nextSeason()`);
   ok(g(`SEASON.yearReport.grads.some(x => /^Tier [12] /.test(x.col))`), "the graduation report says where your seniors are going");
+}
+
+// ---- Key moments ----
+{
+  const { g } = fresh();
+  start(g, 611, 1);
+  g("setRandom(seededRandom(611)); simCamp()");
+  let handed = 0, simmed = 0;
+  for (let w = 0; w < 6; w++) {
+    const r = g(`(() => { act("keygame"); const me = S.teams.findIndex(t => t.id === SEASON.myId), d = Math.abs(S.teams[0].score - S.teams[1].score);
+      const o = { screen: APP.screen, phase: S.phase, q: S.quarter, d, key: S.key, mine: !S.teams[me].cpu, other: S.teams[1 - me].cpu, panel: keyPanel(),
+        cpuSnaps: (S.chart || []).filter(e => e.hu & (1 << me)).length };
+      return o; })()`);
+    if (r.phase === "final") { simmed++; ok(/never got close/.test(r.key.note) && r.d > 8, "a game that never gets close late sims to the end"); }
+    else {
+      handed++;
+      ok(r.q >= 4 && r.d <= 8 && r.mine && r.other && /^Key moment\. (\d\w\w quarter, \d+:\d\d left|Overtime)/.test(r.key.note), `close late: you take over (${r.key.note})`);
+      ok(r.cpuSnaps === 0, "the snaps the computer called earn no snap XP");
+      ok(/id="keymoment"/.test(r.panel) && /Scoring so far|No scoring/.test(r.panel), "a panel says where things stand, with the scoring so far");
+    }
+    g(`if (S.phase !== "final") simToEnd(); act("weekdone"); act("season");`);
+  }
+  ok(handed > 0, `some games are close late (${handed} of 6, ${simmed} simmed)`);
+  ok(g(`(() => { S.key.at = -1; return keyPanel(); })()`) === "", "the panel goes away after the next snap");
 }
 
 // ---- Saves from before money ----

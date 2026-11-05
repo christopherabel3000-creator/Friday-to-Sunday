@@ -546,6 +546,15 @@ function vFinal() {
     </section>`;
 }
 
+/* ---------- Key moments ---------- */
+// When the computer hands you the game: where it stands and the scoring so far, until the next snap
+function keyPanel() {
+  const K = S && S.key;
+  if (!K || S.log.length !== K.at) return "";
+  return `<section class="panel" id="keymoment" data-focus tabindex="-1"><h3>${S.phase === "final" ? "Final" : "Your call"}</h3><p>${esc(K.note)}</p>
+    ${K.scores.length ? `<p class="sechead" role="heading" aria-level="4">Scoring so far</p><ul class="hlist">${K.scores.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p>No scoring so far.</p>"}</section>`;
+}
+
 /* ---------- Box score, play-by-play and the footer ---------- */
 function vExtras() {
   if (!S || !S.teams) return "";

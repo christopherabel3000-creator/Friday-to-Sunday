@@ -672,6 +672,14 @@ function checkScreen(page, label) {
   ok(cloudData["fridayToSundaySaves/" + key].ver === 3 && !btn(d6, "cloudforce"), "replace it when you say so");
   ok(p6.errors.length === 0 && p7.errors.length === 0, "no script errors with saves: " + p6.errors.concat(p7.errors).slice(0, 2).join(" | "));
 
+  // ---- Key moments ----
+  const p8 = await openPage(), d8 = p8.d, w8 = p8.w, ev8 = x => w8.eval(x);
+  ev8(`newCareer("Kim", "Lee", "qb", "bal", "bal"); newSeason(611, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]); simCamp(); APP.screen = "season"; render();`);
+  ok(btn(d8, "keygame") && /Key moments/.test(btn(d8, "keygame").textContent), "the week ahead offers key moments, beside playing and simming");
+  tap(p8, "keygame");
+  ok(ev8("APP.screen") === "game" && focused(d8) === d8.getElementById("keymoment") && /^(Key moment\.|It never got close)/.test(d8.getElementById("keymoment").textContent.replace(/^\s*(Your call|Final)\s*/, "")), "key moments: the game opens on where things stand");
+  checkScreen(p8, "key moments");
+
   console.log(`${checks - fails}/${checks} checks passed`);
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.log("FAIL: " + (e.stack || e)); process.exit(1); });

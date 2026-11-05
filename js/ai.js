@@ -310,3 +310,51 @@ function simToEnd() {
   S.teams[0].cpu = keep[0]; S.teams[1].cpu = keep[1];
   S.simmed = true;
 }
+/* ---------- Key moments ---------- */
+// The computer calls both sides until the game is close late (the fourth quarter or overtime, with
+// the score within 8), then the coach takes over from the next snap to the end. If it never gets
+// close, the game sims to the end. Returns true when it's handed over. The snaps the computer called
+// earn no snap XP. S.key: { at: the play-by-play's length when it was handed over, note, scores }
+const KEY_MARGIN = 8;
+const closeLate = () => S.quarter >= 4 && Math.abs(S.teams[0].score - S.teams[1].score) <= KEY_MARGIN;
+function simToMoment() {
+  if (!S || !S.teams || S.phase === "final") return false;
+  const keep = [S.teams[0].cpu, S.teams[1].cpu];
+  S.teams[0].cpu = S.teams[1].cpu = true;
+  S.halftimeShow = false;
+  let close = false;
+  for (let i = 0; i < 5000 && S.phase !== "final"; i++) {
+    if (S.phase === "result" && closeLate()) { close = true; break; }
+    autoStep();
+  }
+  S.teams[0].cpu = keep[0]; S.teams[1].cpu = keep[1];
+  if (!close) { S.simmed = true; S.key = { at: S.log.length, note: "It never got close late, so the game was simmed to the end.", scores: scoringPlays() }; return false; }
+  cont();
+  S.key = { at: S.log.length, note: keyNote(), scores: scoringPlays() };
+  return true;
+}
+// Where things stand when you take over: "Key moment. 4th quarter, 9:12 left. You trail 14 to 10, ball on your 35, 1st and 10."
+function keyNote() {
+  const me = S.teams[0].cpu ? 1 : 0, mine = S.teams[me].score, theirs = S.teams[1 - me].score;
+  const when = S.quarter <= 4 ? `${ord(S.quarter)} quarter, ${fmtClock(S.clock)} left` : S.quarter === 5 ? "Overtime" : `Overtime ${S.quarter - 4}`;
+  const score = mine === theirs ? `Tied ${mine} to ${theirs}` : mine > theirs ? `You lead ${mine} to ${theirs}` : `You trail ${theirs} to ${mine}`;
+  const own = S.spot === 50 ? "the 50" : (S.spot < 50) === (S.poss === me) ? `your ${S.spot < 50 ? S.spot : 100 - S.spot}` : `their ${S.spot < 50 ? S.spot : 100 - S.spot}`;
+  const ball = S.poss === me ? `your ball on ${own}` : `their ball on ${own}`;
+  const dn = S.phase === "call" || S.phase === "los" ? `, ${ord(S.down)} and ${S.spot + S.toGo >= 100 ? "goal" : S.toGo}` : "";
+  return `Key moment. ${when}. ${score}, ${ball}${dn}.`;
+}
+// The scoring plays so far, oldest first: "Q2 4:12, HAR: Hill runs 12 yards for a touchdown."
+function scoringPlays() {
+  const out = [];
+  let prev = "0-0";
+  S.log.slice().reverse().forEach(e => {
+    if (e.score === prev) return;
+    prev = e.score;
+    const first = String(e.text || "").split(/(?<=\.)\s/)[0], [h, a] = e.score.split("-"), sc = `${S.teams[0].abbr} ${h}, ${S.teams[1].abbr} ${a}.`;
+    // A try goes with its touchdown
+    const isTry = /Extra point|Two-point/.test(e.sit || ""), last = out[out.length - 1];
+    if (isTry && last) last[1] += ` ${first}`, last[2] = sc;
+    else out.push([`${qLabel(e.q)}${e.q <= 4 ? " " + fmtClock(e.clock) : ""}, ${S.teams[e.team].abbr}:`, first, sc]);
+  });
+  return out.map(x => x.join(" ")).slice(-10);
+}
