@@ -22,7 +22,7 @@ function vOffseason() {
     <div class="seg">${INTENSITY.map((nm, v) => `<button data-a="summer" data-t="${id}" data-v="${v}" aria-pressed="${(plan[id] || 0) === v}">${nm}</button>`).join("")}</div>
     <p class="muted styledesc">${esc(SUMMER_DESC[id])}</p></div>`;
   const H = hallsNow(), yes = H.players.filter(p => H.said[p.id] === "yes").length, left = pitchesLeft();
-  const line = p => { const st = careerStatLine(statsWithThisSeason(p)); return `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}${st ? `: ${st}` : ""}.`; };
+  const line = p => { const st = careerStatLine(statsWithThisSeason(p)); return `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}${st ? `: ${st}` : ""}.${p.sign != null ? ` Signed with ${collegeText(p.sign)}.` : ""}`; };
   const champ = movedSchools() ? null : SEASON.champion, M = SEASON.market, R = SEASON.review;
   const newJob = M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new head coach of the ${nameOf(s.id)}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
       <p>${esc(M.transfers.length ? `Following you from the ${nameOf(M.from)}: ${andList(M.transfers)}.` : `None of your players from the ${nameOf(M.from)} followed you.`)}</p></section>` : "";
@@ -45,7 +45,7 @@ function vOffseason() {
     </section>
     <section class="panel">
       <h3>The summer</h3>
-      <p class="muted styledesc">Eight weeks, shared out by weight. Workouts are voluntary: players with more work ethic show up more, and so do more of them under a coach with better Program building.</p>
+      <p class="muted styledesc">${plural(SUMMER_WEEKS - fundWeeks(), "week")}, shared out by weight${fundWeeks() ? ` (your fundraisers take ${plural(fundWeeks(), "week")})` : ""}. Workouts are voluntary: players with more work ethic show up more, and so do more of them under a coach with better Program building.</p>
       ${SUMMER_IDS.map(row).join("")}
     </section>
     <section class="panel">
@@ -53,6 +53,12 @@ function vOffseason() {
       <p>${plural(H.players.length, "athlete")} at school could play football. ${plural(left, "pitch", "pitches")} left${yes ? `, and ${yes} said yes` : ""}.</p>
       <button class="btn ghost" data-a="halls">Talk to them</button>
     </section>
+    <section class="panel">
+      <h3>The program fund</h3>
+      <p>${esc(`${moneyText(openBooks() ? s.fund : 0)} to spend on fundraisers, facilities, team camp and more. ${boostText(boostersOf(s))}`)}</p>
+      <button class="btn ghost" data-a="fund">The program fund</button>
+    </section>
+    ${recruitPanel()}
     <section class="panel">
       <h3>Your coach</h3>
       <p>${CAREER.xp || 0} XP to spend on ratings and perks.${CAREER.job ? ` Your stipend next season: ${moneyText(CAREER.job.pay)}.` : ""}</p>
@@ -76,7 +82,8 @@ function vNewYear() {
       <h2 data-focus tabindex="-1">The ${SEASON.year} ${esc(s.mascot)}</h2>
       <p class="muted">${talentText(s.rating)} ${rank === 1 ? "The best starters" : `The ${ordWord(rank - 1)}-best starters`} in District ${SEASON.district}. ${plural(s.players.length, "player")} on the roster.</p>
     </div>
-    <section class="panel"><h3>Graduated</h3>${R.grads.length ? list(R.grads.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.`)) : "<p>Nobody graduated.</p>"}</section>
+    <section class="panel"><h3>Graduated</h3>${R.grads.length ? list(R.grads.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.${x.col ? ` On to ${x.col}.` : ""}`)) : "<p>Nobody graduated.</p>"}</section>
+    ${(R.offers || []).length ? `<section class="panel"><h3>Offers from team camp</h3>${list(R.offers)}</section>` : ""}
     ${R.left.length ? `<section class="panel"><h3>Left the team</h3>${list(R.left.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.why}.`))}</section>` : ""}
     <section class="panel"><h3>New freshmen</h3>${fresh.length ? list(fresh.map(p => playerLine(p, s.level))) : "<p>No freshmen came out this year.</p>"}</section>
     ${(R.joined || []).length ? `<section class="panel"><h3>From the hallways</h3>${list(R.joined.map(id => playerById(s, id)).filter(Boolean).map(p => playerLine(p, s.level)))}</section>` : ""}

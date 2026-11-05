@@ -503,6 +503,7 @@ function checkScreen(page, label) {
   ok(ev("APP.screen") === "summary", "back to the summary");
   // The athletic director's review, the coaching changes and the job market, then the offseason
   tap(p4, "offseason");
+  if (ev("APP.screen") === "signing") { ok(/Signing day/.test(heading() || ""), "signing day, when your players have college news"); checkScreen(p4, "signing day"); tap(p4, "adreview"); }
   ok(ev("APP.screen") === "review" && ev("SEASON.phase") === "offseason" && /athletic director's review/.test(heading() || "") && /Your stipend/.test(d4.body.textContent) && /(safe|improvement|hot seat)/.test(d4.body.textContent), "the athletic director's review: your grade, your job and your stipend");
   checkScreen(p4, "athletic director's review");
   tap(p4, "gohome");
@@ -542,6 +543,33 @@ function checkScreen(page, label) {
   ok(new RegExp(`said ${answer}`).test(await said4()), "and it's read out");
   tap(p4, "back");
   ok(ev("APP.screen") === "offseason", "back to the offseason");
+  // The program fund: fundraisers, facilities, purchases and your own money
+  tap(p4, "fund");
+  ok(ev("APP.screen") === "fund" && /The program fund/.test(heading() || "") && d4.querySelectorAll('[data-a="fr"]').length === 5 && d4.querySelectorAll('[data-a="facup"]').length >= 4 && d4.querySelectorAll('[data-a="buy"]').length === 3 && btn(d4, "clinic", "state"), "the program fund: fundraisers, facilities, purchases and clinics");
+  checkScreen(p4, "program fund");
+  const signs = btn(d4, "fr", "signs");
+  ok(signs.getAttribute("aria-pressed") === "false", "a fundraiser that isn't on says so");
+  tap(p4, "fr", "signs");
+  ok(btn(d4, "fr", "signs").getAttribute("aria-pressed") === "true" && focused(d4) === btn(d4, "fr", "signs") && /Sponsor signs on the fence: \$[\d,]+ raised/.test(await said4()), "turn one on: focus stays, and what it raised is read out");
+  ok(/7 weeks/.test(d4.body.textContent), "the summer program loses a week");
+  tap(p4, "fr", "signs");
+  ok(ev("CAREER.fr").join() === "wash", "and off again");
+  ev("mySchool().fund = 10");
+  tap(p4, "facup", "wt");
+  ok(/^Not enough in the fund/.test(await said4()), "an upgrade the fund can't pay for says so");
+  ev("mySchool().fund = 30000");
+  const wt0 = ev("mySchool().fac[0]");
+  tap(p4, "facup", "wt");
+  ok(ev("mySchool().fac[0]") === wt0 + 1 && /^The weight room is now/.test(await said4()) && btn(d4, "facundo", "wt"), "an upgrade, read out, with a way to cancel it");
+  tap(p4, "facundo", "wt");
+  ok(ev("mySchool().fac[0]") === wt0 && focused(d4) === btn(d4, "facup", "wt"), "cancelled, and focus goes back to the upgrade button");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "offseason", "back to the offseason");
+  tap(p4, "recruits");
+  ok(ev("APP.screen") === "recruits" && /College recruiting/.test(heading() || ""), "the recruiting screen");
+  checkScreen(p4, "college recruiting");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "offseason", "and back");
   const year = ev("SEASON.year"), seniors = ev("mySchool().players.filter(p => p.yr === 12).length");
   tap(p4, "gohome");
   ok(/offseason/.test(d4.body.textContent) && /Continue the offseason/.test(btn(d4, "season").textContent), "the main menu picks up the offseason");

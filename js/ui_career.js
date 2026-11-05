@@ -100,7 +100,8 @@ function vCoach() {
       <p class="muted">Changes save as you type.</p>
     </section>
     ${CAREER.seasons.length ? `<section class="panel"><h3>Career by school</h3><ul class="hlist">${careerBySchool().map(st => `<li>${esc(stintLine(st))}</li>`).join("")}</ul>
-      ${CAREER.job ? `<p>${esc(`Your stipend this season: ${moneyText(CAREER.job.pay)}. Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p>` : ""}</section>
+      ${CAREER.job ? `<p>${esc(`Your stipend this season: ${moneyText(CAREER.job.pay)}. Career earnings: ${moneyText(CAREER.earned || 0)}${CAREER.spent ? `, ${moneyText(myCash())} of it unspent` : ""}. In the offseason, your own money pays for coaching clinics, on the program fund screen.`)}</p>` : ""}
+      <p>${esc(sentText())}</p></section>
     <section class="panel"><h3>Season by season</h3><ul class="hlist">${CAREER.seasons.map((x, i) => `<li>${esc(careerLine(x, i))}</li>`).join("")}</ul></section>` : ""}
     <button class="btn ghost" data-a="back">Back</button>`;
 }

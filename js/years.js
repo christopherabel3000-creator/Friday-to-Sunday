@@ -15,7 +15,8 @@ function classParams(s, year) {
   const g = dice(hashSeed(`${s.seed}:${year}:class`)), y = s.youth || 0, pb = coachPbd(s.coach) - 42;
   const cls = s.cls || "1A", k = classScale(cls), [lo, hi] = CLASS_INFO[cls].enroll, mid = (lo + hi) / 2;
   const enroll = cls === "1A" ? (s.enroll || 135) : 135 + ((s.enroll || mid) - mid) * 135 / mid;
-  const n = clamp(Math.round(k * (4.5 + enroll * .025 + ((s.trad || 50) - 50) * .03 + y * .25 + pb * .04 + g.n(0, 1.2))), Math.round(4 * k), Math.round(13 * k));
+  // Players the school sent to college lately bring out a few more (recruit.js: sentLately)
+  const n = clamp(Math.round(k * (4.5 + enroll * .025 + ((s.trad || 50) - 50) * .03 + y * .25 + pb * .04 + .1 * sentLately(s, year) + g.n(0, 1.2))), Math.round(4 * k), Math.round(13 * k));
   const lv = CLASS_LEVEL[s.cls || "1A"] + Math.round(((s.trad || 50) - 50) * .06 + y * .8 + pb * .03 + g.n(0, 2));
   return { n, lv };
 }
@@ -81,18 +82,18 @@ function summerGrow(p, coach, rng, mul) {
 // A season of practice on paper, for a player at a school nobody watches: what a balanced week does
 // for his two positions, added up over the weeks (in steps, so growth near potential slows)
 const PAPER_WEEKS = 14;
-function seasonOnPaper(p, coach, rng) {
+function seasonOnPaper(p, coach, rng, s) {
   const b = blocksOf(CPU_PLAN), dev = devMul(coach), steps = 5;
   [p.pos, p.pos2].forEach(pos => {
     const unit = unitOfPos(pos);
     if (!unit) return;
     const amt = GROW_RATE * effBlocks(b[unit]) * ethMul(p) * dev * (YEAR_GROW[p.yr] || 1) * PAPER_WEEKS / steps;
-    for (let i = 0; i < steps; i++) growPlayer(p, UNITS[unit][pos], pos, amt, rng, null);
+    for (let i = 0; i < steps; i++) growPlayer(p, strAttrs(UNITS[unit][pos], s), pos, amt, rng, null);
   });
   // Conditioning: stamina, and a little strength and speed
   const ce = effBlocks(b.cond) * PAPER_WEEKS;
   condition(p, .35 * ce * ethMul(p), rng, null);
-  growPlayer(p, { str: .12, spd: .06 }, p.pos, GROW_RATE * ce * ethMul(p) * dev, rng, null);
+  growPlayer(p, strAttrs({ str: .12, spd: .06 }, s), p.pos, GROW_RATE * ce * ethMul(p) * dev, rng, null);
 }
 // One player's year, from the end of one season to the next: graduation, leaving, then (on paper) the
 // season's practice, and the summer. Returns "grad", "left" or "" (still on the team).
@@ -100,7 +101,7 @@ function playerYear(s, p, year, onPaper) {
   if (p.yr >= 12) return "grad";
   const rng = playerRng(s, p, year);
   if (quitsAfter(p, rng)) return "left";
-  if (onPaper) seasonOnPaper(p, s.coach, rng);
+  if (onPaper) seasonOnPaper(p, s.coach, rng, s);
   summerGrow(p, s.coach, rng, 1);
   p.yr++;
   return "";
@@ -118,7 +119,8 @@ function rosterAt(sum, year) {
   if (year < Y0 + 4) {
     const opts = { id: sum.id, cls: sum.cls, mascot: sum.mascot, town: sum.town, color: [sum.color, sum.colorName, sum.colorFam], trad: sum.trad0 != null ? sum.trad0 : sum.trad };
     s = genSchool(dice(sum.seed), opts);
-    Object.assign(s, { seed: sum.seed, district: sum.district, colorFam: sum.colorFam, trad: sum.trad, classes: sum.classes, coach: clone(sum.coach), off: sum.off, def: sum.def });
+    Object.assign(s, { seed: sum.seed, district: sum.district, colorFam: sum.colorFam, trad: sum.trad, classes: sum.classes, coach: clone(sum.coach), off: sum.off, def: sum.def,
+      fac: sum.fac, bst: sum.bst, sent: sum.sent });
     if (year <= Y0) return s;
   } else s = Object.assign({}, sum, { coach: clone(sum.coach), players: [] });
   let players = year < Y0 + 4 ? s.players : [];
@@ -242,8 +244,8 @@ const LEFT_WHY = ["moved away", "is playing another sport instead", "took an aft
 // graduated and the players who left (as text, since they're gone), the freshmen, and who grew most
 function yearReportOf(rep, year) {
   if (!rep) return null;
-  const who = p => ({ name: fullName(p), pos: p.pos, ovr: ovr(p, p.pos), stats: careerStatLine(p.cs), why: LEFT_WHY[hashSeed(p.id + year) % LEFT_WHY.length] });
+  const who = p => ({ name: fullName(p), pos: p.pos, ovr: ovr(p, p.pos), stats: careerStatLine(p.cs), why: LEFT_WHY[hashSeed(p.id + year) % LEFT_WHY.length], col: p.sign != null ? collegeText(p.sign) : "" });
   const best = list => list.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
   return { from: year, grads: best(rep.grads).map(who), left: best(rep.left).map(who), fresh: rep.fresh.map(p => p.id), joined: (rep.joined || []).map(p => p.id),
-    went: rep.went || 0, grew: rep.grew.slice(0, 10) };
+    went: rep.went || 0, grew: rep.grew.slice(0, 10), offers: rep.offers || [] };
 }

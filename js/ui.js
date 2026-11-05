@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 9;
+const BUILD = 10;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -96,6 +96,8 @@ function upgradeSave(s) {
   if (se6 && se6.schools && !se6.summer) se6.summer = newSummer();
   // Version 9: the whole state, 1A to 6A. A state from before then gets the other five classes.
   if (se6 && se6.schools) { if (!se6.cls) se6.cls = "1A"; addClasses(se6); }
+  // Version 10: money and college offers. Every school gets boosters and facilities.
+  if (se6 && se6.schools) moneyInit(se6);
   s.build = BUILD;
   return s;
 }
@@ -369,7 +371,7 @@ const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, p
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: vSeason, week: vWeek, standings: vStandings, schedule: vSchedule,
   bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear, halls: vHalls,
-  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning };
+  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -609,7 +611,8 @@ function act(a, ds) {
       else if (APP.screen === "roster") { const b = APP.view && APP.view.back; APP.screen = b === "game" && !(S && S.teams) ? "home" : b || "home"; }
       else if (APP.screen === "week" && APP.weekFrom === "schedule") APP.screen = "schedule";
       else if (APP.screen === "coach") APP.screen = SCREENS[APP.coachBack] && APP.coachBack !== "coach" ? APP.coachBack : "home";
-      else if (APP.screen === "halls") APP.screen = "offseason";
+      else if (APP.screen === "halls" || APP.screen === "fund") APP.screen = "offseason";
+      else if (APP.screen === "recruits") APP.screen = SCREENS[APP.recruitBack] && APP.recruitBack !== "recruits" ? APP.recruitBack : seasonScreen();
       else if (APP.screen === "joblook") APP.screen = seasonScreen();
       else APP.screen = seasonScreen();
       APP.reportView = null;
@@ -670,7 +673,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!jobsAct(a, ds) && !savesAct(a)) return;
+    default: if (!jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
@@ -688,10 +691,11 @@ function startScreen() {
   if (sc === "newcoach") return APP.coachDraft ? sc : "home";
   if (sc === "coach") return CAREER ? sc : "home";
   if (sc === "summary") return season && ["over", "offseason"].includes(SEASON.phase) && !movedSchools() ? sc : season ? seasonScreen() : "home";
-  if (["offseason", "review", "carousel", "market"].includes(sc)) return season && SEASON.phase === "offseason" ? offseasonScreen() : season ? "season" : "home";
+  if (["offseason", "review", "carousel", "market", "signing"].includes(sc)) return season && SEASON.phase === "offseason" ? offseasonScreen() : season ? "season" : "home";
   if (sc === "joblook") return season && SEASON.phase === "offseason" && !marketClosed() && SEASON.review && SEASON.review.open.includes(APP.jobLook) ? sc : season ? seasonScreen() : "home";
   if (sc === "newyear") return season && SEASON.yearReport ? sc : season ? "season" : "home";
-  if (sc === "halls") return season && SEASON.phase === "offseason" && marketClosed() ? sc : season ? seasonScreen() : "home";
+  if (sc === "halls" || sc === "fund") return season && SEASON.phase === "offseason" && marketClosed() ? sc : season ? seasonScreen() : "home";
+  if (sc === "recruits") return season ? sc : "home";
   if (sc === "simming" || sc === "turning") return season ? seasonScreen() : "home";
   if (sc === "week") return season && APP.weekView && APP.weekView < SEASON.week ? sc : season ? "season" : "home";
   if (sc === "bracket") return season && SEASON.bracket ? sc : season ? "season" : "home";

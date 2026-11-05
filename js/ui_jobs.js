@@ -55,7 +55,7 @@ const whyOpen = id => ({ retired: "Its coach retired.", fired: "Its coach was fi
 // One job, in a few sentences: everything the list says about it
 function jobText(id) {
   const s = SEASON.schools[id];
-  return `${lastSeasonText(id)} ${talentText(s.rating)} ${capFirst(tradWord(s.trad))} (tradition ${Math.round(s.trad)}). Enrollment ${numText(s.enroll)}. Stipend ${moneyText(stipendOf(s))}. ${capFirst(patienceWord(s.trad))}. ${whyOpen(id)}`.replace(/\s+/g, " ").trim();
+  return `${lastSeasonText(id)} ${talentText(s.rating)} ${capFirst(tradWord(s.trad))} (tradition ${Math.round(s.trad)}). Enrollment ${numText(s.enroll)}. Stipend ${moneyText(stipendOf(s))}. ${capFirst(patienceWord(s.trad))}. ${whyOpen(id)} ${jobMoneyText(s)}`.replace(/\s+/g, " ").trim();
 }
 function sortedJobs() {
   const by = APP.jobSort || "interest", cls = APP.jobCls || "all", talent = s => s.rating.off + s.rating.def;
@@ -138,7 +138,7 @@ function vJobLook() {
 function jobsAct(a, ds) {
   const M = SEASON && SEASON.market, open = !!(M && !M.done && SEASON.phase === "offseason");
   switch (a) {
-    case "carousel": if (!open) return true; M.stage = M.stage === "review" ? "news" : M.stage; APP.screen = "carousel"; scrollTop(); return true;
+    case "carousel": if (!open) return true; M.stage = M.stage === "review" || M.stage === "signing" ? "news" : M.stage; APP.screen = "carousel"; scrollTop(); return true;
     case "market": if (!open) return true; M.stage = "jobs"; marketMsg = ""; APP.screen = "market"; scrollTop(); return true;
     case "jobsort": if (JOB_SORTS.some(x => x[0] === ds.v)) { APP.jobSort = ds.v; announce(`Sorted by ${JOB_SORTS.find(x => x[0] === ds.v)[1].toLowerCase()}.`); } return true;
     case "jobcls": if (ds.v === "all" || CLASSES.includes(ds.v)) { APP.jobCls = ds.v; announce(ds.v === "all" ? `Every class: ${plural(sortedJobs().length, "job")}.` : `Class ${ds.v}: ${plural(sortedJobs().length, "job")}.`); } return true;
@@ -188,5 +188,5 @@ function vTurning() {
 function offseasonScreen() {
   const M = SEASON.market;
   if (!M || M.done) return "offseason";
-  return M.stage === "review" ? "review" : M.stage === "news" ? "carousel" : "market";
+  return M.stage === "signing" ? "signing" : M.stage === "review" ? "review" : M.stage === "news" ? "carousel" : "market";
 }

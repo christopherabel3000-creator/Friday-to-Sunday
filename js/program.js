@@ -4,7 +4,8 @@
 
 /* ---------- The summer ---------- */
 // Eight weeks of summer, shared out by weight (none 0 to heavy 3) like the practice plan. The plan
-// carries over from year to year (SEASON.summer).
+// carries over from year to year (SEASON.summer). Each fundraiser past the first takes a week
+// (money.js: fundWeeks).
 const SUMMER_WEEKS = 8;
 const SUMMER_AREAS = [["weights", "Summer weights"], ["seven", "7-on-7 league"], ["camp", "Youth camp"], ["halls", "Hallway recruiting"], ["study", "Study hall"]];
 const SUMMER_IDS = SUMMER_AREAS.map(a => a[0]);
@@ -18,12 +19,13 @@ const SUMMER_DESC = {
 };
 const newSummer = () => ({ weights: 2, seven: 2, camp: 2, halls: 2, study: 2 });
 function summerWeeks(plan) {
-  const tot = SUMMER_IDS.reduce((t, a) => t + (plan[a] || 0), 0), out = {};
-  SUMMER_IDS.forEach(a => { out[a] = tot ? SUMMER_WEEKS * (plan[a] || 0) / tot : 0; });
+  const tot = SUMMER_IDS.reduce((t, a) => t + (plan[a] || 0), 0), out = {}, weeks = SUMMER_WEEKS - fundWeeks();
+  SUMMER_IDS.forEach(a => { out[a] = tot ? weeks * (plan[a] || 0) / tot : 0; });
   return out;
 }
 // Summer workouts are voluntary: who shows up depends on work ethic and the coach's Program building
-const attendRate = (p, coach) => clamp(.45 + .5 * (p.eth || 50) / 100 + (coachPbd(coach) - 42) * .01, .2, .98);
+// (extra: the weight room, and players busy selling discount cards)
+const attendRate = (p, coach, extra) => clamp(.45 + .5 * (p.eth || 50) / 100 + (coachPbd(coach) - 42) * .01 + (extra || 0), .2, .98);
 // What 7-on-7 works on: passing for quarterbacks, hands and routes for backs, receivers and tight
 // ends, coverage for linebackers and defensive backs
 function sevenAttrs(p) {
@@ -37,22 +39,31 @@ function sevenAttrs(p) {
 const SUMMER_K = .9, STUDY_K = 3.5;
 // Your summer, for the players coming back (it happens before the year turns over in nextSeason).
 // Youth camp builds up your youth program (s.youth), which makes the next classes bigger and better.
+// buy: the season's purchases (money.js): team camp adds 7-on-7 and install time and gets the players
+// who go seen by colleges (p.tc: the season it counts for), a strength coach makes weights count more,
+// and a tutor makes study hall count more and keeps working through the season (s.tutor).
 // Returns how many players showed up.
-function runSummer(s, plan, year) {
-  const wk = summerWeeks(plan), c = s.coach;
+function runSummer(s, plan, year, buy) {
+  buy = buy || {};
+  const wk = summerWeeks(plan), c = s.coach, extra = wtAttend(s) - (myFundraisers().includes("cards") ? CARDS_ATTEND : 0);
+  const wtK = wtMul(s) * (buy.strength != null ? STRENGTH_MUL : 1), seven = wk.seven + (buy.tcamp != null ? TCAMP_SEVEN : 0), study = buy.tutor != null ? TUTOR_STUDY : 1;
   let went = 0;
   s.players.forEach(p => {
     if (p.yr >= 12) return;
     const rng = seededRandom(hashSeed(`${s.seed}:${p.id}:${year}:summer`));
-    if (rng() >= attendRate(p, c)) return;
+    if (rng() >= attendRate(p, c, extra)) return;
     went++;
     const e = ethMul(p);
-    if (wk.weights) growPlayer(p, { str: 1, spd: .3 }, p.pos, SUMMER_K * effBlocks(wk.weights) * e, rng, null);
+    if (wk.weights) growPlayer(p, { str: 1, spd: .3 }, p.pos, SUMMER_K * effBlocks(wk.weights) * e * wtK, rng, null);
     const a = sevenAttrs(p);
-    if (wk.seven && a) growPlayer(p, a, p.pos, SUMMER_K * effBlocks(wk.seven) * e, rng, null);
-    if (wk.study) { const gr = gradesOf(p); p.gr = Math.min(99, gr + Math.round(STUDY_K * effBlocks(wk.study) * (gr < 70 ? 1 : .3))); }
+    if (seven && a) growPlayer(p, a, p.pos, SUMMER_K * effBlocks(seven) * e, rng, null);
+    if (wk.study) { const gr = gradesOf(p); p.gr = Math.min(99, gr + Math.round(STUDY_K * effBlocks(wk.study) * study * (gr < 70 ? 1 : .3))); }
+    if (buy.tcamp != null) p.tc = year + (12 - p.yr);
   });
   s.youth = Math.min(6, (s.youth || 0) * .6 + effBlocks(wk.camp) * .5);
+  // Team camp: a head start on the playbook, spread across it like install time with no focus
+  if (buy.tcamp != null && s.mastery) for (const id in s.mastery) s.mastery[id] = Math.round(Math.min(100, s.mastery[id] + TCAMP_INSTALL / Object.keys(s.mastery).length * (1 - s.mastery[id] / 100)) * 100) / 100;
+  if (buy.tutor != null) s.tutor = year + 1;
   return went;
 }
 
@@ -92,7 +103,9 @@ function hallProspects(s, year) {
 // Pitches this offseason: one, plus the summer's hallway time, plus the Hallway recruiter perk
 const pitchesFor = (plan, coach) => 1 + Math.round(effBlocks(summerWeeks(plan).halls)) + (coachHas(coach, "rec") ? 1 : 0);
 // The chance an athlete says yes: his interest, your Program building and tradition, and the perk
-const yesChance = (p, s) => clamp([.25, .5, .75][p.interest] + (coachPbd(s.coach) - 42) * .01 + ((s.trad || 50) - 50) * .003 + (coachHas(s.coach, "rec") ? .15 : 0), .05, .95);
+// (the locker room and stadium, and the players the school has sent to college lately, help too)
+const yesChance = (p, s) => clamp([.25, .5, .75][p.interest] + (coachPbd(s.coach) - 42) * .01 + ((s.trad || 50) - 50) * .003 + (coachHas(s.coach, "rec") ? .15 : 0)
+  + stadPitch(s) + .02 * sentLately(s, (SEASON ? SEASON.year : 0) + 1), .05, .95);
 // The offseason's hallways: SEASON.halls = { players, said: { id: "yes" | "no" } }
 function hallsNow() {
   if (!SEASON.halls) SEASON.halls = { players: hallProspects(mySchool(), SEASON.year), said: {} };
@@ -132,7 +145,7 @@ function reportCards(s, rng) {
   const out = [];
   s.players.forEach(p => {
     if (p.inj) return;
-    const risk = clamp((55 - gradesOf(p)) * .025, 0, .5);
+    const risk = clamp((55 - gradesOf(p)) * .025, 0, .5) * (tutorOn(s) ? TUTOR_CARDS : 1);
     if (risk > 0 && rng() < risk) { p.inj = { w: 1, at: "grades" }; out.push(p.id); }
   });
   return out;

@@ -45,7 +45,8 @@ const physBlocks = b => ["qb", "skill", "ol", "front", "secondary", "kick", "con
 const prepLevelOf = b => b <= 0 ? 0 : b < 1.25 ? 1 : b < 2.4 ? 2 : 3;
 // A coach with Scouting 45 or better gets one level more out of the same film time
 const SCOUT_SHARP = 45;
-const prepLevelFor = (b, coach) => { const l = prepLevelOf(b); return l ? Math.min(3, l + (coach && coach.sct >= SCOUT_SHARP ? 1 : 0) + (coachHas(coach, "film") ? 1 : 0)) : 0; };
+// (and so does a great or elite film room: money.js)
+const prepLevelFor = (b, coach, s) => { const l = prepLevelOf(b); return l ? Math.min(3, l + (coach && coach.sct >= SCOUT_SHARP ? 1 : 0) + (coachHas(coach, "film") ? 1 : 0) + (s && filmSharp(s) ? 1 : 0)) : 0; };
 // How fresh the team is at kickoff, in percent of full energy
 const freshOf = (b, contact) => clamp(Math.round(100 - physBlocks(b) * (CONTACT[contact] || CONTACT.shells).wear + 3 * b.rec), 86, 100);
 
@@ -152,24 +153,26 @@ function injuryLength(table, rng) {
 const healthMul = p => clamp(1.6 - (p.hlt || 60) / 100, .6, 1.4);
 // About one injury every three weeks in shells, at the usual amount of work. Recovery time cuts it.
 const PRACTICE_RISK = .006;
+// The practice field cuts injuries, and good equipment cuts the extra ones from full pads (money.js).
 function practiceInjuries(s, b, contact, rng, rep) {
   const recMul = 1 - .25 * Math.min(1, b.rec / 2), work = physBlocks(b) / 6, c = CONTACT[contact] || CONTACT.shells;
+  const risk = (c.risk > 1 ? 1 + (c.risk - 1) * (1 - padsCut(s)) : c.risk) * fieldInj(s);
   s.players.forEach(p => {
-    if (p.inj || rng() >= PRACTICE_RISK * c.risk * work * recMul * healthMul(p)) return;
+    if (p.inj || rng() >= PRACTICE_RISK * risk * work * recMul * healthMul(p)) return;
     p.inj = { w: injuryLength(PRACTICE_INJ, rng), at: "practice" };
     if (rep) rep.hurt.push(p.id);
   });
 }
 // The end of a week: everyone who missed a game is a game closer to coming back. Recovery time
-// sometimes gets a player back a week early.
+// sometimes gets a player back a week early, a little more often with a great practice field.
 function healSchool(s, recBlocks, rng) {
-  const back = [];
+  const back = [], early = .35 * (fieldHeals(s) ? 1.3 : 1);
   s.players.forEach(p => {
     if (!p.inj) return;
     if (p.inj.w <= 0) { delete p.inj; back.push(p.id); return; }
     if (p.inj.w >= 50) return;
     // Recovery can get an injured player back a week early, but not a player ruled ineligible
-    p.inj.w -= 1 + (p.inj.at !== "grades" && rng() < .35 * Math.min(1, (recBlocks || 0) / 3) ? 1 : 0);
+    p.inj.w -= 1 + (p.inj.at !== "grades" && rng() < early * Math.min(1, (recBlocks || 0) / 3) ? 1 : 0);
     if (p.inj.w < 0) { delete p.inj; back.push(p.id); }
   });
   return back;
@@ -197,7 +200,7 @@ function injTextNext(inj) {
 function practiceSchool(s, plan, rng, opts) {
   opts = opts || {};
   const b = blocksOf(plan), c = CONTACT[plan.contact] || CONTACT.shells, dev = devMul(s.coach);
-  const rep = { blocks: b, contact: plan.contact, grew: {}, mastery: [], hurt: [], fresh: freshOf(b, plan.contact), prep: prepLevelFor(b.prep, s.coach) };
+  const rep = { blocks: b, contact: plan.contact, grew: {}, mastery: [], hurt: [], fresh: freshOf(b, plan.contact), prep: prepLevelFor(b.prep, s.coach, s) };
   const before = {};
   s.players.forEach(p => { before[p.id] = {}; POS_IDS.forEach(pos => { before[p.id][pos] = ovr(p, pos); }); });
   // Fundamentals, unit by unit
@@ -206,11 +209,12 @@ function practiceSchool(s, plan, rng, opts) {
     if (!eff) continue;
     // A coach's background or perks can speed up a unit (a former quarterback's quarterbacks, say)
     const bg = unitGrowMul(s.coach, unit);
-    unitPlayers(s, unit).forEach(([p, attrs, pos]) => growPlayer(p, attrs, pos, GROW_RATE * eff * ethMul(p) * dev * c.grow * bg * (YEAR_GROW[p.yr] || 1), rng, rep));
+    // Strength grows with the weight room (money.js)
+    unitPlayers(s, unit).forEach(([p, attrs, pos]) => growPlayer(p, strAttrs(attrs, s), pos, GROW_RATE * eff * ethMul(p) * dev * c.grow * bg * (YEAR_GROW[p.yr] || 1), rng, rep));
   }
   // Conditioning: stamina, and a little strength and speed
   const ce = effBlocks(b.cond);
-  if (ce) s.players.forEach(p => { if (sitsOut(p)) return; condition(p, .35 * ce * ethMul(p), rng, rep); growPlayer(p, { str: .12, spd: .06 }, p.pos, GROW_RATE * ce * ethMul(p) * dev, rng, rep); });
+  if (ce) s.players.forEach(p => { if (sitsOut(p)) return; condition(p, .35 * ce * ethMul(p), rng, rep); growPlayer(p, strAttrs({ str: .12, spd: .06 }, s), p.pos, GROW_RATE * ce * ethMul(p) * dev, rng, rep); });
   installPlays(s, b.install, plan.focus, rep);
   if (!opts.noInjuries) practiceInjuries(s, b, plan.contact, rng, rep);
   // Overall ratings that went up, for the report: at his own position, and wherever he starts

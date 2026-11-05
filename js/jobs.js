@@ -122,7 +122,8 @@ function gradeWhy(r, e) {
 // grades there } (yours also has pay and id).
 const SEC_START = 60, SEC_PER = 10, FIRE_AT = 25, SHORT = -1;
 const adPatience = trad => 1 + ((trad == null ? 50 : trad) - 50) / 100;
-const newSec = (sec, g, trad) => clamp(Math.round((sec + SEC_PER * g * (g < 0 ? adPatience(trad) : 1)) * 10) / 10, 0, 100);
+// Boosters who care a lot are less patient too (money.js: boostPressure)
+const newSec = (sec, g, trad, bst) => clamp(Math.round((sec + SEC_PER * g * (g < 0 ? adPatience(trad) * boostPressure(bst || 0) : 1)) * 10) / 10, 0, 100);
 function firedAfter(J) {
   if (J.ten <= 1) return false;
   if (J.ten === 2) return J.tg.length >= 2 && J.tg[0] <= SHORT && J.tg[1] <= SHORT;
@@ -201,7 +202,7 @@ function yearEndReview() {
     if (entry && entry.g == null) gradeMySeason(entry);
     const g = entry ? entry.g : 0;
     J.ten++; if (J.tg.length < 2) J.tg.push(g);
-    J.sec = newSec(J.sec, g, s.trad);
+    J.sec = newSec(J.sec, g, s.trad, boostersOf(s));
     R.paid = J.pay; CAREER.earned = (CAREER.earned || 0) + J.pay;
     if (J.ten <= RAISE_YEARS) J.pay = Math.round(J.pay * (1 + RAISE));
     R.fired = firedAfter(J); R.sec = J.sec;
@@ -214,12 +215,22 @@ function yearEndReview() {
     c.rep = newRep(c.rep, g, s.cls); c.age++; c.yrs++;
     if (c.yrs <= COACH_GROWTH_YEARS) growCoach(c);
     const J = c.job; J.ten++; if (J.tg.length < 2) J.tg.push(g);
-    J.sec = newSec(J.sec, g, s.trad);
+    J.sec = newSec(J.sec, g, s.trad, boostersOf(s));
     const why = c.yrs >= c.span ? "retired" : firedAfter(J) ? "fired" : "";
     if (why) { R.open.push(id); R.why[id] = why; }
   }
+  // Boosters move with every school's season, and the computer schools build (money.js). Then the
+  // last offers for the seniors, signing day, and the spring offers for the juniors (recruit.js).
+  moneyYearEnd(res);
+  if (CAREER && me) {
+    R.post = offerWindow("post");
+    const sg = signingDay();
+    R.spring = offerWindow("spring");
+    R.signRep = sg.rep;
+  }
   SEASON.review = R;
-  SEASON.market = { stage: "review", tried: {}, offer: null, fallback: null, took: null, from: null, transfers: [], done: false };
+  const sg = SEASON.signing, signNews = !!(sg && (sg.mine.length || sg.pending.length || (R.spring || []).length || (R.post || []).length));
+  SEASON.market = { stage: signNews ? "signing" : "review", tried: {}, offer: null, fallback: null, took: null, from: null, transfers: [], done: false };
   R.news = carouselNews();
   checkFallback();
   return R;
@@ -392,6 +403,8 @@ function switchDistrict(cls, d) {
 function takeJob(id) {
   const M = SEASON.market, R = SEASON.review, old = SEASON.myId, from = SEASON.schools[old], c = CAREER.coach;
   const moving = transfersFrom(from, id);
+  // The money you raised stays with the school, and its next coach keeps the books
+  delete from.fund;
   from.players = from.players.filter(p => !moving.includes(p));
   if (!R.why[old]) { R.open.push(old); R.why[old] = "left"; }
   const target = SEASON.schools[id];

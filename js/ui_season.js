@@ -108,7 +108,7 @@ function vSeason() {
       <p class="muted">The ${esc(opp.mascot)}${isPlayoffWeek(n) ? `: ${seedText(r)}, ${recText(fullRecord(r))}.` : weeksDone() ? `: ${recLine(r, weeksDone())}.` : "."} ${talentText(opp.rating)} Coach ${esc(coachName(opp.coach))}: ${esc(schemeText(opp))}.</p>
       <p>${esc(paperLine(gm))}</p>
       ${matchupTable(Object.assign({}, me, { depth: SEASON.nextDepth ? SEASON.nextDepth.depth : me.depth }), opp, me.mascot, opp.mascot)}
-      <div class="choices"><button class="btn" data-a="playgame">${confirming === "playgame" ? "Tap again to leave the exhibition" : "Play the game"}</button><button class="btn ghost" data-a="simgame">${confirming === "simgame" ? "Tap again to leave the exhibition" : "Sim the game"}</button></div>
+      <div class="choices"><button class="btn" data-a="playgame">${confirming === "playgame" ? "Tap again to leave the exhibition" : "Play the game"}</button><button class="btn ghost" data-a="keygame">${confirming === "keygame" ? "Tap again to leave the exhibition" : "Key moments"}</button><button class="btn ghost" data-a="simgame">${confirming === "simgame" ? "Tap again to leave the exhibition" : "Sim the game"}</button></div>
       <div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="sroster" data-t="${r}">${esc(opp.mascot)} roster</button></div>
     </section>
     ${practicePanel()}
@@ -137,7 +137,7 @@ function vSeason() {
       <button class="btn ghost" data-a="week" data-v="${last}">${weekName(last)} results</button></section>` : "";
   // The rest of the season's screens. Your roster is with this week's game when there is one.
   const more = [SEASON.bracket ? `<button class="btn ghost" data-a="bracket">Playoff bracket</button>` : "", gm && !played(gm) && !live && !camp ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`,
-    `<button class="btn ghost" data-a="coach">Your coach</button>`].filter(Boolean);
+    `<button class="btn ghost" data-a="coach">Your coach</button>`, `<button class="btn ghost" data-a="recruits">College recruiting</button>`].filter(Boolean);
   const simBtn = camp ? ["camp", "Sim the rest of camp"] : SEASON.phase === "regular" ? ["playoffs", "Sim to the playoffs"] : SEASON.phase === "playoffs" ? ["end", "Sim the rest of the season"] : null;
   return `
     <div class="masthead" style="--team:${me.color}">
@@ -249,6 +249,7 @@ function vWeek() {
     ${box ? `<button class="btn ghost" data-a="boxscore">Box score and play-by-play</button>` : ""}
     ${xpLine(n) ? `<p class="banner">${esc(xpLine(n))}</p>` : ""}
     ${news.length ? `<section class="panel"><h3>News</h3>${list(news)}</section>` : ""}
+    ${((SEASON.offerNews || {})[n] || []).length ? `<section class="panel"><h3>College offers</h3>${list(SEASON.offerNews[n])}</section>` : ""}
     ${injuryPanel(n)}
     <section class="panel"><h3>${playoffs ? weekName(n) : `District ${SEASON.district}`}</h3>${list(nearby.map(scoreText))}</section>
     ${!playoffs && n >= DISTRICT_START ? `<section class="panel"><h3>Standings</h3>${standingsTable(SEASON.district, n, true)}</section>` : ""}

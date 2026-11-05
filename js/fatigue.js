@@ -109,7 +109,8 @@ function injurySnap(r) {
   if (!S || !S.teams || r.preSnap || !S.snap) return "";
   const notes = [], hot = new Set([r.carId, r.tklId, r.tgtId, r.covId].filter(Boolean)), watching = S.teams[0].cpu && S.teams[1].cpu;
   [0, 1].forEach(t => {
-    if (rand() >= GAME_INJ_RATE) return;
+    // Good equipment cuts it (money.js: each team's injk)
+    if (rand() >= GAME_INJ_RATE * (S.teams[t].injk || 1)) return;
     const isOff = t === S.snap.poss, pk = isOff ? (OFF_PKGS[S.offPkg] ? S.offPkg : "p11") : (DEF_PKGS[S.defPkg] ? S.defPkg : "nickel");
     const lu = onField(t, pk), team = S.teams[t];
     const p = pickBy(lineupPlayers(lu).map(baseOf), q => (hot.has(q.id) ? 2.5 : 1) * (1 + (100 - (q.en == null ? 100 : q.en)) / 60) * healthMul(q));

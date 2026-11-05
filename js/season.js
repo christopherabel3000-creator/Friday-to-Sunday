@@ -177,6 +177,8 @@ function newSeason(seed, year) {
   SEASON = { v: 1, seed, world: seed, year, year0: year, cls: "1A", district, myId: null, schools: w.schools, districts: w.districts, weeks: makeSchedule(w.districts, g),
     week: 1, phase: "pick", camp: 0, pre: PRESEASON_WEEKS, bracket: null, champion: null, rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {},
     plan: newPlan(), practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {}, history: [], summer: newSummer(), halls: null };
+  // Every school's boosters and facilities (money.js)
+  moneyInit(SEASON);
   setExpectations();
   return SEASON;
 }
@@ -192,11 +194,16 @@ function nextSeason() {
   // Every class's state champion goes into the history
   const champs = old.champs || (old.champion ? { [old.cls || "1A"]: old.champion } : {});
   const history = (old.history || []).concat(CLASSES.filter(c => champs[c]).map(c => ({ year: old.year, cls: c, id: champs[c], name: nameOf(champs[c]) })));
-  // Your summer program (program.js), before the year turns over for everyone
-  const me = mySchool(), before = {};
+  // The offseason's money (money.js), if nobody opened the books, then your summer program
+  // (program.js), before the year turns over for everyone. College coaches at team camp may offer
+  // your juniors (recruit.js).
+  openBooks();
+  const me = mySchool(), before = {}, buy = old.books && old.books.id === me.id ? old.books.bought : {};
   me.players.forEach(p => { before[p.id] = ovr(p, p.pos); });
-  const went = runSummer(me, old.summer || newSummer(), old.year);
+  const went = runSummer(me, old.summer || newSummer(), old.year, buy);
+  const campOffers = buy.tcamp != null ? offerWindow("summer") : [];
   const report = advanceState();
+  report.offers = campOffers;
   report.joined = joinRecruits(me, old.halls);
   report.went = went;
   // Who grew from the end of last season, summer program and all
@@ -517,6 +524,8 @@ function endOfWeek() {
     s.rating = schoolRating(s);
   });
   for (const id in SEASON.schools) { const s = SEASON.schools[id]; if (!isFull(s)) { s.rating.off += WEEKLY_GROWTH; s.rating.def += WEEKLY_GROWTH; } }
+  // College offers come with the report cards, for the seniors in your district (recruit.js)
+  if (cards && SEASON.myId) (SEASON.offerNews = SEASON.offerNews || {})[SEASON.week] = offerWindow("w" + SEASON.week).slice(0, 6);
 }
 
 // Your injury news by week: who was hurt in the game, and who's back (the last few weeks are kept)
@@ -590,6 +599,8 @@ function startMyGame() {
   if (P && P.film && P.opp === S.teams[1 - me].id) {
     const pr = prepFrom(P.film, P.prep, mySchool().coach.sct);
     if (pr && coachHas(mySchool().coach, "film")) pr.k *= FILM_JUNKIE;
+    // The film room (money.js)
+    if (pr) pr.k *= filmMul(mySchool());
     S.teams[me].prep = pr;
   }
   seedFilm(me, S.teams[1 - me].coach);

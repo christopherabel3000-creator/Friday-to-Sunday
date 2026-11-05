@@ -141,6 +141,8 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     // The next season, at the same school with the same coach
     const seed = g("SEASON.seed"), myId = g("SEASON.myId");
     g(`act("offseason")`);
+    // Signing day comes first when your players have college news
+    if (g("APP.screen") === "signing") g(`act("adreview")`);
     ok(g("APP.screen") === "review" && g("SEASON.phase") === "offseason", "on to the offseason: the athletic director's review first");
     g(`act("carousel")`); g(`act("market")`);
     ok(g("APP.screen") === "market", "then the coaching changes and the job market");

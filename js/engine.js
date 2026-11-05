@@ -275,7 +275,7 @@ function gameTeam(s, cpu, styles) {
   return { id: s.id, name: s.mascot, school: s.town, abbr: s.abbr, color: s.color, level: s.level, cpu: !!cpu,
     off: resolveStyle(styles.off || s.off, OFF_STYLE_IDS), def: resolveStyle(styles.def || s.def, DEF_STYLE_IDS),
     coach: clone(s.coach), cp: coachParams(s.coach), players: clone(s.players), depth: clone(s.depth), dver: 0,
-    mastery: s.mastery ? clone(s.mastery) : null, score: 0, st: newTeamStats() };
+    mastery: s.mastery ? clone(s.mastery) : null, score: 0, st: newTeamStats(), injk: typeof eqInj === "function" ? eqInj(s) : 1 };
 }
 // cfg: { level, cpu: [home, away], styles: [home, away], rot: [home, away], depth: [home, away], aud,
 // title, neutral, fresh: [home, away] }. schools[0] is the home team. depth: a depth chart for this

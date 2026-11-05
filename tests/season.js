@@ -24,7 +24,8 @@ const fresh = () => { const sb = load(); return { sb, g: sb.__get, F: sb.__fts }
   ok(S0.phase === "pick" && S0.myId === null && S0.week === 1, "a new season starts with picking a school");
   // A summary rebuilds into the same school a world with that district at home would have built
   const other = S0.districts.find(d => d.n !== S0.district), id = other.ids[3];
-  const rebuilt = g(`rebuildSchool(SEASON.schools["${id}"])`);
+  // (boosters, facilities and college signings are kept with the summary, money.js)
+  const rebuilt = g(`(() => { const s = rebuildSchool(SEASON.schools["${id}"]); delete s.fac; delete s.bst; delete s.sent; return s; })()`);
   const { g: g2 } = fresh();
   const full = g2(`genWorld(4242, ${other.n}).schools["${id}"]`);
   ok(JSON.stringify(rebuilt) === JSON.stringify(full), "a summary rebuilds into exactly the same school");
