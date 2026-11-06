@@ -557,7 +557,7 @@ function checkScreen(page, label) {
   ev("mySchool().fund = 10");
   tap(p4, "facup", "wt");
   ok(/^Not enough in the fund/.test(await said4()), "an upgrade the fund can't pay for says so");
-  ev("mySchool().fund = 30000");
+  ev("mySchool().fund = 30000; mySchool().fac[0] = 2");
   const wt0 = ev("mySchool().fac[0]");
   tap(p4, "facup", "wt");
   ok(ev("mySchool().fac[0]") === wt0 + 1 && /^The weight room is now/.test(await said4()) && btn(d4, "facundo", "wt"), "an upgrade, read out, with a way to cancel it");
@@ -679,6 +679,45 @@ function checkScreen(page, label) {
   tap(p8, "keygame");
   ok(ev8("APP.screen") === "game" && focused(d8) === d8.getElementById("keymoment") && /^(Key moment\.|It never got close)/.test(d8.getElementById("keymoment").textContent.replace(/^\s*(Your call|Final)\s*/, "")), "key moments: the game opens on where things stand");
   checkScreen(p8, "key moments");
+
+  // ---- College: from the high school job market to a college season ----
+  const p9 = await openPage(), d9 = p9.d, w9 = p9.w, ev9 = x => w9.eval(x), head9 = () => (d9.querySelector("[data-focus]") || {}).textContent || "";
+  ev9(`newCareer("Kim", "Lee", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]); CAREER.rep = 90; simSeason(); APP.screen = "summary"; render();`);
+  tap(p9, "offseason");
+  if (ev9("APP.screen") === "signing") tap(p9, "adreview");
+  tap(p9, "carousel"); tap(p9, "market");
+  const colJob = ev9(`marketJobs().find(id => isCollege(jobSchool(id).cls))`);
+  ok(!!colJob && /Division I/.test(d9.body.textContent), "at a reputation of 80, the job market lists college jobs");
+  checkScreen(p9, "job market with college jobs");
+  tap(p9, "joblook", colJob);
+  ok(ev9("APP.screen") === "joblook" && /A closer look/.test(d9.body.textContent) && /Coming back next season/.test(d9.body.textContent), "a closer look at a college job");
+  checkScreen(p9, "closer look at a college job");
+  ev9(`SEASON.market.offer = "${colJob}"; APP.screen = "market"; render();`);
+  tap(p9, "accept");
+  ok(ev9("APP.screen") === "offseason" && /when the next season starts/.test(d9.body.textContent), "taking the college job: it starts next season");
+  tap(p9, "nextyear");
+  for (let i = 0; i < 400 && ev9("APP.screen") === "turning"; i++) await new Promise(r => setTimeout(r, 25));
+  ok(ev9("SEASON.lvl") === "col" && ev9("APP.screen") === "season" && /Preseason camp/.test(d9.body.textContent), "the next season opens at your college program, in camp");
+  checkScreen(p9, "college season screen");
+  tap(p9, "standings");
+  ok(/Conference standings/.test(head9()) && d9.querySelectorAll("table").length >= 5, "conference standings for your level");
+  checkScreen(p9, "conference standings");
+  tap(p9, "back");
+  tap(p9, "top25");
+  ok(/top 25/.test(head9()) && d9.querySelectorAll('[data-a="topdiv"]').length === 4, "the top 25, by division");
+  tap(p9, "topdiv", "FCS");
+  ok(/FCS top 25/.test(head9()), "and another division's");
+  checkScreen(p9, "top 25");
+  tap(p9, "back");
+  ev9(`simSeason(); APP.screen = "season"; render();`);
+  tap(p9, "bracket");
+  ok(/playoff/.test(head9()) && /The field/.test(d9.body.textContent), "the postseason: the field and every round");
+  checkScreen(p9, "postseason");
+  tap(p9, "back");
+  tap(p9, "offseason");
+  ok(ev9("APP.screen") === "review" && /Your contract/.test(d9.body.textContent), "the college review, with your contract");
+  checkScreen(p9, "college review");
+  ok(p9.errors.length === 0, "no script errors in college: " + p9.errors.slice(0, 2).join(" | "));
 
   console.log(`${checks - fails}/${checks} checks passed`);
   process.exit(fails ? 1 : 0);

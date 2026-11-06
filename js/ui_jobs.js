@@ -10,15 +10,16 @@ function vReview() {
   const R = yearEndReview(), s = mySchool(), J = myJob(), last = CAREER.seasons.find(x => x.seed === SEASON.seed);
   const seasons = plural(J.ten, "season");
   const job = R.fired
-    ? `<section class="panel"><h3>You're fired</h3><p>${esc(`The ${nameOf(s.id)} athletic director let you go after ${seasons}. Every school that's interested in you is in the job market, and someone will hire you.`)}</p></section>`
-    : `<section class="panel"><h3>${esc(secWord(J.sec))}</h3><p>${esc(J.ten === 1 ? `After your first season at the ${nameOf(s.id)}. A new coach gets two full seasons before the athletic director can let him go.`
-      : J.ten === 2 ? `After ${seasons} at the ${nameOf(s.id)}. From here on, the athletic director looks at how you've done over the years, and ${patienceWord(s.trad)} at a program like this one takes bad seasons hard.`
-      : `After ${seasons} at the ${nameOf(s.id)}, with ${patienceWord(s.trad)}.`)}</p></section>`;
+    ? `<section class="panel"><h3>You're fired</h3><p>${esc(`The ${jobName(s.id)} athletic director let you go after ${seasons}. Every school that's interested in you is in the job market, and someone will hire you.`)}</p></section>`
+    : `<section class="panel"><h3>${esc(secWord(J.sec))}</h3><p>${esc(J.ten === 1 ? `After your first season at the ${jobName(s.id)}. A new coach gets two full seasons before the athletic director can let him go.`
+      : J.ten === 2 ? `After ${seasons} at the ${jobName(s.id)}. From here on, the athletic director looks at how you've done over the years, and ${patienceWord(s.trad)} at a program like this one takes bad seasons hard.`
+      : `After ${seasons} at the ${jobName(s.id)}, with ${patienceWord(s.trad)}.`)}</p></section>`;
   const raise = !R.fired && J.ten <= RAISE_YEARS;
-  const pay = `<section class="panel"><h3>Your stipend</h3><p>${esc(`${moneyText(R.paid || 0)} for this season.${R.fired ? "" : ` Next season: ${moneyText(J.pay)}${raise ? ", a 3 percent raise" : ""}.`} Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p></section>`;
+  const pay = J.lvl === "col" ? `<section class="panel"><h3>Your contract</h3><p>${esc(`${moneyText(R.paid || 0)} for this season.${R.buyout ? ` The rest of your contract is paid out: ${moneyText(R.buyout)}.` : R.fired ? "" : R.renewed ? ` Your contract was renewed: ${contractText(J)}.` : ` ${capFirst(contractText(J))}.`} Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p></section>`
+    : `<section class="panel"><h3>Your stipend</h3><p>${esc(`${moneyText(R.paid || 0)} for this season.${R.fired ? "" : ` Next season: ${moneyText(J.pay)}${raise ? ", a 3 percent raise" : ""}.`} Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p></section>`;
   return `
     <div class="masthead" style="--team:${s.color}">
-      <p class="eyebrow">${SEASON.year} offseason · ${esc(nameOf(s.id))}</p>
+      <p class="eyebrow">${SEASON.year} offseason · ${esc(jobName(s.id))}</p>
       <h2 data-focus tabindex="-1">The athletic director's review</h2>
       <p class="muted">${esc(last && last.g != null ? `Your season graded ${gradeWord(last.g)}. ${repText(myRep())}` : repText(myRep()))}</p>
     </div>
@@ -47,20 +48,22 @@ const JOB_SORTS = [["interest", "Interest"], ["cls", "Class"], ["trad", "Traditi
 const INTEREST_RANK = { high: 0, medium: 1, low: 2 };
 // What a school's last season was: "6-4, expected about 5-5"
 function lastSeasonText(id) {
+  if (otherWorldJob(id)) return inWorld(OTHER, () => lastSeasonText(id));
   const r = SEASON.results && SEASON.results[id], e = SEASON.exp && SEASON.exp[id];
   if (!r) return "";
   return `Last season: ${r.w}-${r.l}${r.ch ? ", state champions" : r.pw ? `, ${plural(r.pw, "playoff win")}` : r.po ? ", lost in the first round" : ""}${e ? `, expected ${expectWords(e)}` : ""}.`;
 }
-const whyOpen = id => ({ retired: "Its coach retired.", fired: "Its coach was fired.", left: "Its coach left." })[SEASON.review.why[id]] || "";
+const whyOpen = id => ({ retired: "Its coach retired.", fired: "Its coach was fired.", left: "Its coach left." })[(otherWorldJob(id) ? OTHER : SEASON).review.why[id]] || "";
 // One job, in a few sentences: everything the list says about it
 function jobText(id) {
-  const s = SEASON.schools[id];
-  return `${lastSeasonText(id)} ${talentText(s.rating)} ${capFirst(tradWord(s.trad))} (tradition ${Math.round(s.trad)}). Enrollment ${numText(s.enroll)}. Stipend ${moneyText(stipendOf(s))}. ${capFirst(patienceWord(s.trad))}. ${whyOpen(id)} ${jobMoneyText(s)}`.replace(/\s+/g, " ").trim();
+  const s = jobSchool(id), col = isCollege(s.cls);
+  const pay = col ? `Salary about ${moneyText(colSalary(s, inCollege() ? CAREER.crep || 0 : startCrep(CAREER.rep)))} a year, for ${plural(COL_YEARS[s.cls], "year")}.` : `Enrollment ${numText(s.enroll)}. Stipend ${moneyText(stipendOf(s))}.`;
+  return `${lastSeasonText(id)} ${talentText(s.rating)} ${capFirst(tradWord(s.trad))} (tradition ${Math.round(s.trad)}). ${pay} ${capFirst(patienceWord(s.trad))}. ${whyOpen(id)} ${col ? `${boostText(boostersOf(s))} ${facLine(s)}` : jobMoneyText(s)}`.replace(/\s+/g, " ").trim();
 }
 function sortedJobs() {
   const by = APP.jobSort || "interest", cls = APP.jobCls || "all", talent = s => s.rating.off + s.rating.def;
-  const list = marketJobs().filter(id => cls === "all" || SEASON.schools[id].cls === cls);
-  const S2 = id => SEASON.schools[id];
+  const list = marketJobs().filter(id => cls === "all" || jobSchool(id).cls === cls);
+  const S2 = id => jobSchool(id);
   return list.sort((a, b) => {
     const x = S2(a), y = S2(b);
     const k = by === "cls" ? classIndex(y.cls) - classIndex(x.cls) : by === "trad" ? y.trad - x.trad : by === "talent" ? talent(y) - talent(x) : INTEREST_RANK[interestIn(x)] - INTEREST_RANK[interestIn(y)];
@@ -68,24 +71,26 @@ function sortedJobs() {
   });
 }
 function offerPanel() {
-  const M = SEASON.market, id = M.offer, s = SEASON.schools[id], fb = M.fallback === id;
+  const M = SEASON.market, id = M.offer, s = jobSchool(id), fb = M.fallback === id;
   return `<section class="panel teamcard" style="--team:${s.color}">
-      <p class="eyebrow">Class ${s.cls}, District ${s.district}</p>
-      <h3 id="offer" tabindex="-1">Offer: the ${esc(nameOf(id))}</h3>
-      <p>${esc(fb ? `Nobody else is hiring you this year. The ${nameOf(id)}, the weakest roster in Class 1A, will take you, and their coach is let go to make room.` : `The ${nameOf(id)} want you as their head coach. You have to answer now.`)}</p>
+      <p class="eyebrow">${esc(jobPlace(id))}</p>
+      <h3 id="offer" tabindex="-1">Offer: the ${esc(jobName(id))}</h3>
+      ${M.counter ? `<p>${esc(`${jobName(SEASON.myId)} want to keep you: a ${Math.round(M.counter.raise * 100)} percent raise and ${plural(M.counter.yrs, "more year")} on your contract.`)}</p>
+      <div class="choices"><button class="btn" data-a="counterstay">Stay, with the raise</button><button class="btn ghost" data-a="accept">Take the new job anyway</button></div>` : ""}
+      <p>${esc(fb ? `Nobody else is hiring you this year. The ${jobName(id)}, the weakest roster in Class 1A, will take you, and their coach is let go to make room.` : `The ${jobName(id)} want you as their head coach. You have to answer now.`)}</p>
       <p class="muted">${esc(jobText(id))}</p>
-      <div class="choices"><button class="btn" data-a="accept">Take the job</button>${fb ? "" : `<button class="btn ghost" data-a="decline">Turn it down</button>`}<button class="btn ghost" data-a="joblook" data-v="${id}">A closer look</button></div>
+      ${M.counter ? "" : `<div class="choices"><button class="btn" data-a="accept">Take the job</button>${fb ? "" : `<button class="btn ghost" data-a="decline">Turn it down</button>`}<button class="btn ghost" data-a="joblook" data-v="${id}">A closer look</button></div>`}
     </section>`;
 }
 function vMarket() {
   const R = yearEndReview(), M = SEASON.market, me = mySchool(), jobs = sortedJobs(), all = marketJobs();
-  const classes = CLASSES.filter(c => all.some(id => SEASON.schools[id].cls === c));
+  const classes = CLASSES.concat(COL_CLASSES).filter(c => all.some(id => jobSchool(id).cls === c));
   const sort = APP.jobSort || "interest", cls = APP.jobCls || "all";
   const card = id => {
-    const s = SEASON.schools[id];
+    const s = jobSchool(id);
     return `<section class="panel teamcard" style="--team:${s.color}">
-      <p class="eyebrow">Class ${s.cls}, District ${s.district} · ${interestIn(s)} interest</p>
-      <h3>${esc(nameOf(id))}</h3>
+      <p class="eyebrow">${esc(jobPlace(id))} · ${interestIn(s)} interest</p>
+      <h3>${esc(jobName(id))}</h3>
       <p class="muted">${esc(jobText(id))}</p>
       ${M.offer ? "" : `<div class="choices"><button class="btn" data-a="pursue" data-v="${id}">Pursue the ${esc(s.mascot)} job</button><button class="btn ghost" data-a="joblook" data-v="${id}">A closer look</button></div>`}
     </section>`;
@@ -101,7 +106,7 @@ function vMarket() {
     ${M.offer ? offerPanel() : ""}
     ${all.length > 1 ? `<section class="panel">${seg("jobsort", JOB_SORTS, sort, "Sort by")}${classes.length > 1 ? seg("jobcls", [["all", "All"]].concat(classes.map(c => [c, c])), classes.includes(cls) ? cls : "all", "Class") : ""}</section>` : ""}
     ${jobs.length ? jobs.map(card).join("") : `<section class="panel"><p>${esc(all.length ? "No jobs in that class. Pick All to see the rest." : M.offer ? "No other schools are interested right now." : "No other schools are interested in you right now.")}</p></section>`}
-    ${R.fired || M.offer ? "" : `<button class="btn${jobs.length ? " ghost" : ""}" data-a="stay">Stay at ${esc(nameOf(me.id))}</button>`}
+    ${R.fired || M.offer ? "" : `<button class="btn${jobs.length ? " ghost" : ""}" data-a="stay">Stay at ${esc(jobName(me.id))}</button>`}
     <button class="btn ghost" data-a="coach">Your coach</button>`;
 }
 
@@ -109,7 +114,12 @@ function vMarket() {
 // Next season's roster (the players coming back), what the last coach ran and how much of your
 // playbook the team knows, and how its returning starters compare with the class
 function vJobLook() {
-  const id = APP.jobLook, sum = SEASON.schools[id], s = seasonSchool(id), c = CAREER.coach, M = SEASON.market;
+  const id = APP.jobLook, M = SEASON.market, canPursue0 = !M.done && !M.offer && marketJobs().includes(id), isOffer0 = M.offer === id, interest0 = marketJobs().includes(id) ? interestIn(jobSchool(id)) : "";
+  if (otherWorldJob(id)) return inWorld(OTHER, () => jobLookHtml(id, M, canPursue0, isOffer0, interest0));
+  return jobLookHtml(id, M, canPursue0, isOffer0, interest0);
+}
+function jobLookHtml(id, M, canPursue, isOffer, interest) {
+  const sum = SEASON.schools[id], s = seasonSchool(id), c = CAREER.coach;
   const back = s.players.filter(p => p.yr < 12), team = { id, cls: s.cls, players: back.map(p => p), coach: s.coach };
   team.depth = autoDepth(team);
   const ro = sideRating(team, "off"), rd = sideRating(team, "def");
@@ -118,16 +128,15 @@ function vJobLook() {
   const groups = {};
   back.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)).forEach(p => { const gname = POS_INFO[p.pos].group; (groups[gname] = groups[gname] || []).push(p); });
   const order = OFF_POS.concat(DEF_POS, ["K", "P"]).map(pos => POS_INFO[pos].group).filter((x, i, a) => a.indexOf(x) === i && groups[x]);
-  const canPursue = !M.done && !M.offer && marketJobs().includes(id), isOffer = M.offer === id;
   return `
     <div class="masthead" style="--team:${sum.color}">
-      <p class="eyebrow">A closer look · Class ${sum.cls}, District ${sum.district}${marketJobs().includes(id) ? ` · ${interestIn(sum)} interest` : ""}</p>
-      <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
+      <p class="eyebrow">A closer look · ${esc(jobPlace(id))}${interest ? ` · ${interest} interest` : ""}</p>
+      <h2 data-focus tabindex="-1">${esc(jobName(id))}</h2>
       <p class="muted">${esc(jobText(id))}</p>
     </div>
     <section class="panel"><h3>The playbook</h3><p>${esc(`The last coach ran the ${schemeText(sum)}. The team knows ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense well. Whatever it doesn't know, you install in practice.`)}</p></section>
     <section class="panel"><h3>Coming back next season</h3>
-      <p>${esc(`${plural(back.length, "player")} coming back, after ${plural(s.players.length - back.length, "senior")} graduate. Its returning starters rate about ${ro} on offense and ${rd} on defense. This season's Class ${s.cls} starters averaged about ${avgR}. Freshmen come out before next season, too.`)}</p>
+      <p>${esc(`${plural(back.length, "player")} coming back, after ${plural(s.players.length - back.length, "senior")} graduate. Its returning starters rate about ${ro} on offense and ${rd} on defense. This season's ${isCollege(s.cls) ? levelName(s.cls) : `Class ${s.cls}`} starters averaged about ${avgR}. Freshmen come out before next season, too.`)}</p>
       ${order.map(gname => `<p class="sechead" role="heading" aria-level="4">${esc(gname)}</p><ul class="hlist">${groups[gname].map(p => `<li>${esc(playerLine(p, s.level))}</li>`).join("")}</ul>`).join("")}
     </section>
     <div class="choices">${canPursue ? `<button class="btn" data-a="pursue" data-v="${id}">Pursue the ${esc(sum.mascot)} job</button>` : ""}${isOffer ? `<button class="btn" data-a="accept">Take the job</button>` : ""}<button class="btn ghost" data-a="back">Back to the job market</button></div>`;
@@ -141,22 +150,29 @@ function jobsAct(a, ds) {
     case "carousel": if (!open) return true; M.stage = M.stage === "review" || M.stage === "signing" ? "news" : M.stage; APP.screen = "carousel"; scrollTop(); return true;
     case "market": if (!open) return true; M.stage = "jobs"; marketMsg = ""; APP.screen = "market"; scrollTop(); return true;
     case "jobsort": if (JOB_SORTS.some(x => x[0] === ds.v)) { APP.jobSort = ds.v; announce(`Sorted by ${JOB_SORTS.find(x => x[0] === ds.v)[1].toLowerCase()}.`); } return true;
-    case "jobcls": if (ds.v === "all" || CLASSES.includes(ds.v)) { APP.jobCls = ds.v; announce(ds.v === "all" ? `Every class: ${plural(sortedJobs().length, "job")}.` : `Class ${ds.v}: ${plural(sortedJobs().length, "job")}.`); } return true;
-    case "joblook": if (open && SEASON.review.open.includes(ds.v) || (M && M.offer === ds.v)) { APP.jobLook = ds.v; APP.screen = "joblook"; scrollTop(); } return true;
+    case "jobcls": if (ds.v === "all" || CLASSES.includes(ds.v) || COL_CLASSES.includes(ds.v)) { APP.jobCls = ds.v; announce(ds.v === "all" ? `Every class: ${plural(sortedJobs().length, "job")}.` : `Class ${ds.v}: ${plural(sortedJobs().length, "job")}.`); } return true;
+    case "joblook": if (open && marketJobs().includes(ds.v) || (M && M.offer === ds.v)) { APP.jobLook = ds.v; APP.screen = "joblook"; scrollTop(); } return true;
     case "pursue": {
       if (!open) return true;
       const r = pursueJob(ds.v);
       if (!r) return true;
       APP.screen = "market"; scrollTop();
       if (r === "offer") { marketMsg = ""; focusNext = { id: "offer" }; }
-      else { marketMsg = `The ${nameOf(ds.v)} said no. ${SEASON.market.offer ? "But one school will take you." : marketJobs().length ? `${plural(marketJobs().length, "school is", "schools are")} still interested.` : "No other schools are interested right now."}`; focusNext = { id: "mktmsg" }; }
+      else { marketMsg = `The ${jobName(ds.v)} said no. ${SEASON.market.offer ? "But one school will take you." : marketJobs().length ? `${plural(marketJobs().length, "school is", "schools are")} still interested.` : "No other schools are interested right now."}`; focusNext = { id: "mktmsg" }; }
       return true;
     }
-    case "accept": if (open && M.offer && answerOffer(true) === "took") { marketMsg = ""; APP.screen = "offseason"; scrollTop(); } return true;
+    case "accept": {
+      if (!open || !M.offer) return true;
+      const r = answerOffer(true);
+      if (r === "took") { marketMsg = ""; APP.screen = "offseason"; scrollTop(); }
+      else if (r === "counter") { marketMsg = ""; focusNext = { id: "offer" }; }
+      return true;
+    }
+    case "counterstay": if (open && acceptCounter()) { marketMsg = ""; APP.screen = "offseason"; scrollTop(); } return true;
     case "decline": {
       if (!open || !M.offer) return true;
       const id = M.offer;
-      if (answerOffer(false) === "declined") { marketMsg = `You turned down the ${nameOf(id)}.${SEASON.market.offer ? " One school will still take you." : ""}`; APP.screen = "market"; focusNext = { id: "mktmsg" }; scrollTop(); }
+      if (answerOffer(false) === "declined") { marketMsg = `You turned down the ${jobName(id)}.${SEASON.market.offer ? " One school will still take you." : ""}`; APP.screen = "market"; focusNext = { id: "mktmsg" }; scrollTop(); }
       return true;
     }
     case "stay": if (open && stayPut()) { marketMsg = ""; APP.screen = "offseason"; scrollTop(); } return true;
@@ -167,19 +183,19 @@ function jobsAct(a, ds) {
 // Moving the whole state into the next year takes a second or two (every school a year older, on
 // paper), so a screen says so first, and taps wait until it's done (simJob blocks them)
 function runNextYear() {
-  // With no page to draw (tests), it happens right away
-  if (typeof document === "undefined") { nextSeason(); APP.screen = "newyear"; return; }
+  // With no page to draw (tests), it happens right away. A new job has no report on how the team changed.
+  if (typeof document === "undefined") { nextSeason(); APP.screen = SEASON.yearReport ? "newyear" : "season"; return; }
   simJob = { year: true };
   APP.screen = "turning";
   setTimeout(() => {
-    try { nextSeason(); APP.screen = "newyear"; } finally { simJob = null; }
+    try { nextSeason(); APP.screen = SEASON.yearReport ? "newyear" : "season"; } finally { simJob = null; }
     save(); render(); scrollTop();
   }, 30);
 }
 function vTurning() {
   return `
     <div class="masthead">
-      <p class="eyebrow">${esc(nameOf(SEASON.myId))}</p>
+      <p class="eyebrow">${esc(jobName(SEASON.myId))}</p>
       <h2 data-focus tabindex="-1">On to ${SEASON.year + 1}</h2>
       <p class="muted">Every school in the state graduates its seniors and brings in its freshmen…</p>
     </div>`;

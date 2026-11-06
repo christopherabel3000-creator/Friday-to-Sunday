@@ -262,7 +262,7 @@ function cuesFor(a, pre) {
     cues.push(["thirdDown", t]);
     if (S.phase === "result") t += 3.6;
   }
-  if (S.phase === "result" && S.last && S.last.id !== pre.lastId)
+  if (S.phase === "result" && S.last && S.last.id !== pre.lastId && pre.scores)
     resultCues(S.last, pre.scores).forEach(([n, at, arg]) => cues.push([n, at + t, arg]));
   if (S.phase === "final" && pre.phase !== "final") {
     const homeWin = S.teams[HOME].score > S.teams[1 - HOME].score;

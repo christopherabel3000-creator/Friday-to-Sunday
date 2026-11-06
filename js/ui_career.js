@@ -166,17 +166,18 @@ function vSummary() {
   if (L.sck) ld.push(`Sacks: ${fullName(L.sck[0])}, ${v(L.sck[1], "sck")}.`);
   if (L.int) ld.push(`Interceptions: ${fullName(L.int[0])}, ${v(L.int[1], "int")}.`);
   const better = x.improved.map(y => `${fullName(y.p)}, ${yearName(y.p)} ${posName(y.p.pos)}: ${y.from} to ${y.to}.`);
-  const record = [`${recText(x.all)} overall, ${x.reg.dw}-${x.reg.dl} in district.`];
+  const col = SEASON.lvl === "col", unit = col ? (s.conf ? `the ${confName(me)}` : "your schedule") : `District ${SEASON.district}`, ow = k => k < 8 ? ordWord(k) : `${k + 1}th`;
+  const record = [`${recText(x.all)} overall, ${x.reg.dw}-${x.reg.dl} in ${col ? "the conference" : "district"}.`];
   // Where you finished, against where your starters ranked before the season
-  if (x.place) record.push(`Finished ${ordWord(x.place - 1)} in District ${SEASON.district}${x.expect ? `, with ${x.expect === 1 ? "the best" : `the ${ordWord(x.expect - 1)}-best`} starters in the district before the season` : ""}.`);
+  if (x.place && (!col || s.conf)) record.push(`Finished ${ow(x.place - 1)} in ${unit}${x.expect ? `, with ${x.expect === 1 ? "the best" : `the ${ow(x.expect - 1)}-best`} starters in ${col ? "the conference" : "the district"} before the season` : ""}.`);
   record.push(`${x.finish}.`, `Scored ${numText(x.pf)} points and allowed ${numText(x.pa)}, about ${Math.round(x.pf / n)} to ${Math.round(x.pa / n)} a game.`);
   return `
     <div class="masthead" style="--team:${s.color}">
-      <p class="eyebrow">Season summary · Class ${SEASON.cls}, District ${SEASON.district}</p>
+      <p class="eyebrow">Season summary · ${esc(col ? `${levelName(s.cls)}, ${confName(me)}` : `Class ${SEASON.cls}, District ${SEASON.district}`)}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(me))}</h2>
       <p class="muted">${esc(`${recText(x.all)}. ${x.finish}.`)}</p>
     </div>
-    ${x.champ ? `<section class="panel teamcard" style="--team:${s.color}"><p class="eyebrow">Class ${SEASON.cls} state champions</p><h3>You won it all</h3></section>` : ""}
+    ${x.champ ? `<section class="panel teamcard" style="--team:${s.color}"><p class="eyebrow">${col ? `${DIVS[divOf(s)].name} national champions` : `Class ${SEASON.cls} state champions`}</p><h3>You won it all</h3></section>` : ""}
     <section class="panel"><h3>The record</h3>${list(record)}</section>
     ${gradePanel()}
     ${memorable.length ? `<section class="panel"><h3>Games to remember</h3>${list(memorable)}</section>` : ""}

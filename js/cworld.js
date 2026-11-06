@@ -370,13 +370,16 @@ function newColSeason(seed, year, prev) {
     district: 1, districts: [{ n: 1, ids: prev && prev.myId ? [prev.myId] : [] }] };
   se.weeks = makeColSchedule(se, g);
   moneyInit(se);
+  inWorld(se, colSetExpectations);
   return se;
 }
 // Runs fn with SEASON set to se (the college world while you coach in high school, or the other way)
+// (the world it was called from is kept in WORLD_FROM, so either world can still be found)
+let WORLD_FROM = null;
 function inWorld(se, fn) {
-  const keep = SEASON;
-  SEASON = se;
-  try { return fn(); } finally { SEASON = keep; }
+  const keep = SEASON, from = WORLD_FROM;
+  SEASON = se; WORLD_FROM = keep;
+  try { return fn(); } finally { SEASON = keep; WORLD_FROM = from; }
 }
 
 /* ---------- Your college season, week by week ---------- */

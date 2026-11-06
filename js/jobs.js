@@ -56,9 +56,10 @@ function setExpectations(cls) {
   return SEASON.exp;
 }
 // A season from before expectations gets them from where the ratings stand now
-const expectOf = id => (SEASON.exp && SEASON.exp[id]) || setExpectations()[id];
+const expectOf = id => (SEASON.exp && SEASON.exp[id]) || (SEASON.lvl === "col" ? colSetExpectations() : setExpectations())[id];
 // "about 6-4 and a playoff spot"
 function expectWords(e) {
+  if (SEASON && SEASON.lvl === "col") return colExpectWords(e);
   const w = clamp(Math.round(e.w), 0, REGULAR_WEEKS), rec = `about ${w}-${REGULAR_WEEKS - w}`;
   const more = e.ch >= .25 ? "a run at the state title" : e.dt >= .5 ? "the district title" : e.po >= .5 ? "a playoff spot" : e.po >= .25 ? "a shot at the playoffs" : "";
   return more ? `${rec} and ${more}` : rec;
@@ -96,15 +97,16 @@ function repChange(g, cls) {
 }
 const newRep = (rep, g, cls) => clamp(Math.round((rep + repChange(g, cls)) * 10) / 10, 0, 100);
 const repWord = r => r >= 85 ? "a legend" : r >= 70 ? "one of the state's best" : r >= 55 ? "a proven winner" : r >= 40 ? "a respected coach" : r >= 25 ? "a rising name" : "an unknown";
-const myRep = () => CAREER && CAREER.rep != null ? CAREER.rep : REP_START;
+// (in college, your college reputation: cjobs.js)
+const myRep = () => SEASON && SEASON.lvl === "col" ? (CAREER && CAREER.crep != null ? CAREER.crep : CREP_START) : CAREER && CAREER.rep != null ? CAREER.rep : REP_START;
 // "Reputation 27: a rising name."
 const repText = r => `Reputation ${Math.round(r)}: ${repWord(Math.round(r))}.`;
 // Your season goes into your reputation once, when it's over. Returns the career's entry for it.
 function gradeMySeason(entry) {
   const me = SEASON.myId, r = finishState()[me], e = expectOf(me), g = r.g != null ? r.g : seasonGrade(r, e);
-  const before = myRep(), after = newRep(before, g, SEASON.cls);
-  CAREER.rep = after;
-  return Object.assign(entry, { cls: SEASON.cls, g, ew: e.w, rep: after, drep: Math.round((after - before) * 10) / 10 });
+  const col = SEASON.lvl === "col", cls = col ? mySchool().cls : SEASON.cls, before = myRep(), after = newRep(before, g, cls);
+  if (col) CAREER.crep = after; else CAREER.rep = after;
+  return Object.assign(entry, { cls, lvl: col ? "col" : "hs", g, ew: e.w, rep: after, drep: Math.round((after - before) * 10) / 10 });
 }
 // What the grade was made of: "Expected about 6-4 and a playoff spot; you won 8 games and 1 playoff game, and the district title."
 function gradeWhy(r, e) {
@@ -195,8 +197,8 @@ function applyCoach(s) {
 //   offer, fallback, took, from, transfers: [names], done }
 function yearEndReview() {
   if (SEASON.review) return SEASON.review;
-  // The college world's season is played out on paper too, so its results are in (cyear.js)
-  colWorldSeasonDone();
+  // The other world's season is played out on paper too, and its coaching changes are in (cjobs.js)
+  otherWorldReview();
   const res = finishState(), me = SEASON.myId, R = { open: [], why: {}, fired: false, news: [], moves: [], filled: false };
   if (CAREER && me) {
     recordCareerSeason();
@@ -206,8 +208,15 @@ function yearEndReview() {
     J.ten++; if (J.tg.length < 2) J.tg.push(g);
     J.sec = newSec(J.sec, g, s.trad, boostersOf(s));
     R.paid = J.pay; CAREER.earned = (CAREER.earned || 0) + J.pay;
-    if (J.ten <= RAISE_YEARS) J.pay = Math.round(J.pay * (1 + RAISE));
+    if (J.lvl !== "col" && J.ten <= RAISE_YEARS) J.pay = Math.round(J.pay * (1 + RAISE));
     R.fired = firedAfter(J); R.sec = J.sec;
+    // College contracts: a year off it each season. Fired with years left, you're paid most of them;
+    // at the end of a contract that isn't ended, it's renewed with a raise.
+    if (J.lvl === "col") {
+      J.yrs = Math.max(0, (J.yrs || 0) - 1);
+      if (R.fired && J.yrs > 0) { R.buyout = Math.round(BUYOUT * J.pay * J.yrs / 1000) * 1000; CAREER.earned += R.buyout; }
+      else if (!R.fired && J.yrs === 0) { J.yrs = COL_YEARS[s.cls]; J.pay = Math.round(J.pay * 1.05 / 5000) * 5000; R.renewed = true; }
+    }
     if (entry) Object.assign(entry, { sid: me, sec: J.sec, fired: R.fired, pay: R.paid, pw: res[me].pw, po: res[me].po, dt: res[me].dt, ch: res[me].ch });
     if (R.fired) { R.open.push(me); R.why[me] = "fired"; }
   }
@@ -224,7 +233,7 @@ function yearEndReview() {
   // Boosters move with every school's season, and the computer schools build (money.js). Then the
   // last offers for the seniors, signing day, and the spring offers for the juniors (recruit.js).
   moneyYearEnd(res);
-  if (CAREER && me) {
+  if (CAREER && me && SEASON.lvl !== "col") {
     R.post = offerWindow("post");
     const sg = signingDay();
     R.spring = offerWindow("spring");
@@ -240,12 +249,12 @@ function yearEndReview() {
 // Who the news is about: your district, and the notable changes in your class (a firing at a proud
 // program, or a state champion's coach)
 const notable = id => { const s = SEASON.schools[id], r = SEASON.results && SEASON.results[id]; return s.trad >= 70 || !!(r && r.ch); };
-const inMyDistrict = id => { const s = SEASON.schools[id]; return s.cls === SEASON.cls && s.district === SEASON.district; };
+const inMyDistrict = id => { const s = SEASON.schools[id]; if (SEASON.lvl === "col") { const m = SEASON.myId && SEASON.schools[SEASON.myId]; return !!(m && s.conf && s.conf === m.conf); } return s.cls === SEASON.cls && s.district === SEASON.district; };
 const NEWS_MAX = 8;
 function carouselNews() {
   const R = SEASON.review, res = SEASON.results || {}, out = [];
   const mine = R.open.filter(id => id !== SEASON.myId), inCls = mine.filter(id => SEASON.schools[id].cls === SEASON.cls);
-  out.push(`${plural(mine.length, "head coaching job is", "head coaching jobs are")} open around the state, ${inCls.length} of them in Class ${SEASON.cls}.`);
+  out.push(SEASON.lvl === "col" ? `${plural(mine.length, "head coaching job is", "head coaching jobs are")} open in college football.` : `${plural(mine.length, "head coaching job is", "head coaching jobs are")} open around the state, ${inCls.length} of them in Class ${SEASON.cls}.`);
   const line = id => {
     const s = SEASON.schools[id], c = s.coach, r = res[id];
     return R.why[id] === "retired" ? `Coach ${coachName(c)} retired from the ${nameOf(id)} after ${plural(c.yrs, "year")} of coaching.`
@@ -289,7 +298,13 @@ function fillJobs() {
       s.coach = c; c.job = newJob(); hired.add(c);
       R.why[best.id] = "left"; open.push(best.id);
       say(id, c, best.id);
-    } else { s.coach = outsideCoach(s); hired.add(s.coach); say(id, s.coach, null); }
+    } else {
+      // A Division III or II job with no college coach for it may go to one of the state's best high
+      // school coaches (cjobs.js)
+      const up = SEASON.lvl === "col" && HS_TO_COL_LEVELS.has(s.cls) ? hsCoachUp(s) : null;
+      if (up) { s.coach = up.coach; hired.add(up.coach); moves.push(`The ${nameOf(id)} hired Coach ${coachName(up.coach)} from the ${up.from}, a high school.`); }
+      else { s.coach = outsideCoach(s); hired.add(s.coach); say(id, s.coach, null); }
+    }
     applyCoach(s);
   }
   R.moves = moves.slice(0, NEWS_MAX);
@@ -302,15 +317,20 @@ function fillJobs() {
 // An offer has to be answered right away. If you're fired and every school says no, the 1A school
 // with the weakest roster offers you its job, so you always have one.
 const INTEREST_ODDS = { high: .85, medium: .55, low: .25 };
-function interestIn(s) { const d = myRep() - jobBar(s); return d >= 10 ? "high" : d >= 0 ? "medium" : d >= -8 ? "low" : ""; }
+// (each school looks at the reputation for its own level: cjobs.js)
+function interestIn(s) {
+  if (isCollege(s.cls) && !inCollege() && (!HS_TO_COL_LEVELS.has(s.cls) || ((CAREER && CAREER.rep) || 0) < HS_TO_COL)) return "";
+  const d = jobRepFor(s) - jobBarFor(s); return d >= 10 ? "high" : d >= 0 ? "medium" : d >= -8 ? "low" : "";
+}
+// The jobs you can pursue: this world's, and the other world's that want you
 function marketJobs() {
   const R = SEASON.review, M = SEASON.market;
   if (!R || !M) return [];
-  return R.open.filter(id => id !== SEASON.myId && id !== (M.from || "") && !M.tried[id] && interestIn(SEASON.schools[id]));
+  return R.open.filter(id => id !== SEASON.myId && id !== (M.from || "") && !M.tried[id] && interestIn(SEASON.schools[id])).concat(otherJobs().filter(id => !M.tried[id]));
 }
 function weakest1A() {
-  const str = s => s.rating.off + s.rating.def;
-  return Object.keys(SEASON.schools).filter(id => SEASON.schools[id].cls === "1A" && id !== SEASON.myId).sort((a, b) => str(SEASON.schools[a]) - str(SEASON.schools[b]) || (a < b ? -1 : 1))[0];
+  const str = s => s.rating.off + s.rating.def, low = SEASON.lvl === "col" ? "D3" : "1A";
+  return Object.keys(SEASON.schools).filter(id => SEASON.schools[id].cls === low && id !== SEASON.myId).sort((a, b) => str(SEASON.schools[a]) - str(SEASON.schools[b]) || (a < b ? -1 : 1))[0];
 }
 function checkFallback() {
   const R = SEASON.review, M = SEASON.market;
@@ -321,7 +341,7 @@ function pursueJob(id) {
   const M = SEASON.market;
   if (!M || M.done || M.offer || !marketJobs().includes(id)) return "";
   const roll = seededRandom(hashSeed(`${SEASON.seed}:${id}:offer`))();
-  if (roll < INTEREST_ODDS[interestIn(SEASON.schools[id])]) { M.offer = id; return "offer"; }
+  if (roll < INTEREST_ODDS[interestIn(jobSchool(id))]) { M.offer = id; return "offer"; }
   M.tried[id] = "no";
   checkFallback();
   return "no";
@@ -330,7 +350,9 @@ function pursueJob(id) {
 function answerOffer(yes) {
   const M = SEASON.market, id = M && M.offer;
   if (!id || M.done) return "";
-  if (yes) { takeJob(id); return "took"; }
+  // In college, your school may counter first (cjobs.js)
+  if (yes && !M.countered && M.fallback !== id) { const C = counterOf(id); if (C) { M.counter = C; M.countered = true; return "counter"; } }
+  if (yes) { M.counter = null; takeJob(id); return "took"; }
   if (M.fallback === id) return "";
   M.tried[id] = "declined"; M.offer = null;
   checkFallback();
@@ -341,7 +363,7 @@ function stayPut() {
   const M = SEASON.market;
   if (!M || M.done || M.offer || SEASON.review.fired) return false;
   M.done = true; M.stage = "done";
-  fillJobs();
+  fillJobs(); otherWorldFill();
   return true;
 }
 // With nobody at the controls (a test, or a quick way through): stay, or if you're fired, take the
@@ -403,6 +425,9 @@ function switchDistrict(cls, d) {
   REBUILT.clear();
 }
 function takeJob(id) {
+  // A job in the other world starts next season; a move within college is its own (cjobs.js)
+  if (otherWorldJob(id)) { takeJobAcross(id); return; }
+  if (SEASON.lvl === "col") { colMoveWithin(id); return; }
   const M = SEASON.market, R = SEASON.review, old = SEASON.myId, from = SEASON.schools[old], c = CAREER.coach;
   const moving = transfersFrom(from, id);
   // The money you raised stays with the school, and its next coach keeps the books
@@ -424,5 +449,5 @@ function takeJob(id) {
   startJob(id);
   Object.assign(M, { took: id, from: old, offer: null, done: true, stage: "done", transfers: moving.map(p => fullName(p)) });
   // Your old school's job goes into the carousel with the rest
-  fillJobs();
+  fillJobs(); otherWorldFill();
 }

@@ -83,8 +83,8 @@ function plain(g, extra) {
   }
   ok(m > 0 && twenty, "a miss from inside the 20 comes out to the 20");
   // No tees, and college kickers: extra points are about 95 percent
-  const xp = (() => { const f = game(true); return f.g(`fgProbFor(0, xpDist(R().tryTwo))`); })();
-  ok(xp > .88 && xp <= .99, `extra points are good most of the time (${Math.round(xp * 100)} percent)`);
+  const xp = (() => { let t = 0; for (let i = 0; i < 12; i++) { const f = game(true); t += f.g(`fgProbFor(0, xpDist(R().tryTwo))`); } return t / 12; })();
+  ok(xp > .88 && xp <= .99, `extra points are good most of the time, on average (${Math.round(xp * 100)} percent)`);
   // A fair-catch kick after a fair catch: on the next snap, from the spot, with no rush
   g("S.teams[0].cpu = false");
   plain(g, { poss: 0, spot: 70, down: 1, toGo: 10, fcKick: true, quarter: 2, clock: 300 });
@@ -220,7 +220,7 @@ function plain(g, extra) {
   ok(early[0] > 300 && early[1] === 0 && early[2] === 0, `stars leave early for the pros as juniors (${early[0]} of 400), and nobody rated 60, and no freshmen`);
   ok(g(`colClassOnPaper(SEASON.schools.c0, 2027, 1).lv`) > g(`colClassOnPaper(Object.assign({}, SEASON.schools.c0, { trad: 10 }), 2027, 90).lv`), "a proud, top-ranked program recruits better on paper");
   // A whole year at your program
-  g(`simSeason(); act("offseason")`);
+  g(`simSeason(); act("offseason"); act("carousel"); act("market"); act("stay")`);
   ok(g("APP.screen") === "offseason" && /Spring practice comes next/.test(g("vCOffseason()")), "the college offseason: who's moving on, who might leave early, redshirts, and spring practice");
   const seniors = g(`mySchool().players.filter(p => p.yr >= 12 && !redshirtsNow(p)).length`), rsCount = g(`mySchool().players.filter(redshirtsNow).length`);
   g(`act("nextyear")`);
@@ -254,6 +254,51 @@ function plain(g, extra) {
   ok(g("OTHER.year") === 2027 && g("OTHER.lvl") === "col", "and it moves on a year with you");
   const seen = g(`(() => { const id = "${st ? st[0] : ""}"; if (!id) return false; return inWorld(OTHER, () => { const s = rebuildSchool(OTHER.schools[id], 0); return s.players.some(q => q.tag === "star" || (q.id || "").endsWith("c")); }); })()`);
   ok(seen, "and he's on that program's roster when it's rebuilt");
+}
+
+// ---- Step 4: the college job ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]);`);
+  // No college jobs under 80
+  g(`CAREER.rep = 70; simSeason(); act("offseason"); if (APP.screen === "signing") act("adreview"); act("carousel"); act("market")`);
+  ok(g("OTHER.review && OTHER.review.open.length") > 10, "the college world's coaching changes happen with yours");
+  ok(g(`marketJobs().every(id => !isCollege(jobSchool(id).cls))`), "under a reputation of 80, no college jobs");
+  // At 80 and up: Division III and Division II jobs only
+  g(`CAREER.rep = 90`);
+  const jobs = g(`marketJobs().filter(id => isCollege(jobSchool(id).cls)).map(id => jobSchool(id).cls)`);
+  ok(jobs.length > 0 && jobs.every(c => c === "D3" || c === "D2"), `at 80 and up, Division III and Division II jobs (${jobs.length})`);
+  const cid = g(`marketJobs().find(id => isCollege(jobSchool(id).cls))`);
+  ok(/Salary about \$[\d,]+ a year/.test(g(`jobText("${cid}")`)) && /Division I/.test(g(`jobPlace("${cid}")`)), "a college job says its salary, its level and its conference");
+  ok(/A closer look/.test(g(`(() => { APP.jobLook = "${cid}"; return vJobLook(); })()`)), "and has a closer look, from the other world");
+  g(`SEASON.market.offer = "${cid}"; act("accept")`);
+  ok(g("APP.screen") === "offseason" && g("CAREER.next.id") === cid && /when the next season starts/.test(g("vOffseason()")), "taking it: it starts next season");
+  ok(g(`OTHER.review.why["${cid}"]`) === "taken" && g(`SEASON.review.open.includes(SEASON.myId)`), "it's off the college market, and your high school job opens");
+  g(`act("nextyear")`);
+  ok(g("SEASON.lvl") === "col" && g("SEASON.myId") === cid && g("SEASON.phase") === "preseason" && g("APP.screen") === "season", "the next season: you coach in college");
+  ok(g("OTHER.lvl") !== "col" && g("OTHER.myId") === null && g("OTHER.year") === g("SEASON.year") && g(`Object.values(OTHER.schools).every(s => !isFull(s))`), "and the high school state goes on, on paper");
+  ok(g("CAREER.job.lvl") === "col" && g("CAREER.job.pay") >= 60000 && g("CAREER.job.yrs") >= 2 && g("CAREER.crep") >= 20, `a contract (${g("contractText(CAREER.job)")}), and a college reputation (${g("CAREER.crep")})`);
+  ok(g(`SEASON.exp["${cid}"].w`) > 0, "and your program has its expectation");
+  // A college season: the review, the market and staying
+  g(`simSeason(); act("offseason")`);
+  ok(g("APP.screen") === "review" && /Your contract/.test(g("vReview()")) && /Season grade/.test(g("vReview()")), "the college review: your grade and your contract");
+  ok(g("CAREER.seasons.length") === 2 && g("CAREER.seasons[1].lvl") === "col" && /in the conference/.test(g("careerLine(CAREER.seasons[1], 1)")), "the season goes into your career");
+  g(`act("carousel"); act("market")`);
+  const lv = g(`marketJobs().map(id => jobSchool(id).cls)`);
+  const isCol = c => ["D3", "D2", "FCS", "G5", "P4"].includes(c);
+  ok(lv.some(c => isCol(c)) && lv.some(c => !isCol(c)), "the college market lists college jobs and, on your high school reputation, high school ones");
+  ok(g(`marketJobs().filter(id => isCollege(jobSchool(id).cls)).every(id => jobRepFor(jobSchool(id)) - jobBarFor(jobSchool(id)) >= -8)`), "college jobs go by your college reputation");
+  g(`act("stay"); act("nextyear")`);
+  ok(g("SEASON.lvl") === "col" && g("SEASON.year") === 2028 && g("APP.screen") === "newyear" && g("OTHER.year") === 2028, "staying: another season, and both worlds move on");
+  ok(g("CAREER.job.yrs") >= 1 && g("CAREER.job.ten") === 1, "a year off the contract");
+  // Units: salaries, buyouts, counteroffers
+  ok(g(`colSalary({ cls: "P4", trad: 90 }, 80)`) > g(`colSalary({ cls: "P4", trad: 30 }, 10)`) && g(`colSalary({ cls: "P4", trad: 50 }, 50)`) >= 4000000 && g(`colSalary({ cls: "D3", trad: 50 }, 50)`) <= 110000, "salaries in real dollars, by level, tradition and reputation");
+  g(`simSeason(); CAREER.job.ten = 3; CAREER.job.sec = 1; CAREER.job.yrs = 3; act("offseason")`);
+  const R = g("SEASON.review");
+  ok(!R.fired || (R.buyout > 0 && R.buyout === Math.round(.6 * g("CAREER.job.pay") * 2 / 1000) * 1000), `fired with years left: 60 percent of what's left is paid out (${R.fired ? "fired" : "not fired"}, ${R.buyout || 0})`);
+  ok(g(`(() => { const J = CAREER.job; const keep = [J.sec, SEASON.review.fired]; J.sec = 95; SEASON.review.fired = false; let n = 0; for (let i = 0; i < 40; i++) if (counterOf("c" + i)) n++; J.sec = keep[0]; SEASON.review.fired = keep[1]; return n; })()`) > 10, "a secure coach often gets a counteroffer");
+  ok(g(`startCrep(80)`) === 20 && g(`startCrep(100)`) === 30, "a coach from high school starts at a college reputation of 20, a little more for a legend");
+  ok(g("COL_STAGE.P4") > g("COL_STAGE.D3"), "a bigger level is a bigger stage");
 }
 
 console.log(`${checks - fails}/${checks} checks passed`);

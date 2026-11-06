@@ -169,8 +169,8 @@ let SEASON = null;
 // The other world: the college world while you coach high school, and the high school state while you
 // coach in college (cworld.js). Both move on every year.
 let OTHER = null;
-const colWorld = () => SEASON && SEASON.lvl === "col" ? SEASON : OTHER && OTHER.lvl === "col" ? OTHER : null;
-const hsWorld = () => SEASON && SEASON.lvl !== "col" ? SEASON : OTHER && OTHER.lvl !== "col" ? OTHER : null;
+const colWorld = () => [SEASON, OTHER, typeof WORLD_FROM !== "undefined" ? WORLD_FROM : null].find(w => w && w.lvl === "col") || null;
+const hsWorld = () => [SEASON, OTHER, typeof WORLD_FROM !== "undefined" ? WORLD_FROM : null].find(w => w && w.schools && w.lvl !== "col") || null;
 // Every season opens with three weeks of preseason camp: practice, and no games
 const PRESEASON_WEEKS = 3;
 const thisYear = () => new Date().getFullYear();
@@ -194,8 +194,17 @@ function newSeason(seed, year) {
 function nextSeason() {
   const old = SEASON;
   if (!old || old.phase !== "offseason" || !old.myId) return null;
-  // College: the college world moves on (cyear.js)
-  if (old.lvl === "col") return colNextSeason();
+  // College: the review and the market first, then the college world moves on (cyear.js), the high
+  // school state moves on on paper, and if you took a job in the other world, you move there
+  if (old.lvl === "col") {
+    yearEndReview(); autoMarket(); fillJobs(); otherWorldFill();
+    keepCareerStats();
+    const rep = colNextSeason();
+    colSetExpectations();
+    hsWorldNextYear();
+    if (CAREER.next) switchWorlds();
+    return rep;
+  }
   // The year-end review and the job market come first (jobs.js): if nobody finished the market, you
   // stay (or, fired, take the first offer), and the carousel fills every open job
   yearEndReview(); autoMarket(); fillJobs();
@@ -227,8 +236,9 @@ function nextSeason() {
   SEASON.yearReport = yearReportOf(report, old.year);
   REBUILT.clear();
   setExpectations();
-  // The college world moves on with you (cyear.js)
+  // The college world moves on with you (cyear.js), and if you took a college job, you move there
   colWorldNextYear();
+  if (CAREER.next) switchWorlds();
   return SEASON.yearReport;
 }
 // You take over a school, and its coach's job, with your coach (career.js) and your schemes. The team
@@ -283,6 +293,8 @@ const weeksDone = () => SEASON.week - 1;
 /* ---------- Records and standings ---------- */
 // { w, l, dw, dl, pf, pa } in the regular season, through week upTo (all of it by default)
 function recordOf(id, upTo) {
+  // (college: conference games count as the district ones)
+  if (SEASON.lvl === "col") { const c = colRecord(id, upTo == null ? COL_REG : upTo); return Object.assign(c, { dw: c.cw, dl: c.cl }); }
   const r = { w: 0, l: 0, dw: 0, dl: 0, pf: 0, pa: 0 };
   SEASON.weeks.forEach(wk => {
     if (upTo != null && wk.n > upTo) return;
@@ -298,6 +310,7 @@ function recordOf(id, upTo) {
 }
 // The regular season plus the playoffs
 function fullRecord(id) {
+  if (SEASON.lvl === "col") { const c = colRecord(id); return Object.assign(c, { dw: c.cw, dl: c.cl }); }
   const r = recordOf(id);
   if (SEASON.bracket) SEASON.bracket.rounds.forEach(round => round.forEach(gm => { if (played(gm) && gameHas(gm, id)) { if (winnerOf(gm) === id) r.w++; else r.l++; } }));
   return r;
@@ -330,7 +343,7 @@ function standings(d, upTo) {
   }
   return out.map((id, k) => Object.assign({ id, place: k + 1, diff: diff[id] }, rec[id]));
 }
-const placeOf = (id, upTo) => standings(districtOf(id), upTo).find(r => r.id === id).place;
+const placeOf = (id, upTo) => SEASON.lvl === "col" ? (SEASON.schools[id].conf ? confStandings(SEASON.schools[id].conf, upTo).find(r => r.id === id).place : 1) : standings(districtOf(id), upTo).find(r => r.id === id).place;
 // Where a school stands in the playoff race after week n: "title" (has won the district), "in" (has
 // a playoff spot), "out" (can't finish in the top two), or "" (still in the race). A tie could go
 // either way, so a school has clinched only when nobody can draw level with it.
@@ -409,6 +422,7 @@ function playClassOnPaper(cls) {
 // When your season is over, the other classes play theirs, and every school's season is kept
 // (SEASON.results, and each class's champion in SEASON.champs)
 function finishState() {
+  if (SEASON.lvl === "col") return colFinishState();
   if (SEASON.results) return SEASON.results;
   const res = classResults(SEASON.districts), champs = { [SEASON.cls]: SEASON.champion };
   CLASSES.forEach(c => { if (c === SEASON.cls) return; const r = playClassOnPaper(c); Object.assign(res, r.results); champs[c] = r.champion; });

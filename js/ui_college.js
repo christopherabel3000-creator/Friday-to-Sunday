@@ -47,7 +47,8 @@ function vCSeason() {
   } else if (gm && played(gm)) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · Final</p><h3>${esc(resultText(gm, id))}</h3><button class="btn" data-a="weekdone">${weekName(n)} results</button></section>`;
   else if (SEASON.phase === "over") {
     const ch = DIV_IDS.map(dv => `${DIVS[dv].name}: ${nameOf(SEASON.post[dv].champ)}`);
-    main = `<section class="panel"><p class="eyebrow">${SEASON.year} season</p><h3>The season is over</h3><p>${esc(`National champions. ${ch.join(". ")}.`)}</p><button class="btn ghost" data-a="bracket">The postseason</button></section>`;
+    main = `<section class="panel"><p class="eyebrow">${SEASON.year} season</p><h3>The season is over</h3><p>${esc(`${colFinishText(id)}. National champions. ${ch.join(". ")}.`)}</p>
+      <button class="btn" data-a="summary">Season summary</button><div class="choices"><button class="btn ghost" data-a="offseason">On to the offseason</button><button class="btn ghost" data-a="bracket">The postseason</button></div></section>`;
   } else main = `<section class="panel"><p class="eyebrow">${weekName(n)}</p><h3>No game for you this week</h3><p>${esc(n <= COL_REG ? "A bye week." : "Your season is over, but the postseason goes on.")}</p><button class="btn" data-a="simweek">Sim the week</button></section>`;
   const last = weeksDone(), lastGm = last ? myGameIn(last) : null;
   const lastPanel = last && !(gm && played(gm)) && SEASON.phase !== "over" ? `<section class="panel"><p class="eyebrow">Last week</p>

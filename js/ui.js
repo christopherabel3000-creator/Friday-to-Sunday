@@ -545,8 +545,6 @@ function act(a, ds) {
     // The offseason, then the next season
     case "offseason":
       if (!SEASON || SEASON.phase !== "over" || !SEASON.myId) break;
-      // College: straight to the offseason (the job market comes with step 4)
-      if (SEASON.lvl === "col") { SEASON.phase = "offseason"; APP.screen = "offseason"; scrollTop(); break; }
       // The athletic director's review, the coaching changes and the job market come first
       recordCareerSeason(); yearEndReview(); SEASON.phase = "offseason"; marketMsg = ""; APP.screen = offseasonScreen(); scrollTop(); break;
     case "nextyear":

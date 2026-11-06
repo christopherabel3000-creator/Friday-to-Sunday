@@ -24,7 +24,7 @@ function vOffseason() {
   const H = hallsNow(), yes = H.players.filter(p => H.said[p.id] === "yes").length, left = pitchesLeft();
   const line = p => { const st = careerStatLine(statsWithThisSeason(p)); return `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}${st ? `: ${st}` : ""}.${p.sign != null ? ` Signed with ${collegeText(p.sign)}.` : ""}`; };
   const champ = movedSchools() ? null : SEASON.champion, M = SEASON.market, R = SEASON.review;
-  const newJob = M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new head coach of the ${nameOf(s.id)}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
+  const newJob = CAREER.next ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You take over the ${jobName(CAREER.next.id)} (${jobPlace(CAREER.next.id)}) when the next season starts. Your players here stay behind.`)}</p></section>` : M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new head coach of the ${nameOf(s.id)}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
       <p>${esc(M.transfers.length ? `Following you from the ${nameOf(M.from)}: ${andList(M.transfers)}.` : `None of your players from the ${nameOf(M.from)} followed you.`)}</p></section>` : "";
   const moves = R && R.moves && R.moves.length ? `<section class="panel"><h3>Coaching changes</h3><ul class="hlist">${R.moves.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : "";
   return `
