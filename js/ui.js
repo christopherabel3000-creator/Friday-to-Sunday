@@ -585,13 +585,13 @@ function act(a, ds) {
     // The offseason program: the summer plan, and pitching athletes in the hallways
     case "summer": {
       const v = +ds.v;
-      if (!SEASON || SEASON.phase !== "offseason" || !marketClosed() || !SUMMER_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
+      if (!SEASON || SEASON.phase !== "offseason" || !marketClosed() || leavingSchool() || !SUMMER_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
       (SEASON.summer = SEASON.summer || newSummer())[ds.t] = v;
       announce(`${SUMMER_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${weeksText(summerWeeks(SEASON.summer)[ds.t])}.`); break;
     }
-    case "halls": if (SEASON && SEASON.phase === "offseason" && marketClosed()) { APP.screen = "halls"; scrollTop(); } break;
+    case "halls": if (SEASON && SEASON.phase === "offseason" && marketClosed() && !leavingSchool()) { APP.screen = "halls"; scrollTop(); } break;
     case "pitch": {
-      if (!SEASON || SEASON.phase !== "offseason" || !marketClosed()) break;
+      if (!SEASON || SEASON.phase !== "offseason" || !marketClosed() || leavingSchool()) break;
       const H = hallsNow(), p = H.players.find(x => x.id === ds.v);
       if (!p) break;
       const before = H.said[p.id], r = before ? "" : pitch(ds.v), left = `${plural(pitchesLeft(), "pitch", "pitches")} left.`;

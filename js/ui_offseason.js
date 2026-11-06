@@ -3,6 +3,11 @@
 "use strict";
 
 /* ---------- The offseason ---------- */
+// You've taken a job in the other world (high school to college, or back): it starts with the
+// preseason, and until then nothing at the school you're leaving is yours to run. XP still is.
+const leavingSchool = () => !!(CAREER && CAREER.next);
+// "You take over the ... when the 2028 preseason starts."
+const newJobPanel = () => `<section class="panel"><h3>Your new job</h3><p>${esc(`You take over the ${jobName(CAREER.next.id)} (${jobPlace(CAREER.next.id)}) when the ${SEASON.year + 1} preseason starts. Your players here stay behind.`)}</p></section>`;
 // A season's stats so far, with this season's added in (career totals are kept when the season ends)
 function statsWithThisSeason(p) {
   const out = Object.assign({}, p.cs || {}), st = SEASON.stats[p.id] || {};
@@ -24,20 +29,10 @@ function vOffseason() {
   const H = hallsNow(), yes = H.players.filter(p => H.said[p.id] === "yes").length, left = pitchesLeft();
   const line = p => { const st = careerStatLine(statsWithThisSeason(p)); return `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}${st ? `: ${st}` : ""}.${p.sign != null ? ` Signed with ${collegeText(p.sign)}.` : ""}`; };
   const champ = movedSchools() ? null : SEASON.champion, M = SEASON.market, R = SEASON.review;
-  const newJob = CAREER.next ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You take over the ${jobName(CAREER.next.id)} (${jobPlace(CAREER.next.id)}) when the next season starts. Your players here stay behind.`)}</p></section>` : M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new head coach of the ${nameOf(s.id)}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
+  const gone = leavingSchool(), newJob = gone ? newJobPanel() : M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new head coach of the ${nameOf(s.id)}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
       <p>${esc(M.transfers.length ? `Following you from the ${nameOf(M.from)}: ${andList(M.transfers)}.` : `None of your players from the ${nameOf(M.from)} followed you.`)}</p></section>` : "";
-  const moves = R && R.moves && R.moves.length ? `<section class="panel"><h3>Coaching changes</h3><ul class="hlist">${R.moves.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : "";
-  return `
-    <div class="masthead" style="--team:${s.color}">
-      <p class="eyebrow">${SEASON.year} offseason</p>
-      <h2 data-focus tabindex="-1">${esc(nameOf(s.id))}</h2>
-      <p class="muted">The seniors graduate and everyone else gets a summer older. Then a new class of freshmen comes out, and ${plural(PRESEASON_WEEKS, "week")} of camp open the ${SEASON.year + 1} season.</p>
-    </div>
-    ${newJob}
-    <section class="panel">
-      <h3>Graduating</h3>
-      ${seniors.length ? `<p>${plural(seniors.length, "senior")}:</p>${list(seniors.map(line))}` : "<p>No seniors this year.</p>"}
-    </section>
+  // The school's offseason program: only while it's still your school
+  const program = () => `
     <section class="panel">
       <h3>Coming back</h3>
       <p>${plural(back.length, "player")}, ${returning} of them starters. About ${plural(expected, "freshman", "freshmen")} should come out for football.</p>
@@ -59,9 +54,23 @@ function vOffseason() {
       <button class="btn ghost" data-a="fund">The program fund</button>
     </section>
     ${recruitPanel()}
+`;
+  const moves = R && R.moves && R.moves.length ? `<section class="panel"><h3>Coaching changes</h3><ul class="hlist">${R.moves.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : "";
+  return `
+    <div class="masthead" style="--team:${s.color}">
+      <p class="eyebrow">${SEASON.year} offseason</p>
+      <h2 data-focus tabindex="-1">${esc(nameOf(s.id))}</h2>
+      <p class="muted">${gone ? `Your last days here. Your new job starts with the ${SEASON.year + 1} preseason, and until then you can still spend XP on your coach.` : `The seniors graduate and everyone else gets a summer older. Then a new class of freshmen comes out, and ${plural(PRESEASON_WEEKS, "week")} of camp open the ${SEASON.year + 1} season.`}</p>
+    </div>
+    ${newJob}
+    <section class="panel">
+      <h3>Graduating</h3>
+      ${seniors.length ? `<p>${plural(seniors.length, "senior")}:</p>${list(seniors.map(line))}` : "<p>No seniors this year.</p>"}
+    </section>
+    ${gone ? "" : program()}
     <section class="panel">
       <h3>Your coach</h3>
-      <p>${CAREER.xp || 0} XP to spend on ratings and perks.${CAREER.job ? ` Your stipend next season: ${moneyText(CAREER.job.pay)}.` : ""}</p>
+      <p>${CAREER.xp || 0} XP to spend on ratings and perks.${CAREER.job && !gone ? ` Your stipend next season: ${moneyText(CAREER.job.pay)}.` : ""}</p>
       <button class="btn ghost" data-a="coach">Spend XP</button>
     </section>
     ${moves}

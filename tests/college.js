@@ -272,7 +272,7 @@ function plain(g, extra) {
   ok(/Salary about \$[\d,]+ a year/.test(g(`jobText("${cid}")`)) && /Division I/.test(g(`jobPlace("${cid}")`)), "a college job says its salary, its level and its conference");
   ok(/A closer look/.test(g(`(() => { APP.jobLook = "${cid}"; return vJobLook(); })()`)), "and has a closer look, from the other world");
   g(`SEASON.market.offer = "${cid}"; act("accept")`);
-  ok(g("APP.screen") === "offseason" && g("CAREER.next.id") === cid && /when the next season starts/.test(g("vOffseason()")), "taking it: it starts next season");
+  ok(g("APP.screen") === "offseason" && g("CAREER.next.id") === cid && /preseason starts/.test(g("vOffseason()")) && !/Hallway recruiting/.test(g("vOffseason()")), "taking it: it starts next season");
   ok(g(`OTHER.review.why["${cid}"]`) === "taken" && g(`SEASON.review.open.includes(SEASON.myId)`), "it's off the college market, and your high school job opens");
   g(`act("nextyear")`);
   ok(g("SEASON.lvl") === "col" && g("SEASON.myId") === cid && g("SEASON.phase") === "preseason" && g("APP.screen") === "season", "the next season: you coach in college");

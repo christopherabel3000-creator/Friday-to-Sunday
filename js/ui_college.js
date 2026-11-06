@@ -192,17 +192,19 @@ function vCOffseason() {
   const line = p => `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}.`;
   const seniors = s.players.filter(lastYearNow).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
   const early = s.players.filter(p => (p.yr === 11 || p.yr === 12) && ovr(p, p.pos) >= 74).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
+  const gone = leavingSchool();
   return `
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${SEASON.year} offseason</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(s.id))}</h2>
-      <p class="muted">${esc(`${colStatus()} Spring practice comes next: four weeks with your practice plan, then the summer and fall camp.`)}</p>
+      <p class="muted">${esc(gone ? colStatus() : `${colStatus()} Spring practice comes next: four weeks with your practice plan, then the summer and fall camp.`)}</p>
     </div>
+    ${gone ? newJobPanel() : ""}
     <section class="panel"><h3>Out of eligibility</h3>${seniors.length ? list(seniors.map(line)) : "<p>No fifth-year seniors are moving on.</p>"}</section>
     ${early.length ? `<section class="panel"><h3>Could leave early for the pros</h3><p>The best juniors and seniors may declare. The higher a player is rated, the likelier he goes.</p>${list(early.map(line))}</section>` : ""}
     ${portalPanel()}
-    ${SEASON.rec && SEASON.rec.done ? `<section class="panel"><h3>Your new class</h3><p>${esc(recSummary(SEASON.rec))}</p><button class="btn ghost" data-a="board">The class</button></section>` : ""}
-    <section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan. Opponent prep time goes into install.`)}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>
+    ${!gone && SEASON.rec && SEASON.rec.done ? `<section class="panel"><h3>Your new class</h3><p>${esc(recSummary(SEASON.rec))}</p><button class="btn ghost" data-a="board">The class</button></section>` : ""}
+    ${gone ? "" : `<section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan. Opponent prep time goes into install.`)}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;
 }

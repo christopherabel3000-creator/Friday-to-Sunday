@@ -553,6 +553,7 @@ Checked against current sources in November 2026, and to be checked against the 
 - Buyouts: a fired coach is paid most of what's left on his contract (60 percent here), which makes schools a little slower to fire. Leaving early is allowed; your new school pays your old one.
 - Counteroffers: when another school offers you a job, your school may counter with a raise and more years, more likely the more it wants to keep you.
 - You can go back to high school any time a high school job is interested in you, on your high school reputation.
+- A job in the other world (high school to college, or back) starts with the next preseason. Until then the offseason shows only what's still yours: your coach's XP to spend. The school you're leaving runs its own summer, hallway recruiting, program fund, spring practice and recruiting class.
 - College coaches have careers like high school coaches, and the best high school coaches in the state move up to Division III and Division II jobs.
 
 ### Recruiting

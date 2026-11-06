@@ -117,7 +117,7 @@ const jobMoneyText = s => `${boostText(boostersOf(s))} Program fund about ${mone
 /* ---------- Actions ---------- */
 function moneyAct(a, ds) {
   switch (a) {
-    case "fund": if (SEASON && SEASON.phase === "offseason" && marketClosed() && openBooks()) { APP.screen = "fund"; scrollTop(); } return true;
+    case "fund": if (SEASON && SEASON.phase === "offseason" && marketClosed() && !leavingSchool() && openBooks()) { APP.screen = "fund"; scrollTop(); } return true;
     case "fr": announce(toggleFundraiser(ds.v)); return true;
     case "facup": announce(upgradeFacility(ds.v)); return true;
     case "facundo": { const say = cancelUpgrade(ds.v); if (say) { focusNext = { a: "facup", v: ds.v }; announce(say); } return true; }

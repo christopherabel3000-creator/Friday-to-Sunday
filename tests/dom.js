@@ -694,7 +694,14 @@ function checkScreen(page, label) {
   checkScreen(p9, "closer look at a college job");
   ev9(`SEASON.market.offer = "${colJob}"; APP.screen = "market"; render();`);
   tap(p9, "accept");
-  ok(ev9("APP.screen") === "offseason" && /when the next season starts/.test(d9.body.textContent), "taking the college job: it starts next season");
+  ok(ev9("APP.screen") === "offseason" && /preseason starts/.test(d9.body.textContent), "taking the college job: it starts with the preseason");
+  ok(!btn(d9, "halls") && !btn(d9, "summer") && !btn(d9, "fund") && !btn(d9, "recruits") && !btn(d9, "sroster") && !/Hallway recruiting|The summer/.test(d9.body.textContent), "the high school's offseason program is gone once you've taken the college job");
+  ok(!!btn(d9, "coach") && !/Your stipend/.test(d9.body.textContent), "but you can still spend XP");
+  checkScreen(p9, "offseason after taking a college job");
+  { const before = ev9("JSON.stringify(SEASON.summer)"); ev9(`act("summer", { t: SUMMER_IDS[0], v: "3" }); act("halls"); act("fund")`); ok(ev9("APP.screen") === "offseason" && ev9("JSON.stringify(SEASON.summer)") === before, "and the high school's options can't be reached another way"); }
+  tap(p9, "coach");
+  ok(ev9("APP.screen") === "coach", "spending XP opens your coach");
+  ev9(`APP.screen = "offseason"; render();`);
   tap(p9, "nextyear");
   for (let i = 0; i < 400 && ev9("APP.screen") === "turning"; i++) await new Promise(r => setTimeout(r, 25));
   ok(ev9("SEASON.lvl") === "col" && ev9("APP.screen") === "season" && /Preseason camp/.test(d9.body.textContent), "the next season opens at your college program, in camp");
