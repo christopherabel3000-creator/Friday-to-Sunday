@@ -44,6 +44,8 @@ const RULES = {
     runClock: { margin: 35 },
     // Free kick after a safety, from the 20
     safetyKick: 20,
+    // A fair catch can be followed by a free kick at the goal from the spot
+    fck: true,
     // Overtime: no clock. Each team gets a series from the 10, one timeout per period.
     ot: { kind: "hs", spot: 90, tos: 1 },
     pen: {
@@ -59,6 +61,53 @@ const RULES = {
       idf: { name: "Ineligible man downfield", on: "off", yds: 5 }
     },
     // Defensive fouls during a run that ends past the line are enforced from the end of the run
+    endOfRun: true
+  },
+  // College (NCAA), checked against current sources in November 2026 (DESIGN.md: Rules by level)
+  col: {
+    id: "col", name: "College", book: "NCAA",
+    qLen: 900,                 // 15-minute quarters
+    timeouts: 3,
+    // The two-minute timeout in each half (since 2024), timed like the NFL's two-minute warning
+    twoMinWarning: true,
+    // Out of bounds: the clock starts again on the ready, except in the last two minutes of each half
+    oob: "late2",
+    // A first down stops the clock only in the last two minutes of each half (since 2023)
+    fdStop: "late",
+    penClock: "ready",
+    runoff: { run: [28, 36], ready: [16, 24], nh: [13, 18], oob: [15, 22] },
+    // Kickoffs from the 35, touchbacks at the 25, and a fair catch inside the 25 counts as a touchback
+    kickoff: { spot: 35, tb: 25, oobAt: 35, dynamic: false, fcTb: true },
+    kickDeadInEndZone: false,
+    puntTb: 20, fgAdd: 17,
+    // A miss goes to the defense at the line of scrimmage, or the 20
+    missedFg: "prev",
+    // No kicking tees on field goals and extra points: kicks a little less sure
+    tees: false, teeK: .97, kickSure: .09,
+    // Tries from the 3. The defense can return one for two points.
+    tryXp: 97, tryTwo: 97, defTryScore: true,
+    onside: { declared: false, expected: .2, surprise: .4 },
+    untimed: "def",
+    runClock: null,
+    safetyKick: 20,
+    // A fair catch can be followed by a free kick at the goal from the spot (new in 2026)
+    fck: true,
+    // Overtime: possessions from the 25, two-point tries required in the second, two-point plays from the third
+    ot: { kind: "ncaa", spot: 75, tos: 1 },
+    pen: {
+      fs: { name: "False start", on: "off", yds: 5, pre: true },
+      dg: { name: "Delay of game", on: "off", yds: 5, pre: true },
+      enc: { name: "Offside", on: "def", yds: 5, pre: true },
+      oh: { name: "Holding", on: "off", yds: 10 },
+      dh: { name: "Defensive holding", on: "def", yds: 10, auto: true },
+      // A spot foul, up to 15 yards, and an automatic first down
+      dpi: { name: "Pass interference", on: "def", spot: true, max: 15, auto: true },
+      // 10 yards (down from 15 in 2026)
+      opi: { name: "Offensive pass interference", on: "off", yds: 10 },
+      rtp: { name: "Roughing the passer", on: "def", yds: 15, auto: true },
+      fm: { name: "Face mask", on: "def", yds: 15, auto: true },
+      idf: { name: "Ineligible man downfield", on: "off", yds: 5 }
+    },
     endOfRun: true
   },
   pro: {

@@ -150,6 +150,8 @@ function cpuKickCall() {
   const needTD = (late || lastChance) && diff < -3;
   // End of a half: kick it on any down rather than let the clock run out
   if (fgAvailable() && S.down < 4 && endHalfKick() && !needTD && fgP >= .3) return "fg";
+  // A free shot at the goal after a fair catch, late in a half
+  if (fcKickNow() && fgAvailable() && endHalfKick() && fgP >= .35) return "fg";
   // Pro overtime walk-off: kick early only when it's close to automatic
   if (fgAvailable() && S.down < 4 && otFgWins() && (fgP >= .9 || (S.down === 3 && fgP >= .75))) return "fg";
   // Last snap of a half and out of field goal range: throw it up
@@ -271,6 +273,7 @@ function cpuDef() {
 const TWO_P = .42; // about how often a high school two-point try from the 3 is good
 function cpuPAT() {
   const t = S.patTeam, diff = S.teams[t].score - S.teams[1 - t].score, xp = fgProbFor(t, xpDist(R().tryTwo));
+  if (mustGoForTwo()) return "two";
   if (hsOT()) {
     // The second series: tied after the touchdown, either one wins it; down 1, the kick only ties
     if (S.ot.ser === 2) { if (diff === 0) return xp >= .55 ? "kick" : "two"; if (diff === -1) return xp * .5 >= TWO_P ? "kick" : "two"; return "two"; }

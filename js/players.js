@@ -110,12 +110,16 @@ function genRoster(g, schoolId, level, cls) {
   // Not every school has a full roster: drop a few players at random
   for (let drop = g.i(0, Math.round(4 * k)); drop > 0; drop--) { const x = g.pick(recipe.filter(r => r[1] > (r[0] === "lineman" ? Math.round(8 * k) : 1) && !["kicker", "passer", "dual"].includes(r[0]))); if (x) x[1]--; }
   recipe.forEach(([arch, n]) => { for (let i = 0; i < n; i++) archs.push(arch); });
+  // College rosters stop at the 105-player limit
+  if (isCollege(cls)) while (archs.length > COL_ROSTER_MAX) archs.splice(archs.lastIndexOf(g.pick(["runner", "bigath", "backer", "speed"])), 1);
   const used = new Set();
   archs.forEach((arch, i) => {
     // The kid who's been groomed to play quarterback is usually an upperclassman
     const yr = +g.w(arch === "passer" ? { 9: 8, 10: 20, 11: 34, 12: 38 } : { 9: 22, 10: 24, 11: 27, 12: 27 });
     const p = genPlayer(g, { id: `${schoolId}p${i + 1}`, arch, yr, level, last: lasts[i] });
     p.num = jerseyFor(g, p.pos, used);
+    // College players are specialists: a second position only on the same side of the ball
+    if (isCollege(cls) && p.pos2 && posSide(p.pos2) !== posSide(p.pos)) p.pos2 = null;
     players.push(p);
   });
   return players;

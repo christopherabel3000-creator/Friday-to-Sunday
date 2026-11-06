@@ -20,16 +20,18 @@ const BUILD = 10;
 // S (engine.js) is the game being played, SEASON (season.js) the season, and CAREER (career.js) your
 // coach and the seasons you've finished.
 let APP = null;
-function newExhibition() {
-  const seed = newSeed(), g = dice(seed), towns = new Set(), colors = new Set(), mascots = g.shuffle(MASCOTS);
-  const h = genSchool(g, { id: "h", cls: "1A", mascot: mascots[0], towns, colorsTaken: colors });
-  const v = genSchool(g, { id: "v", cls: "1A", mascot: mascots[1], towns, colorsTaken: colors, otherAbbr: h.abbr });
-  APP.ex = { seed, schools: [h, v], you: 0, styles: { off: h.off, def: h.def } };
+// An exhibition between two made-up 1A schools, or two power-conference college programs (level "col")
+function newExhibition(level) {
+  const seed = newSeed(), g = dice(seed), towns = new Set(), colors = new Set(), mascots = g.shuffle(MASCOTS), col = level === "col";
+  const cls = col ? "P4" : "1A", town = () => col ? g.pick(COLLEGE_FORMS[0])(townName(g, towns)) : undefined;
+  const h = genSchool(g, { id: "h", cls, mascot: mascots[0], towns, town: town(), colorsTaken: colors });
+  const v = genSchool(g, { id: "v", cls, mascot: mascots[1], towns, town: town(), colorsTaken: colors, otherAbbr: h.abbr });
+  APP.ex = { seed, level: col ? "col" : "hs", schools: [h, v], you: 0, styles: { off: h.off, def: h.def } };
 }
 function startExhibition() {
   const ex = APP.ex, you = ex.you, mine = i => you === i;
   const next = i => mine(i) && ex.nextDepth && ex.nextDepth.team === i ? ex.nextDepth.depth : null;
-  initGame({ level: "hs", cpu: [!mine(0), !mine(1)], styles: [mine(0) ? ex.styles : null, mine(1) ? ex.styles : null],
+  initGame({ level: ex.level === "col" ? "col" : "hs", cpu: [!mine(0), !mine(1)], styles: [mine(0) ? ex.styles : null, mine(1) ? ex.styles : null],
     rot: [mine(0) ? ex.rot : "normal", mine(1) ? ex.rot : "normal"], depth: [next(0), next(1)] }, ex.schools);
   // A depth chart for the next game only is used up by this game
   ex.nextDepth = null; ex.depthMode = "always";
@@ -175,7 +177,7 @@ function matchupTable(a, b, la, lb) {
 function vExhibition() {
   const ex = APP.ex, [h, v] = [homeTeam(0), homeTeam(1)], live = liveExhibition(), blocked = liveSeasonGame();
   const card = (s, i) => `<section class="panel teamcard" style="--team:${s.color}">
-      <p class="eyebrow">${i ? "Visitors" : "Home"} · Class ${s.cls}</p>
+      <p class="eyebrow">${i ? "Visitors" : "Home"} · ${isCollege(s.cls) ? "College" : `Class ${s.cls}`}</p>
       <h3>${esc(s.town)} ${esc(s.mascot)}</h3>
       <p class="muted">${esc(schoolLine(s))}</p>
       <button class="btn ghost" data-a="roster" data-t="${i}">Roster and depth chart</button>
@@ -183,9 +185,12 @@ function vExhibition() {
   const youBtn = (val, label) => `<button data-a="you" data-v="${val}" aria-pressed="${String(ex.you) === String(val)}">${label}</button>`;
   return `
     <div class="masthead">
-      <p class="eyebrow">Exhibition game · Class 1A</p>
+      <p class="eyebrow">Exhibition game · ${ex.level === "col" ? "College" : "Class 1A"}</p>
       <h2 data-focus tabindex="-1">${esc(v.town)} at ${esc(h.town)}</h2>
-      <p class="muted">Two made-up small schools, under high school rules. Every player is rated, and the ratings decide how well each call works.</p>
+      <p class="muted">${ex.level === "col" ? "Two made-up power-conference college programs, under college rules." : "Two made-up small schools, under high school rules."} Every player is rated, and the ratings decide how well each call works.</p>
+      <div style="display:grid;gap:6px" role="group" aria-label="Level"><span class="eyebrow" aria-hidden="true">Level</span><div class="seg">
+        <button data-a="exlevel" data-v="hs" aria-pressed="${ex.level !== "col"}">High school</button><button data-a="exlevel" data-v="col" aria-pressed="${ex.level === "col"}">College</button>
+      </div></div>
     </div>
     ${live ? `<section class="panel"><p>This game is in progress: ${esc(boardSummary())}</p><button class="btn" data-a="resume">Back to the game</button></section>` : ""}
     ${card(h, 0)}${card(v, 1)}
@@ -507,7 +512,8 @@ function act(a, ds) {
       break;
     }
     // A new matchup drops an exhibition game, never your season game
-    case "newmatch": newExhibition(); if (S && !S.season) S = null; APP.screen = "exhibition"; scrollTop(); break;
+    case "newmatch": newExhibition(APP.ex && APP.ex.level); if (S && !S.season) S = null; APP.screen = "exhibition"; scrollTop(); break;
+    case "exlevel": if ((ds.v === "hs" || ds.v === "col") && ds.v !== (APP.ex.level || "hs")) { newExhibition(ds.v); if (S && !S.season && S.phase === "final") S = null; announce(ds.v === "col" ? "College: a new matchup between two college programs." : "High school: a new matchup between two 1A schools."); } break;
     case "kickoff": if (!liveSeasonGame()) { startExhibition(); scrollTop(); } break;
     case "rematch": if (S && !S.season) { startExhibition(); scrollTop(); } break;
     case "resume": if (S && S.teams) APP.screen = "game"; scrollTop(); break;

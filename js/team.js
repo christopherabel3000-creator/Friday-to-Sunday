@@ -12,13 +12,25 @@ const CLASS_INFO = {
   "3A": { enroll: [400, 750], roster: 46, level: 40 },
   "4A": { enroll: [750, 1200], roster: 56, level: 42 },
   "5A": { enroll: [1200, 1900], roster: 68, level: 44 },
-  "6A": { enroll: [1900, 3200], roster: 85, level: 46 }
+  "6A": { enroll: [1900, 3200], roster: 85, level: 46 },
+  // College (Milestone 4): Division III, Division II, the FCS, the rest of FBS and the power
+  // conferences. Rosters of up to 105, and nobody plays both ways.
+  D3: { enroll: [900, 4000], roster: 95, level: 38 },
+  D2: { enroll: [2000, 9000], roster: 95, level: 43 },
+  FCS: { enroll: [4000, 20000], roster: 100, level: 47 },
+  G5: { enroll: [10000, 35000], roster: 105, level: 51 },
+  P4: { enroll: [20000, 55000], roster: 105, level: 57 }
 };
+const COL_CLASSES = ["D3", "D2", "FCS", "G5", "P4"];
+// The roster limit since the 2025 House settlement
+const COL_ROSTER_MAX = 105;
+const isCollege = cls => COL_CLASSES.includes(cls);
 const CLASS_LEVEL = {};
-CLASSES.forEach(c => { CLASS_LEVEL[c] = CLASS_INFO[c].level; });
+CLASSES.concat(COL_CLASSES).forEach(c => { CLASS_LEVEL[c] = CLASS_INFO[c].level; });
 // How many times a 1A school's numbers a class's rosters and freshman classes are
 const classScale = cls => (CLASS_INFO[cls] || CLASS_INFO["1A"]).roster / 30;
-const classIndex = cls => Math.max(0, CLASSES.indexOf(cls));
+// (college levels rank above 6A: Division III is 3 and the power conferences 7, for styles and facilities)
+const classIndex = cls => CLASSES.includes(cls) ? CLASSES.indexOf(cls) : isCollege(cls) ? 3 + COL_CLASSES.indexOf(cls) : 0;
 function townName(g, taken) {
   for (let i = 0; i < 50; i++) {
     const t = g.f() < .55 ? g.pick(TOWN_FIRST) + g.pick(TOWN_LAST) : g.pick(TOWNS);
@@ -87,27 +99,31 @@ const slotRating = (p, pos) => pos === "KR" || pos === "PR" ? retRating(p) : ovr
 // at the biggest schools.
 const TWO_WAY_GAP = 5;
 const posSide = pos => OFF_POS.includes(pos) ? "off" : DEF_POS.includes(pos) ? "def" : "";
-function depthSide(ps, side, d, pen) {
+// away: what playing out of position costs (college players are specialists, so it costs more there)
+function depthSide(ps, side, d, pen, away) {
   side.forEach(pos => { d[pos] = []; });
   const taken = new Set(), cands = [];
-  const bonus = (p, pos) => p.pos === pos ? 4 : p.pos2 === pos ? 2 : -2;
+  const bonus = (p, pos) => p.pos === pos ? 4 : p.pos2 === pos ? 2 : (away || -2);
   // The quarterback comes first: the best one plays there, even if he'd also be a good tight end
-  if (side === OFF_POS) { const qv = p => ovr(p, "QB") + (p.pos === "QB" ? 1 : 0), qb = ps.slice().sort((a, b) => qv(b) - qv(a))[0]; if (qb) { d.QB.push(qb.id); taken.add(qb.id); } }
-  ps.forEach(p => side.forEach(pos => cands.push({ p, pos, v: ovr(p, pos) + bonus(p, pos) - pen(p) })));
+  // In college only players listed at a position compete for it (anyone fills in if it runs short)
+  const spec = (away || 0) <= -10, fits = (p, pos) => !spec || p.pos === pos || p.pos2 === pos;
+  if (side === OFF_POS) { const qv = p => ovr(p, "QB") + (p.pos === "QB" ? 1 : 0), qb = ps.filter(p => fits(p, "QB")).sort((a, b) => qv(b) - qv(a))[0]; if (qb) { d.QB.push(qb.id); taken.add(qb.id); } }
+  ps.forEach(p => side.forEach(pos => { if (fits(p, pos)) cands.push({ p, pos, v: ovr(p, pos) + bonus(p, pos) - pen(p) }); }));
   cands.sort((a, b) => b.v - a.v);
   cands.forEach(c => { if (!taken.has(c.p.id) && d[c.pos].length < DEPTH_SIZE[c.pos]) { d[c.pos].push(c.p.id); taken.add(c.p.id); } });
   // Anyone left over backs up wherever he fits best (a depth chart never runs dry)
   side.forEach(pos => { if (d[pos].length < DEPTH_SIZE[pos]) { const o = new Map(ps.map(p => [p, ovr(p, pos)])); ps.filter(p => !d[pos].includes(p.id)).sort((a, b) => o.get(b) - o.get(a)).slice(0, DEPTH_SIZE[pos] - d[pos].length).forEach(p => d[pos].push(p.id)); } });
 }
 function autoDepth(team) {
-  const ps = team.players.filter(p => !p.inj), d = {}, none = () => 0;
-  depthSide(ps, OFF_POS, d, none); depthSide(ps, DEF_POS, d, none);
+  const ps = team.players.filter(p => !p.inj), d = {}, none = () => 0, away = isCollege(team.cls) ? -15 : -2;
+  depthSide(ps, OFF_POS, d, none, away); depthSide(ps, DEF_POS, d, none, away);
   const starts = side => { const out = new Set(); side.forEach(pos => d[pos].slice(0, STARTERS[pos]).forEach(id => out.add(id))); return out; };
   const so = starts(OFF_POS), sd = starts(DEF_POS), two = new Set([...so].filter(id => sd.has(id)));
   if (two.size) {
-    const gap = TWO_WAY_GAP * classScale(team.cls || "1A");
-    depthSide(ps, OFF_POS, d, p => two.has(p.id) && posSide(p.pos) === "def" ? gap : 0);
-    depthSide(ps, DEF_POS, d, p => two.has(p.id) && posSide(p.pos) !== "def" ? gap : 0);
+    // (college: nobody plays both ways)
+    const gap = isCollege(team.cls) ? 99 : TWO_WAY_GAP * classScale(team.cls || "1A");
+    depthSide(ps, OFF_POS, d, p => two.has(p.id) && posSide(p.pos) === "def" ? gap : 0, away);
+    depthSide(ps, DEF_POS, d, p => two.has(p.id) && posSide(p.pos) !== "def" ? gap : 0, away);
   }
   ["K", "P", "KR", "PR"].forEach(pos => {
     d[pos] = ps.slice().sort((a, b) => slotRating(b, pos) + (b.pos === pos ? 4 : 0) - slotRating(a, pos) - (a.pos === pos ? 4 : 0))

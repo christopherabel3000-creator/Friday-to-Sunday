@@ -7,7 +7,7 @@
 const COACH_RATINGS = [["off", "Offense"], ["def", "Defense"], ["st", "Special teams"], ["dev", "Development"], ["mot", "Motivation"], ["gm", "Game management"], ["sct", "Scouting"], ["pbd", "Program building"]];
 // Small-school coaches: mostly 30s to 50s, a few better or worse
 // A typical coach at each class: bigger schools hire a little better
-const COACH_LEVEL = { "1A": 42, "2A": 44, "3A": 46, "4A": 48, "5A": 50, "6A": 52 };
+const COACH_LEVEL = { "1A": 42, "2A": 44, "3A": 46, "4A": 48, "5A": 50, "6A": 52, D3: 52, D2: 55, FCS: 58, G5: 61, P4: 65 };
 // The ratings a generated coach rolls dice for, in the order they're rolled. Program building is
 // worked out from the coach instead (coachPbd), so the same seed still builds the same state.
 const ROLLED_RATINGS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
@@ -16,7 +16,8 @@ function genCoach(g, cls) {
   ROLLED_RATINGS.forEach(k => { c[k] = clamp(Math.round(base + g.n(0, 8)), 15, 90); });
   c.pbd = coachPbd(c);
   // Small schools lean on the run, and bigger ones throw a little more
-  const k = classIndex(cls);
+  // (college coaches throw about as much as a 4A coach: real college teams still run about half the time)
+  const k = Math.min(4, classIndex(cls));
   c.off_style = g.w({ bal: 3, gnp: 4 - .4 * k, air: 1.5 + .3 * k, wc: 1.5 + .3 * k });
   c.def_style = g.w({ bal: 3, blz: 2, nfz: 1.5, rs: 2.5 });
   return c;

@@ -249,16 +249,25 @@ const fx = (team, spot) => team === 0 ? spot : 100 - spot;
 const bothHuman = () => !S.teams[0].cpu && !S.teams[1].cpu;
 // One coach on one device: Gridiron Duel's pass-the-phone screens never show
 const passPhone = () => false;
-// High school overtime has no clock: each team gets a series from the 10
-const hsOT = () => !!(S && S.ot && S.ot.kind === "hs" && S.quarter >= 5);
-const noClock = () => S.quarter >= 5 && R().ot.kind === "hs";
+// High school and college overtime have no clock: each team gets a series, from the 10 in high
+// school and the 25 in college
+const SERIES_OT = new Set(["hs", "ncaa"]);
+const hsOT = () => !!(S && S.ot && SERIES_OT.has(S.ot.kind) && S.quarter >= 5);
+const noClock = () => S.quarter >= 5 && SERIES_OT.has(R().ot.kind);
+// College overtime: a two-point try is required after a touchdown in the second period, and from the
+// third on each series is a single two-point play
+const ncaaOT = () => hsOT() && S.ot.kind === "ncaa";
+const mustGoForTwo = () => ncaaOT() && S.ot.n >= 2;
 const nflOT = () => R().ot.kind === "nfl";
-const kickDist = () => 100 - S.spot + R().fgAdd;
+const kickDist = () => 100 - S.spot + (S.fcNow && R().fck && S.down === 1 && !S.twoPt ? 10 : R().fgAdd);
 // Field goals: on 4th down, on any down in the last 40 seconds of a half, in pro overtime on any down
 // once a field goal would win the game, and on any down at all in high school overtime. A coach can
 // try one up to a few yards past the kicker's range.
 const endHalfKick = () => (S.quarter === 2 || S.quarter >= 4) && S.clock <= 40 && !noClock();
-const fgAvailable = () => !S.twoPt && kickDist() <= fgMaxTry(S.poss) && (S.down === 4 || endHalfKick() || otFgWins() || hsOT());
+const fgAvailable = () => !S.twoPt && kickDist() <= fgMaxTry(S.poss) && (S.down === 4 || endHalfKick() || otFgWins() || hsOT() || fcKickNow());
+// A fair-catch kick: after a fair catch, the next snap can be a free kick at the goal from the spot,
+// with no rush. It's 10 yards plus the distance to the goal line.
+const fcKickNow = () => !!(S.fcNow && R().fck && S.down === 1 && !S.twoPt);
 const puntAvailable = () => !S.twoPt && S.down === 4 && !hsOT();
 // The three ways to punt. Pin it deep aims a high, short kick to drop inside their 10; Boom it
 // kicks it as far as the punter can and outkicks the coverage.
@@ -460,12 +469,19 @@ function hsotStart(lead) {
   S.quarter = 5; S.clock = 0; S.runClock = false; S.ot = null;
   restAll("quarter");
   S.tos = [R().ot.tos, R().ot.tos];
-  startToss(true, `${lead} Each team gets a series from the 10. There's no clock, and the defense can't score.`);
+  startToss(true, R().ot.kind === "ncaa" ? `${lead} Each team gets a possession from the 25. There's no clock.` : `${lead} Each team gets a series from the 10. There's no clock, and the defense can't score.`);
 }
 function hsotSeries(t, lead) {
   S.poss = t; S.spot = R().ot.spot; S.down = 1; S.toGo = Math.min(10, 100 - S.spot);
   S.clockRunning = false; S.oobRestart = false;
-  S.banner = `${lead ? lead + " " : ""}${tname(t)} ball, first and goal at the 10.`;
+  const pre = lead ? lead + " " : "";
+  // College, third overtime on: a single two-point play from the 3
+  if (ncaaOT() && S.ot.n >= 3) {
+    S.patTeam = t; S.twoPt = { team: t, spot: R().tryTwo }; S.spot = R().tryTwo; S.toGo = 100 - S.spot;
+    S.banner = `${pre}${tname(t)} run a two-point play from the 3.`;
+    return;
+  }
+  S.banner = `${pre}${tname(t)} ball, ${S.spot >= 90 ? `first and goal at the ${100 - S.spot}` : `1st and 10 at the ${100 - S.spot}`}.${mustGoForTwo() ? " A touchdown has to be followed by a two-point try." : ""}`;
 }
 // The series is over: a score (after its try), a field goal try, a turnover, or a stop on downs
 function hsotEnd() {
@@ -582,7 +598,7 @@ const qLabel = q => q === 5 ? "OT" : q > 5 ? `${q - 4}OT` : "Q" + q;
 // kick. In high school overtime: offense or defense first (most coaches take defense, so they know
 // what they need).
 const VISITOR = 1;
-function startToss(ot, lead) { S.toss = { ot, hs: ot && R().ot.kind === "hs", lead, step: "call" }; S.phase = "toss"; S.banner = ""; }
+function startToss(ot, lead) { S.toss = { ot, hs: ot && SERIES_OT.has(R().ot.kind), lead, step: "call" }; S.phase = "toss"; S.banner = ""; }
 function tossCall(c) {
   const t = S.toss; if (!t || t.step !== "call") return;
   t.call = c === "tails" ? "tails" : "heads";
@@ -597,7 +613,7 @@ function tossChoose(ch) {
     const first = ch === "offense" ? w : 1 - w, pick = ch === "offense" ? "go on offense first" : "play defense first";
     const said = t.noFlip ? `${tname(w)} choose to ${pick}.` : `${tname(VISITOR)} call ${t.call}. It's ${t.flip}, so ${tname(w)} win the toss and choose to ${pick}.`;
     S.toss = null;
-    if (!S.ot) S.ot = { kind: "hs", n: 1, ser: 1, first, toss: w }; else S.ot.first = first;
+    if (!S.ot) S.ot = { kind: R().ot.kind, n: 1, ser: 1, first, toss: w }; else S.ot.first = first;
     hsotSeries(first, `${t.lead ? t.lead + " " : ""}${said}`);
     return;
   }
@@ -627,6 +643,8 @@ function kneelBase() {
 }
 const kneelAvailable = () => !!S.kneelSeries && kneelBase();
 function startPlay() {
+  // A fair catch on the last play makes a fair-catch kick possible on this one
+  S.fcNow = !!S.fcKick; S.fcKick = false;
   if (S.down === 1) S.kneelSeries = !S.twoPt && kneelBase();
   // Tired starters sit and rested ones come back. The coach hears about his own team's changes
   // (both teams' when the computer coaches both).

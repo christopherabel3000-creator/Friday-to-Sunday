@@ -533,7 +533,8 @@ function enforce(code, base, endOfPlay) {
     desc = `${yds}-yard penalty${half ? ", half the distance to the goal" : ""}. Replay ${ord(s.down)} down.`;
   } else {
     if (pen.spot) {
-      const air = OFFP[S.offCall].air + ri(-2, 9);
+      // A spot foul, up to pen.max yards in college
+      const air = Math.min(OFFP[S.offCall].air + ri(-2, 9), pen.max || 99);
       s.spot = Math.min(99, Math.max(L + 1, L + air)); yds = s.spot - L;
       desc = s.spot === 99 && L + air >= 100 ? "Foul in the end zone. Ball at the 1." : `Spot foul, ${yd(yds)}.`;
     } else {
@@ -634,12 +635,14 @@ function doKneel() {
 const fgRange = K => 24.7 + .436 * K.r.leg;
 const fgMaxTry = t => Math.round(fgRange(kickerOf(t)) + 4);
 function fgChance(K, d) {
-  const max = fgRange(K), sure = clamp(.5 + .005 * K.r.kac, .55, .97);
+  // (college kickers make their chip shots more: extra points are about 97 percent good)
+  const max = fgRange(K), sure = clamp(.5 + .005 * K.r.kac + ((S && S.teams && R().kickSure) || 0), .55, .97);
   if (d > max) return clamp(.03 * (max + 4 - d), .005, .03);
   return clamp(sure * (1 - Math.pow(d / max, 8)), .01, .99);
 }
 // A good special teams coach makes a few more kicks: about 5 percent more at a 55
-const fgOdds = (t, K, d) => clamp(fgChance(K, d) * (1 + .004 * stOf(t)), .005, .99);
+// (and with no tee, as in college, a little less sure)
+const fgOdds = (t, K, d) => clamp(fgChance(K, d) * (1 + .004 * stOf(t)) * (R().teeK || 1), .005, .99);
 const fgProbFor = (t, d) => fgOdds(t, kickerOf(t), d);
 // Kicks get blocked more behind a weak line
 function kickBlockMul(t) { return clamp(1 - .02 * (unitAvg(onField(t, "fgu").OL, { pbk: .7, str: .3 }) - REF), 1, 2.2); }
@@ -666,6 +669,10 @@ function kickoff(rcv, allowTD, from) {
   if (rand() < .025) { startDrive(rcv, 100 - (from + 25)); return `${K.last}'s kick goes out of bounds. ${tname(rcv)} take it at the ${spotText(rcv, S.spot)}.`; }
   const dist = Math.round(normal(30 + .38 * K.r.leg, 5.5)), land = 100 - (from + dist);
   if (land <= 0 && R().kickDeadInEndZone) { pstat(K, "kotb"); startDrive(rcv, KO.tb); return `${K.last}'s kick reaches the end zone. Touchback: ${tname(rcv)} start at their own ${KO.tb}.`; }
+  // College: most kicks into the end zone are downed for a touchback, and a fair catch inside the 25
+  // counts as one too
+  if (land <= 0 && rand() < .8) { pstat(K, "kotb"); startDrive(rcv, KO.tb); return `${K.last}'s kick goes into the end zone, and ${ret.last} takes a knee. Touchback: ${tname(rcv)} start at their own ${KO.tb}.`; }
+  if (KO.fcTb && land > 0 && land < KO.tb && rand() < .4) { pstat(K, "kotb"); startDrive(rcv, KO.tb); return `${ret.last} calls for a fair catch at the ${land}. That counts as a touchback: ${tname(rcv)} start at their own ${KO.tb}.`; }
   tick(ri(4, 7));
   const cover = coverRating(k), e = tEdge(retRating(ret), cover), y0 = Math.max(1, land);
   let ry = returnYards(ret, cover, 17);
@@ -774,6 +781,8 @@ function doPunt() {
     else how = "roll";
     if (how === "ret") { ry = Math.min(ry, 99 - (100 - land)); pstat(ret, "pr"); pstat(ret, "pry", ry); }
     startDrive(d, Math.min(100 - land + ry, 99));
+    // A fair catch: the next snap can be a fair-catch kick
+    if (how === "fair") S.fcKick = true;
     const tail = how === "ret" ? `, and ${ret.last} returns it ${yd(ry)}${kind === "boom" && ry >= 18 ? ". It outkicked the coverage" : ""}` : how === "fair" ? `. ${ret.last} calls for a fair catch` : how === "downed" ? ". The coverage downs it" : ". Nobody back to return it, so it rolls";
     const verb = shank ? "shanks it" : kind === "pin" ? (short ? "hangs a short one up" : "drops a pooch punt") : kind === "boom" ? "booms it" : "punts";
     Object.assign(r, { head: kind === "pin" && how !== "ret" && !shank && S.spot <= 10 ? "Pinned deep" : "Punt", text: `${Pn.last} ${verb}, ${yd(dist)}${tail}.`, toX: fx(d, S.spot) });
@@ -785,15 +794,16 @@ function doFG() {
   const o = S.poss, d = 1 - o, from = S.spot, dist = kickDist(), K = kickerOf(o);
   const r = { read: null, fromX: fx(o, from), tone: "" };
   tick(ri(4, 6));
-  const dc = S.defCall, rush = dc === "ab" || dc === "blk";
-  const blocked = rand() < (dc === "blk" ? .09 : dc === "ab" ? .04 : .012) * kickBlockMul(o);
+  // A fair-catch kick is a free kick: nobody can rush it
+  const fck = fcKickNow(), dc = fck ? null : S.defCall, rush = dc === "ab" || dc === "blk";
+  const blocked = !fck && rand() < (dc === "blk" ? .09 : dc === "ab" ? .04 : .012) * kickBlockMul(o);
   const good = !blocked && rand() < fgOdds(o, K, dist) - (rush ? .04 : 0);
   // Roughing the kicker on a miss: the offense keeps the ball (on a make they just take the points)
   if (!good && dc === "blk" && rand() < .12) return roughKicker(r, "fg");
   pstat(K, "fga");
   if (good) {
     score(o, 3); pstat(K, "fgm"); pmax(K, "fgl", dist);
-    Object.assign(r, { head: "It's good", tone: "good", text: `${K.last}'s ${dist}-yard field goal is good. 3 points for ${tname(o)}.`, toX: fx(o, 110) });
+    Object.assign(r, { head: "It's good", tone: "good", text: `${K.last}'s ${dist}-yard ${fck ? "fair-catch kick" : "field goal"} is good. 3 points for ${tname(o)}.`, toX: fx(o, 110) });
     if (S.gameOver) r.sub = `${tname(o)} win it in overtime!`;
     else { r.sub = kickAfterScore(o); r.kickEnd = kickEnded; }
     return r;
@@ -804,6 +814,7 @@ function doFG() {
   Object.assign(r, { head: blocked ? "Blocked!" : "No good", tone: "bad", text: miss });
   if (hsOT()) { r.toX = fx(o, from); hsotEnd(); return r; }
   if (blocked) startDrive(d, Math.min(99, 100 - Math.max(from - 7, 1) + ri(0, 8)));
+  else if (R().missedFg === "prev") startDrive(d, Math.max(100 - from, 20));
   else if (R().missedFg === "punt") {
     // High school: a miss is treated like a punt. In the end zone, it's a touchback at the 20; a
     // kick that comes down short of it is downed where it stops.
@@ -951,6 +962,8 @@ function resolveTwo() {
 function finishTwo(good, res, text, note, m, off, def, spot) {
   const o = S.twoPt.team;
   if (good) score(o, 2);
+  // A turnover on the try can be returned for two points, in college
+  else if ((res.int || res.fumble) && defReturnsTry()) { score(1 - o, 2); text += ` ${tname(1 - o)} take it the other way: two points for the defense!`; }
   S.twoPt = null;
   const ko = kickAfterScore(o);
   const r = { pat: "two", m, mc: M[off][def], pe: res.pe, opk: S.offPkg, dpk: S.defPkg, team: o, offId: off, defId: def, fromX: fx(o, spot), toX: fx(o, good ? 100 : Math.min(99, spot + Math.max(res.y, -3))),
@@ -983,17 +996,22 @@ function chooseTwoPenalty(accept) {
       sub: `Half the distance to the goal. The two-point try is replayed from the ${ydLine(ns)}.` }));
   }
 }
+// The defense returns a try for two points, in college (not in overtime)
+const defReturnsTry = () => !!(R().defTryScore && !hsOT() && rand() < .12);
 function doPAT(kind, dist) {
-  if (kind === "two") { startTwo(); return; }
+  // College overtime, second period on: it has to be two
+  if (kind === "two" || mustGoForTwo()) { startTwo(); return; }
   const t = S.patTeam, K = kickerOf(t), base = xpDist(R().tryTwo), d = dist || base;
   const blocked = rand() < .02 * kickBlockMul(t);
   const ok = !blocked && rand() < fgOdds(t, K, d);
+  const back = blocked && defReturnsTry();
   pstat(K, "xpa");
   if (ok) { score(t, 1); pstat(K, "xpm"); }
+  if (back) score(1 - t, 2);
   const ko = kickAfterScore(t), kick = d !== base ? `${K.last}'s ${d}-yard extra point` : `${K.last}'s extra point`;
   const r = { read: null, team: t, offId: "xp", defId: null, fromX: fx(t, 100 - (d - R().fgAdd)), toX: fx(t, ok ? 110 : 98),
     head: ok ? "Extra point good" : blocked ? "Blocked!" : "Extra point missed", tone: ok ? "good" : "bad",
-    text: ok ? `${kick} is good.` : blocked ? `${kick} is blocked!` : `${kick} is no good.`,
+    text: ok ? `${kick} is good.` : blocked ? `${kick} is blocked!${back ? ` ${tname(1 - t)} pick it up and run it all the way back: two points for the defense!` : ""}` : `${kick} is no good.`,
     sub: ko, kickEnd: kickEnded, pat: true };
   otTail(r);
   r.id = S.playId = (S.playId || 0) + 1;

@@ -172,7 +172,7 @@ function vCall() {
         pc("pin", "Pin It Deep", `A high, short punt aimed to drop inside their 10, where the coverage can down it or force a fair catch. ${pinNote}`) +
         pc("boom", "Boom It", `Kick it as far as ${esc(P.last)} can, about ${avg + 6} yards. Flips the field when you're backed up, but it outkicks the coverage, so big returns happen, and from too close it sails into the end zone.`);
     }
-    else { const k = kickDist(); st += card("fg", `${k}-yd field goal`, "Kick", `${esc(kickerOf(t).last)} makes it about ${Math.round(fgProbFor(t, k) * 100)}% of the time from here.`, "st"); }
+    else { const k = kickDist(), fck = fcKickNow(); st += card("fg", `${k}-yd ${fck ? "fair-catch kick" : "field goal"}`, "Kick", `${fck ? "A free kick at the goal from the spot of the fair catch: nobody can rush it. " : ""}${esc(kickerOf(t).last)} makes it about ${Math.round(fgProbFor(t, k) * 100)}% of the time from here.`, "st"); }
     st += `</div><p class="sechead">Trick play</p><div class="plays">`;
     if (pk === "punt") st += card("fp", "Fake Punt", "Trick", "Line up to punt, then run or throw for the first down. Deadly if they sell out for the kick.", "st");
     else st += card("ffg", "Fake Field Goal", "Trick", "The holder keeps it. Works if they rush the kick, gets stuffed if they don't.", "st");
@@ -402,10 +402,12 @@ function vPAT() {
   return `${board()}
     <section class="panel handoff" style="--team:${tm.color}">
       <p class="eyebrow">${esc(tm.name)} · Point after</p>
-      <h2>Kick it or go for <span>two</span>?</h2>
+      <h2>${mustGoForTwo() ? "Go for <span>two</span>" : "Kick it or go for <span>two</span>?"}</h2>
+      ${mustGoForTwo() ? `<p class="muted">In the second overtime, a touchdown has to be followed by a two-point try.</p>` : ""}
       <div class="choices">
-        <button class="btn team" data-a="pat" data-v="kick">Kick<span class="sr-only">. </span><br><small style="${SMALL_STYLE}">1 point · ${esc(kickerOf(t).last)}, about ${xp}%</small></button>
-        <button class="btn ghost" data-a="pat" data-v="two">Go for two<span class="sr-only">. </span><br><small style="${SMALL_STYLE}">2 points · run a play from the ${100 - R().tryTwo}</small></button>
+        ${mustGoForTwo() ? "" : `<button class="btn team" data-a="pat" data-v="kick">Kick<span class="sr-only">. </span><br><small style="${SMALL_STYLE}">1 point · ${esc(kickerOf(t).last)}, about ${xp}%</small></button>
+`}
+        <button class="btn ${mustGoForTwo() ? "team" : "ghost"}" data-a="pat" data-v="two">Go for two<span class="sr-only">. </span><br><small style="${SMALL_STYLE}">2 points · run a play from the ${100 - R().tryTwo}</small></button>
       </div>
     </section>`;
 }
