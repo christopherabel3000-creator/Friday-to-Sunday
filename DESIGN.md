@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose. Next is Milestone 5, the pros.
+Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose. Next is Milestone 5, the pros, designed below and not built yet.
 
 ## The pitch
 
@@ -613,6 +613,155 @@ Checked against current sources in November 2026, and to be checked against the 
 - Saves from version 12 move a player who had used his redshirt year up a class, and shrink the classes on paper to a fifth of a roster. Saves from version 11 get Recruiting for your coach; a season under way gets its recruiting board when it's next opened.
 - Still to check through play: how many seasons a winning coach takes to reach a power conference (the aim is 12 to 18).
 
+## Milestone 5: the pros
+
+From Saturdays to Sundays. A coach who wins big in a power conference gets a call from a pro team, and for the first time he isn't the only one deciding who's on the roster. Talent comes through the draft, free agency and trades, all under a salary cap, and at first a general manager makes those calls. Win, and a contract with full control of the roster comes later.
+
+Decisions (Nov 2026):
+
+- The pro league has the real shape of the NFL, with made-up names: 32 teams, 17 games, 14 playoff teams. Players can rename teams, like schools.
+- The way in: only power-conference head coaches get pro offers, and only with a big college reputation.
+- Coach first, GM later. At first a computer GM runs the roster: the draft, free agency, trades and cuts. You call the plays, run practice and set the depth chart, and you make requests the GM weighs.
+- Personnel control is written into a contract. Some offers and extensions include it, more often the bigger your pro reputation and the more desperate the team.
+- Contracts and the cap are realistic, but a bit simpler: real dollars, contract years and yearly pay, guaranteed money that becomes dead money when a player is cut, the rookie scale by draft pick, and the franchise tag. No signing bonuses spread over years, restructures, void years or incentives.
+- Trades of players and draft picks, including on draft day.
+- Draft prospects' ratings are estimates, a range that narrows with scouting and the combine. Busts and steals happen.
+
+In this milestone:
+
+- The pro league: 32 teams in two conferences of four divisions, each team with an owner, a GM, a coach, a stadium, fans and a tradition.
+- Pro rules, as the NFL plays them in 2026, and pro overtime (both already in the engine from Gridiron Duel), checked again.
+- A pro season: training camp, three preseason games, cutdown day, 17 games over 18 weeks with one bye, the trade deadline, a 14-team playoff and a championship game at a neutral site.
+- Pro players: ages instead of class years, growth to a peak and then a decline that comes earlier at some positions, retirement, a 53-man roster, a practice squad and injured reserve.
+- The salary cap and contracts.
+- The pro reputation, pro job markets, owners, contracts for coaches, with and without personnel control.
+- The computer GM and your requests.
+- The draft: prospects from the college world, scouting, the combine, your board and the draft room.
+- Free agency, re-signing and the franchise tag.
+- Trades.
+- Your former players: the players you coached in high school and college can be drafted, play in the league, and end up on your roster.
+- Renaming teams, and the league's name.
+
+Not in this milestone: the coordinator path (Milestone 6), assistant coaches on your staff, signing bonuses and restructures, holdouts, expansion and relocation, players from outside the college world, and a Hall of Fame.
+
+Build steps, each one playable and tested before the next:
+
+1. Pro rules checked against the 2026 rulebook, and an exhibition pro game between two generated teams, with the level of play checked.
+2. The pro league and its season: teams, divisions, the 17-game schedule, standings and tiebreakers, the playoff, the quick sim refit for the pros, and the league on paper while you coach in high school or college, with speed and save size measured. (A test career can start in the pros.)
+3. Pro players and the cap: ages, growth and decline, retirement, contracts, cap space and dead money, the 90-man offseason roster, cutdown to 53, the practice squad, injured reserve and game-day actives.
+4. The pro job: the way in, the pro reputation, pro jobs in the market, coaching contracts, personnel control, owners, expectations and job security, computer GMs and your requests.
+5. The draft: declaring, the prospects, scouting and the combine, your board, the draft order, the draft room, rookie contracts and undrafted free agents. When you have control, your staff can run any part of it.
+6. Free agency: expiring contracts, re-signing, the franchise tag, the market and computer teams signing on paper.
+7. Trades: what players and picks are worth, building a trade, offers from computer teams, the trade deadline, and draft-day trades.
+8. Renaming teams and the league, help and docs.
+
+Milestone 5 is done when:
+
+- A coach who keeps winning in a power conference gets pro offers, and one who wins in the pros can earn personnel control within a contract or two.
+- The cap forces real choices: a contender can't keep everyone, and a rebuilding team can buy in free agency.
+- The draft decides a team's future: good scouting and good picks build a winner, and a top pick can bust.
+- With a computer GM, your requests matter more as your standing with him grows. With control, you can run the roster hands-on or hand parts of it to your staff.
+- Your former players show up in the draft and in the league.
+- The whole world, high school, college and the pros, moves on a year in a few seconds on a phone, and the save stays under the cloud save's limit.
+- Every new screen works with VoiceOver, on iPhone and on a computer.
+
+### The league
+
+- 32 teams in two conferences of 16, each with four divisions of four, like the NFL. Made-up team names, cities and colors, never a real team's. A made-up name for the league and the championship game (see Open questions).
+- Each team has an owner (patience, and how much he spends, up to the cap), a GM, a coach, a stadium, fans and a tradition, all made up and kept from year to year.
+- The schedule, as the NFL builds it: 6 division games (home and away), 4 against a division in your conference, 4 against a division in the other conference (both rotate each year), 2 against teams in your conference that finished in the same place in their divisions, and a 17th game against a team from the other conference that finished in the same place. 18 weeks, one bye for each team between weeks 5 and 14.
+- Standings and tiebreakers follow the NFL's order: head-to-head, then division record, then common games, conference record, and strength of victory. (The full list is long; the game uses its first steps and a coin flip after them.)
+- The playoff: seven teams from each conference, the four division winners seeded 1 to 4 and three wild cards 5 to 7. The top seed in each conference has a bye. Higher seeds host, and the championship game is at a neutral site, with no home edge.
+- Only your games run on the full engine. Every other game is a quick sim, refit to the pros from full-engine games between pro teams.
+- Before you reach the pros, the league runs on paper: each team as ratings and a coach, its season quick-simmed, with the draft noting only where the players you coached went. When you take a pro job, the league is built in full from its seed, and your former players join it where they were drafted.
+
+### Pro players
+
+- Ratings stay on the one scale. Typical pro starters are in the 70s, with stars in the 80s and 90s; Gridiron Duel's engine numbers already describe players rated about 75.
+- Players have ages instead of class years. Rookies are 21 to 23. Growth comes fast in the first three or four seasons, then slows to a peak around 26 to 29, and players decline after about 30: running backs earlier (about 27), quarterbacks, kickers and punters later (about 33 to 35). Development, practice and perks still help growth, as before.
+- Retirement: more likely with age, a big decline, an injury, or no team wanting him.
+- Rosters: up to 90 in the offseason and training camp, then 53 after cutdown day, plus a practice squad of up to 16. On game day, 48 of the 53 are active, chosen by your depth chart (the staff picks the inactives unless you do). Up to two practice squad players can be called up for a game.
+- Injured reserve: a player expected to miss four games or more can go on injured reserve, which frees his roster spot, and can come back after four games. A team can bring back up to 8 players from injured reserve a season. (To check against the 2026 rules.)
+- The practice plan works as in high school and college. The offseason program (OTAs and minicamp) works like spring practice, then training camp.
+
+### The salary cap and contracts
+
+- The cap is in real dollars: $301.2 million a team in 2026, the real number. It goes up about 6 percent a year, a little more or less, and the new number is announced each February. Unused cap space carries over to the next year. (To check.)
+- Every contract has a length (1 to 5 years), pay for each year, and a guaranteed amount. A player's pay each year is his cap hit.
+- Cutting a player: whatever is left of his guaranteed money counts against this year's cap as dead money, all at once. Anything not guaranteed is gone, so cutting an older player on a big contract can save money.
+- The rookie scale: drafted players get four-year contracts set by where they were picked, at the real 2026 values, rising each year with the cap. The first pick gets about $54.6 million over four years, the last pick of the first round about $16.1 million, and the last pick of the draft about $4.4 million. First-round contracts are fully guaranteed and have a fifth-year option the team can pick up after the third season. Undrafted players get three-year contracts at the minimum.
+- Free agency: a player whose contract runs out after four or more seasons in the league is a free agent. A player with fewer seasons is kept by his team at a set raise if it wants him (see Open questions).
+- The franchise tag: once a year, a team can keep one player whose contract is running out for one more year, at the tag price for his position. In 2026 that's about $43.9 million for a quarterback, $27.3 million for a receiver, $27.1 million for a defensive tackle, $26.9 million for a linebacker, $20.1 million for a safety, $15.0 million for a tight end, $14.3 million for a running back and $6.6 million for a kicker or punter, rising with the cap. In the game, the tag price is the average of the five biggest cap hits at the position, or 120 percent of the player's own pay if that's more.
+- The minimum salary goes up with a player's seasons in the league. (To check against the 2026 numbers.)
+- How it works, in numbers: a player's market value comes from his overall, his position, his age and his health. About $400,000 a year at the bottom of a roster, about $10 million a year for a solid starter at most positions, and $25 million to $55 million a year for the best quarterbacks and pass rushers, scaled to each year's cap. How much is guaranteed rises with his value.
+- The cap screen: one line on the cap (cap, money committed, space, dead money), then next year's space, the biggest contracts, the contracts ending this year, and the dead money, each as a sentence.
+
+### The pro job
+
+- The way in: pro jobs appear in your college job market once you're the head coach at a power-conference program with a college reputation of 75 or more. The best openings want more.
+- The pros have their own reputation, 0 to 100, with the same words. A coach who arrives from college starts at 20, plus a little for a college legend. A bigger stage means more change, and the pros are the biggest one.
+- Pro head coaching contracts, in real dollars: about $4 million to $20 million a year, 4 to 6 years, more for proud teams and bigger reputations. A fired coach is paid what's left on his contract, less what his next job pays.
+- Personnel control: each offer and each extension says whether it comes with control of the roster. A first-time pro coach rarely gets it. Later it's more likely the bigger your pro reputation, the worse the team was the year before, and the more the owner wants you. You can turn down an offer that doesn't include it.
+- Owners set expectations, as in high school and college: the season played on paper 60 times from the opening ratings, counting division titles and playoff wins. Patience varies by owner. Job security, the season grade and the hot seat work the same way, and a first-year coach is never fired.
+- Leaving: you can take a college job any time one is interested in you, on your college reputation, and a fired pro coach often does.
+- Computer coaches have careers here too, and the best power-conference coaches move up to pro jobs.
+
+### The computer GM
+
+- Every team has a GM with a rating (how well he scouts and builds), a philosophy (build through the draft, or buy in free agency) and a patience for rebuilding. Computer GMs run every other team's roster on paper.
+- On your team, while you don't have control, he runs the draft, free agency, re-signing, the tag, trades and cuts, and he tells you about each move in the weekly report and the offseason screens.
+- Your requests, before free agency, before the draft, and before the trade deadline:
+  - Up to three needs, by position, in order.
+  - Players you want kept (up to three) and players you'd let go (up to three).
+  - A player on the draft board or in free agency you want him to go after (one at a time).
+- Your standing with him, 0 to 100, starts at 50. It rises when you win and when his moves that you backed work out, and it falls when you lose and when players you pushed for flop. The higher it is, the more of your requests he follows: about a quarter of them at 20 and nearly all of them at 90. He says each time whether he's going along with you, and why not when he isn't.
+- An owner who loses patience can fire the GM instead of you, and a new GM comes in with his own philosophy.
+
+When you have control:
+
+- You make every roster decision, and your staff can take any part of it, with settings like recruiting's: the staff sets the draft board (on to start), the staff makes the late-round picks (on to start), the staff cuts to 53 (on to start), the staff signs undrafted free agents (on to start), and the staff answers trade offers (off to start). Anything big waits for you.
+
+### The draft
+
+- The prospects come from the college world: seniors out of eligibility, and juniors and seniors who declare early, more likely the higher they're rated. About 400 prospects for 257 picks or so. The players you coached in college are among them, read as "your former player".
+- Seven rounds of 32 picks, plus compensatory picks: up to 32 at the ends of rounds 3 to 7, given to teams that lost more in free agency than they signed. In 2026 there were 33 of them, for 257 picks in all.
+- The order: teams that missed the playoff by record, worst first, then playoff teams by how far they went. Ties go to the weaker schedule.
+- What you know: each prospect's ratings show as a range, like "about 68 to 76", from his college games. Scouting time narrows it: your staff's scouting time each week is shared out by priority, like recruiting, and your Scouting rating and a new perk, Talent evaluator, make it go further. The combine, in February, adds real numbers (40-yard dash, bench press, vertical jump) that pin down speed, strength and quickness. A prospect's true ratings and potential show only once he's on your team.
+- Your board: prospects in the order you'd take them, with your needs. The staff can build it for you, and you can move anyone up or down.
+- The draft room: each pick is one line. Only your picks, and picks of players on your board, are announced. When you're on the clock: take the best player on your board, take someone else, trade the pick (see Trades), or let the staff (or the GM) pick. With a computer GM, he picks, and you get one push per round for a player you want.
+- After the draft: undrafted free agents sign three-year contracts, and the roster goes to 90.
+
+### Free agency
+
+- Re-signing first: before free agency, a team can extend any player in the last year of his contract, or tag one. Players ask for about their market value, more if they've just had a great season.
+- The market opens in March. Each free agent has a price and cares about money, guaranteed money, his chance to start, the team's chance to win, and the coach. Over a few days of offers (each day a step, like recruiting weeks), he signs where he likes it best. Computer teams make offers on paper, by their needs and cap space.
+- Your offers: years, pay and guarantee, with the cap space left read out. With a computer GM, he makes the offers, with your requests in mind.
+- After the first wave, cheap veterans sign one-year deals through training camp.
+
+### Trades
+
+- Players and draft picks, for up to three years ahead, between any two teams, from the end of the playoff to the trade deadline, after week 9 of the season (to check), and again during the draft.
+- What things are worth: a pick's value comes from a value chart like the ones real teams use, highest for the first pick and falling fast through the first round. A future pick is worth about a round less. A player's value comes from his rating, age, position and how good his contract is for what he does.
+- A computer team accepts when it gets a bit more than it gives, when it fits its needs and philosophy, and when both teams stay under the cap. It says how far off an offer is in words: "They'd want a bit more", "Not close", "They'd take that."
+- Building a trade: choose a team, then add players and picks from each side from lists of buttons, with the balance read out after each change. Computer teams also call you with offers now and then, and the trade news covers trades between computer teams.
+- With a computer GM, he makes the trades, and you can ask him to make a move at a position before the deadline.
+
+### Renaming teams
+
+- The names screen from Milestone 4 gets a Pros section: each team's city and nickname, the conferences, the divisions, the league and the championship game. The same names list format carries them.
+
+### Screens
+
+- The season screen, as in college, plus your division's standings, the playoff picture and the cap line.
+- New screens: the league standings and playoff picture, the cap and contracts, a player's contract, the GM and your requests, the draft board, a prospect, the draft room, free agency, a free agent, the trade builder, trade offers, the pro job market and contract offers, and the names screen's Pros section.
+- Every new screen moves VoiceOver to its heading, choices are buttons, and changes are announced once, briefly. Long lists (the draft board, free agents, the league's rosters) are grouped under headings so they can be skipped through.
+
+### How it's built (Milestone 5)
+
+- Three worlds: SEASON, the one you coach in, and the other two on paper. Each year all three move on, and the draft passes players from the college world to the pros. The college world's players who leave early now go to the draft instead of just leaving.
+- While you're in the pros, every team keeps its real players, since trades and free agency need them, but only your team is kept in full. The rest are kept as short records (name, age, position, ratings, contract) and rebuilt in full when you play them or open them.
+- To measure in step 2: the new year with all three worlds on a phone, and the save with 32 pro rosters. If it's too much, the other teams' players can be kept even more briefly.
+
 ## The world
 
 - A fictional state with six classes, from 1A (the smallest schools) to 6A (the largest). Bigger schools have more students to draw players from. All six arrive in Milestone 3a.
@@ -875,7 +1024,9 @@ Checked against current sources in November 2026. Items marked "to confirm" get 
 - The dynamic kickoff: the ball is kicked from the 35. A kick into the end zone is a touchback at the 35. A kick that lands between the goal line and the 20 is live and has to be returned, and if it rolls into the end zone and is downed there, the touchback is at the 20. A kick that lands short of the 20 gives the receiving team the ball at its 40. Gridiron Duel already has the touchback at the 35 and the short-kick rule. The rest is new.
 - Onside kicks: any team can declare one at any point in the game, whatever the score (since 2026). Before that, it was only a team that was behind: in the fourth quarter in 2024, and at any time in 2025.
 - Extra-point kicks are snapped from the 15, about a 33-yard kick. Two-point tries are from the 2. The defense can return a try for two points.
-- To confirm: the receiving team's kickoff alignment, which changed again in 2026, and pass interference.
+- The receiving team's alignment (checked against the 2026 rulebook, which changed it again): at least nine players in the setup zone, between the receiving team's 30 and 35, with at least five of them (six before 2026) with a foot on the 35. Fair catches aren't allowed on a kickoff.
+- A kickoff from the 50 (after a penalty) that lands in the end zone, or goes past it, is a touchback at the 20 (new in 2026), so there's no reason to kick it out of bounds.
+- Pass interference: defensive pass interference is a spot foul with an automatic first down (at the 1 if it's in the end zone). Offensive pass interference is 10 yards. Gridiron Duel already plays it this way; to check again while step 1 is built.
 
 ## Overtime by level
 
@@ -926,7 +1077,7 @@ See Milestone 4 near the top.
 
 ### Milestone 5: the pros
 
-A fictional pro league. Talent comes through the draft, with simplified contracts, a salary cap and free agency.
+See Milestone 5 near the top.
 
 ### Milestone 6: the coordinator path
 
@@ -992,4 +1143,9 @@ How it's built (step 5):
 
 ## Open questions
 
-None right now.
+For Milestone 5:
+
+1. The league's name and the championship game's name: made up by the game, or chosen by you? (They can be renamed either way.)
+2. Players with fewer than four seasons whose contracts run out: kept by their teams at a set raise (simpler), or the real restricted free agency, with tenders and offer sheets?
+3. Preseason games: three real games you can play or sim, or just camp with the games played on paper?
+4. Holdouts: should a star who wants a new contract ever skip camp, or leave that out?
