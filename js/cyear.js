@@ -5,10 +5,13 @@
 
 /* ---------- Your players' year ---------- */
 // A player who played in 4 games or fewer keeps the year once in his career: a redshirt (p.rs). He
-// stays in the same class and still grows. A senior who hasn't used it can come back for a fifth year.
+// stays in the same class and still grows.
 const REDSHIRT_GAMES = 4;
 const gamesPlayed = p => ((SEASON.stats || {})[p.id] || {}).g || 0;
-const redshirtsNow = p => !p.rs && gamesPlayed(p) <= REDSHIRT_GAMES;
+// (only freshmen and sophomores outside the two-deep: the box score counts a game only when a
+// player shows up in it, so a backup lineman who played every week might show none)
+const inTwoDeep = p => { const s = SEASON && SEASON.myId && SEASON.schools[SEASON.myId], d = s && s.depth && s.depth[p.pos]; return !!d && d.slice(0, 2 * (STARTERS[p.pos] || 1)).includes(p.id); };
+const redshirtsNow = p => !p.rs && (p.yr || 9) <= 10 && gamesPlayed(p) <= REDSHIRT_GAMES && !inTwoDeep(p);
 // The best juniors (and redshirt sophomores, in their third year) may leave early for the pros: none
 // under 74 at their position, about half at 80, nearly all from 86
 function leavesEarly(p, rng) {
@@ -52,6 +55,9 @@ function cutToLimit(s) {
 // Returns { grads, pros, left, rs, fresh, joined, cut, grew, spring }.
 function colAdvanceMine(s, year, plan) {
   const rep = { grads: [], pros: [], left: [], rs: [], fresh: [], joined: [], cut: [], grew: [] }, before = {};
+  // The transfer portal closes first (cportal.js): the players who left are gone before spring practice
+  const xfer = portalClose(s);
+  rep.xout = xfer.out; rep.xkept = xfer.kept; rep.xin = xfer.in; rep.xmissed = xfer.missed;
   rep.spring = springPractice(s, plan, year);
   s.players.forEach(p => { before[p.id] = ovr(p, p.pos); });
   s.players = s.players.filter(p => {
@@ -68,8 +74,8 @@ function colAdvanceMine(s, year, plan) {
   const rec = SEASON.rec;
   rep.fresh = rec && rec.year === year + 1 && rec.cls ? rec.cls.map(p => clone(p)) : genClass(s, year + 1);
   rep.joined = joinedFor(s, year + 1);
-  rep.fresh.concat(rep.joined).forEach(p => { p.num = jerseyFor(g, p.pos, used); });
-  s.players = s.players.concat(rep.fresh, rep.joined);
+  rep.fresh.concat(rep.joined, rep.xin).forEach(p => { p.num = jerseyFor(g, p.pos, used); });
+  s.players = s.players.concat(rep.fresh, rep.joined, rep.xin);
   s.players.forEach(p => { p.o0 = ovr(p, p.pos); });
   s.depth = autoDepth(s);
   rep.cut = cutToLimit(s);
@@ -121,6 +127,7 @@ function colNextSeason() {
   const old = SEASON, year = old.year, next = year + 1, ranks = colRanks(COL_LAST), me = old.myId;
   let mine = null;
   if (me && old.rec && old.rec.year === next && !old.rec.done && isFull(old.schools[me])) colSigningDay(old.rec);
+  if (me && isFull(old.schools[me])) colPortal();
   for (const id in old.schools) {
     const s = old.schools[id], r = colResultsOf(id);
     if (s.trad0 == null) s.trad0 = s.trad;
@@ -157,6 +164,8 @@ function colYearReport(rep, year) {
   const who = p => ({ name: fullName(p), pos: p.pos, ovr: ovr(p, p.pos), stats: careerStatLine(p.cs), why: LEFT_WHY[hashSeed(p.id + year) % LEFT_WHY.length] });
   const best = list => list.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
   return { col: true, from: year, grads: best(rep.grads).map(who), pros: best(rep.pros).map(who), left: best(rep.left).map(who), cut: best(rep.cut).map(who),
+    xout: best(rep.xout || []).map(p => Object.assign(who(p), { to: p.xferTo ? SEASON.schools[p.xferTo].town : "" })), xin: (rep.xin || []).map(p => p.id), xkept: (rep.xkept || []).map(p => p.id),
+    xmissed: (rep.xmissed || []).map(q => `${q.first} ${q.last}`),
     rs: rep.rs.map(p => p.id), fresh: rep.fresh.map(p => p.id), joined: rep.joined.map(p => p.id), grew: rep.grew.slice(0, 10), went: 0, offers: [],
     spring: rep.spring ? { mastery: rep.spring.mastery.slice(0, 8), n: Object.keys(rep.spring.grew).length } : null };
 }

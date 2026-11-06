@@ -162,3 +162,61 @@ function boardAct(a, ds) {
   }
   return false;
 }
+
+/* ---------- The transfer portal ---------- */
+// In the offseason: who of yours entered, and the button to the portal
+function portalPanel() {
+  if (CAREER.next || (SEASON.market && SEASON.market.took) || (SEASON.review && SEASON.review.fired)) return "";
+  const P = colPortal();
+  if (!P) return "";
+  const s = mySchool(), mine = P.out.length, keep = P.out.filter(x => x.keep).length, after = P.pool.filter(q => q.offer != null).length;
+  return `<section class="panel"><h3>The transfer portal</h3><p>${esc(`${mine ? `${mine} of your players ${mine === 1 ? "has" : "have"} entered the portal${keep ? `, and you're keeping ${keep}` : ""}.` : "None of your players entered the portal."} ${plural(P.pool.length, "player")} from other programs are in it${after ? `, and you're after ${after}` : ""}. The window closes when the next season starts.`)}</p><button class="btn ghost" data-a="portal">The transfer portal</button></section>`;
+}
+const PORTAL_POS = FIND_POS;
+function vPortal() {
+  const P = colPortal(), s = mySchool();
+  if (!P) return `<div class="masthead"><h2 data-focus tabindex="-1">The transfer portal</h2><p class="muted">The portal is closed.</p></div><button class="btn" data-a="back">Back</button>`;
+  const money = !noNil(), left = portalMoney(P), spots = portalSpots(P), pos = APP.portalPos || "all";
+  const seg = `<div style="display:grid;gap:6px" role="group" aria-label="Position"><span class="eyebrow" aria-hidden="true">Position</span><div class="seg">${PORTAL_POS.map(x => `<button data-a="ptpos" data-v="${x}" aria-pressed="${pos === x}">${x === "all" ? "All" : x}</button>`).join("")}</div></div>`;
+  const mineRows = P.out.map(x => {
+    const tag = x.why === "pay" ? (x.keep ? "Let him go" : `Keep him: ${moneyText(x.ask)}`) : (x.keep ? "Let him go" : "Ask him to stay");
+    return `<li><p>${esc(portalOutLine(x))}</p><div class="choices"><button class="btn ghost" data-a="ptkeep" data-v="${x.id}">${esc(tag)}</button></div></li>`;
+  }).join("");
+  const list = P.pool.filter(q => pos === "all" || q.pos === pos).slice(0, 25);
+  const rows = list.map(q => `<li><p>${esc(portalLine(s, q))}</p><div class="choices">${q.offer != null ? `<button class="btn ghost" data-a="ptoffer" data-v="${q.id}" data-t="pull">Stop going after him</button>`
+    : `<button class="btn ghost" data-a="ptoffer" data-v="${q.id}">${esc(money && q.ask ? `Offer ${moneyText(q.ask)}` : "Go after him")}</button>`}</div></li>`).join("");
+  return `
+    <div class="masthead" style="--team:${s.color}">
+      <p class="eyebrow">${esc(`${nameOf(s.id)} · ${SEASON.year} offseason`)}</p>
+      <h2 data-focus tabindex="-1">The transfer portal</h2>
+      <p class="muted" id="ptmoney">${esc(`${money ? `${moneyText(Math.max(0, left))} left for next season's players, of ${moneyText(payBudget(s))}. ` : "Division III can't pay players. "}${plural(Math.max(0, spots), "roster spot")} open. The window closes when the next season starts: then the players you're after decide.`)}</p>
+    </div>
+    <section class="panel"><h3>Your players in the portal</h3>${P.out.length ? `<ul class="hlist">${mineRows}</ul>` : "<p>None of your players entered.</p>"}
+      ${P.out.some(x => x.why !== "pay") ? `<p class="muted">Asking a player to stay works about half the time.</p>` : ""}</section>
+    <section class="panel"><h3 id="pthead" tabindex="-1">From other programs</h3>${seg}<ul class="hlist">${rows || "<li>Nobody at that position.</li>"}</ul></section>
+    <button class="btn ghost" data-a="back">Back</button>`;
+}
+function portalAct(a, ds) {
+  const P = SEASON && SEASON.lvl === "col" ? colPortal() : null;
+  if (!P) return false;
+  switch (a) {
+    case "portal": APP.screen = "portal"; scrollTop(); return true;
+    case "ptpos": APP.portalPos = ds.v; focusNext = { id: "pthead" }; return true;
+    case "ptkeep": {
+      const x = P.out.find(y => y.id === ds.v), p = x && mySchool().players.find(q => q.id === x.id);
+      if (!x) return true;
+      if (portalKeep(P, x.id, !x.keep)) announce(x.keep ? `${fullName(p)}: ${x.why === "pay" ? "you're keeping him" : "you'll ask him to stay"}. ${noNil() ? "" : `${moneyText(Math.max(0, portalMoney(P)))} left.`}` : `${fullName(p)} is leaving.`);
+      else announce("Not enough money left to keep him.");
+      return true;
+    }
+    case "ptoffer": {
+      const q = P.pool.find(y => y.id === ds.v);
+      if (!q) return true;
+      if (ds.t === "pull") { portalOffer(P, q.id, null); announce(`You stopped going after ${q.first} ${q.last}.`); return true; }
+      if (portalOffer(P, q.id, q.ask)) announce(`You're after ${q.first} ${q.last}. He decides when the window closes.`);
+      else announce(portalSpots(P) <= 0 ? "No roster spots left." : "Not enough money left.");
+      return true;
+    }
+  }
+  return false;
+}

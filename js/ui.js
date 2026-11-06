@@ -396,7 +396,7 @@ const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, p
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason), week: byLevel(vWeek, vCWeek), standings: byLevel(vStandings, vCStandings),
   schedule: byLevel(vSchedule, vCSchedule), bracket: byLevel(vBracket, vCPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason), newyear: vNewYear, halls: vHalls,
-  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind };
+  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -651,6 +651,7 @@ function act(a, ds) {
       else if (APP.screen === "joblook") APP.screen = seasonScreen();
       else if (APP.screen === "prospect") APP.screen = APP.prospectBack === "rfind" ? "rfind" : "board";
       else if (APP.screen === "rfind") APP.screen = "board";
+      else if (APP.screen === "portal") APP.screen = "offseason";
       else if (APP.screen === "board") APP.screen = ["season", "week"].includes(APP.boardBack) ? APP.boardBack : seasonScreen();
       else APP.screen = seasonScreen();
       APP.reportView = null;
@@ -711,7 +712,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!collegeAct(a, ds) && !boardAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
+    default: if (!collegeAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();

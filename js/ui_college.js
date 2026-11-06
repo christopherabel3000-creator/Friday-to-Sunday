@@ -202,6 +202,8 @@ function vCOffseason() {
     <section class="panel"><h3>Out of eligibility</h3>${seniors.length ? list(seniors.map(line)) : "<p>No seniors are moving on.</p>"}</section>
     ${early.length ? `<section class="panel"><h3>Could leave early for the pros</h3><p>The best juniors may declare. The higher a player is rated, the likelier he goes.</p>${list(early.map(line))}</section>` : ""}
     <section class="panel"><h3>Redshirts</h3><p>${esc(rs.length ? `${plural(rs.length, "player")} played in four games or fewer and keep the year.` : "Nobody redshirts this year.")}</p></section>
+    ${portalPanel()}
+    ${SEASON.rec && SEASON.rec.done ? `<section class="panel"><h3>Your new class</h3><p>${esc(recSummary(SEASON.rec))}</p><button class="btn ghost" data-a="board">The class</button></section>` : ""}
     <section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan. Opponent prep time goes into install.`)}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;

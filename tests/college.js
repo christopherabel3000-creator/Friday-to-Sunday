@@ -315,7 +315,7 @@ function plain(g, extra) {
   ok(rec.year === 2027 && rec.spots >= 12 && rec.spots <= 30, `the class arriving next year has spots to fill (${rec.spots})`);
   ok(rec.inS > 20 && rec.n - rec.inS === 150 && rec.kn > 0, `prospects from your old state (${rec.inS}, ${rec.kn} from your old school) and from out of state (${rec.n - rec.inS})`);
   ok(rec.board >= 20 && rec.board <= 30 && rec.top === 6, `your staff fills the board (${rec.board}), the best six at high priority`);
-  ok(rec.budget > 0 && rec.budget === g(`roundMoney(playerMoney(mySchool()) * CLASS_SHARE)`) && g(`playerMoney({ cls: "D3", trad: 90 })`) === 0 && g(`playerMoney({ cls: "P4", trad: 50 })`) >= 12e6, `NIL money for the class in real dollars (${g("moneyText(SEASON.rec.budget)")}), and none in Division III`);
+  ok(rec.budget > 0 && rec.budget === g(`roundMoney(payBudget(mySchool()) * CLASS_SHARE)`) && g(`playerMoney({ cls: "D3", trad: 90 })`) === 0 && g(`playerMoney({ cls: "P4", trad: 50 })`) >= 12e6, `NIL money for the class in real dollars (${g("moneyText(SEASON.rec.budget)")}), and none in Division III`);
   ok(g(`JSON.stringify(newRec().pool.map(p => p.id))`) === g(`JSON.stringify(SEASON.rec.pool.map(p => p.id))`), "the same program and year always draw the same prospects");
   ok(/Recruiting board/.test(g("vCSeason()")) && /committed, \d+ spots/.test(g("vCSeason()")), "the season screen has the class's line and the board");
   // Priorities, effort, NIL and visits
@@ -355,9 +355,54 @@ function plain(g, extra) {
   ok(lost, "prospects who sign elsewhere go to those programs for real");
   // The year turns: your class joins the team, and a new board opens
   const ids = g(`SEASON.rec.cls.map(p => p.id)`);
-  g(`simSeason(); act("offseason"); act("carousel"); act("market"); act("stay"); act("nextyear")`);
+  g(`simSeason(); act("offseason"); SEASON.review.fired = false; act("carousel"); act("market"); act("stay"); act("nextyear")`);
   ok(g("SEASON.year") === 2027 && ids.every(x => g(`mySchool().players.some(p => p.id === "${x}") || SEASON.yearReport.cut.length > 0`)), "the recruited class joins the roster as freshmen");
   ok(g("SEASON.rec && SEASON.rec.year") === 2028 && g("onBoard(SEASON.rec).length") > 10, "and the next class's board opens");
+}
+
+// ---- Step 6: paying players and the transfer portal ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]);
+    (() => { const W = OTHER, ids = Object.keys(W.schools).filter(id => W.schools[id].cls === "G5"); CAREER.crep = 50; const H = SEASON; SEASON = W; OTHER = H; colTakeOver(ids[2]); startColJob(ids[2]); CAREER.job.sec = 99; APP.screen = "season"; })();`);
+  const b = g(`["P4", "G5", "FCS", "D2", "D3"].map(c => payBudget({ cls: c, trad: 50, bst: 50, seed: 1, id: "x" }))`);
+  ok(b[0] >= 12e6 && b[0] <= 16e6 && b[1] >= 2e6 && b[1] <= 5e6 && b[2] >= 2e5 && b[2] <= 5e5 && b[3] > 0 && b[3] < 2e5 && b[4] === 0, `money for players by level, in real dollars: ${b.map(x => g(`moneyText(${x})`)).join(", ")}`);
+  ok(g(`payBudget({ cls: "P4", trad: 50, bst: 95, seed: 1, id: "x" })`) > g(`payBudget({ cls: "P4", trad: 50, bst: 20, seed: 1, id: "x" })`), "a fired-up collective adds more");
+  ok(g(`(() => { const p = mySchool().players.find(q => q.pos === "QB"), o = Object.assign(clone(p), { pos: "OL" }); return valueOf(p, "P4") > valueOf(o, "P4") && valueOf(p, "P4") > valueOf(p, "G5") && valueOf(p, "G5") > valueOf(p, "FCS"); })()`), "a quarterback is worth more than a lineman, and a player more at a bigger level");
+  g(`recBoard()`);
+  const pr = g(`payroll(mySchool().players) / payBudget(mySchool())`);
+  ok(pr > .5 && pr < .95 && g(`mySchool().players.every(p => p.pay >= 0)`), `your players' pay, set when you take over (${Math.round(pr * 100)} percent of the money)`);
+  g(`APP.view = { ctx: "season", team: SEASON.myId, player: mySchool().players[0].id }; APP.screen = "player"`);
+  ok(/Paid \$[\d,]+ a year/.test(g("vPlayer()")) && /Fair pay here/.test(g("vPlayer()")), "a player's screen says what he's paid and what's fair");
+  g(`APP.screen = "season"; (() => { const r = SEASON.rec, p = onBoard(r).find(q => myAsk(q) > 0); if (p) setNil(r, p.id, myAsk(p)); })(); simSeason(13)`);
+  ok(g(`SEASON.rec.cls.filter(p => !p.walkOn).every(p => p.pay === (recById(SEASON.rec, p.id) || recById(SEASON.rec, "r" + p.id.replace(/c$/, "")) || { nil: p.pay }).nil)`), "recruits bring their NIL offers as their pay");
+  g(`simSeason(); act("offseason"); SEASON.review.fired = false; act("carousel"); act("market"); act("stay")`);
+  ok(g("APP.screen") === "offseason" && /The transfer portal/.test(g("vCOffseason()")), "the offseason opens the transfer portal");
+  const P = g(`(() => { const P = colPortal(); return { out: P.out.length, why: P.out.every(x => ["pay", "time", "own"].includes(x.why)), pool: P.pool.length, ask: P.pool.every(q => q.ask >= 0 && q.yr >= 10 && q.yr <= 12) }; })()`);
+  ok(P.out >= 1 && P.why && P.pool === 60 && P.ask, `${P.out} of your players entered (for pay, playing time or their own reasons), and 60 from other programs are in it`);
+  g(`act("portal")`);
+  ok(g("APP.screen") === "portal" && /left for next season/.test(g("vPortal()")) && /From other programs/.test(g("vPortal()")), "the portal screen: your money and spots, your players, and everyone else's");
+  const id = g(`colPortal().out[0].id`), money = g(`portalMoney(colPortal())`);
+  g(`act("ptkeep", { v: "${id}" })`);
+  ok(g(`colPortal().out[0].keep`) === true || g(`colPortal().out[0].why`) === "pay", "keeping one of yours");
+  g(`act("ptpos", { v: "QB" })`);
+  ok(g(`/quarterback/.test(vPortal())`) || !g(`colPortal().pool.some(q => q.pos === "QB")`), "the portal by position");
+  const tgt = g(`(() => { const P = colPortal(), q = P.pool.filter(q => q.ask <= portalMoney(P)).slice(-1)[0]; return q ? q.id : null; })()`);
+  if (tgt) {
+    const spots = g(`portalSpots(colPortal())`);
+    g(`act("ptoffer", { v: "${tgt}" })`);
+    ok(spots <= 0 || (g(`colPortal().pool.find(q => q.id === "${tgt}").offer != null`) && g(`portalSpots(colPortal())`) === spots - 1), "going after a portal player takes a roster spot and money");
+  }
+  ok(g(`(() => { const P = colPortal(), x = P.out.find(y => y.why === "pay"); if (!x) return true; const keep = x.keep; const left = portalMoney(P); portalKeep(P, x.id, false); const r = portalMoney(P) >= left; portalKeep(P, x.id, keep); return r; })()`), "letting a player go frees his raise");
+  const out = g(`colPortal().out.filter(x => !x.keep).map(x => x.id)`), after = g(`colPortal().pool.filter(q => q.offer != null).map(q => q.id)`);
+  g(`act("back"); act("nextyear")`);
+  const R = g("SEASON.yearReport");
+  ok(out.every(x => !g(`mySchool().players.some(p => p.id === "${x}")`)) && R.xout.length >= out.length, `when the window closes your players who weren't kept leave (${out.length})`);
+  ok(R.xin.length + R.xmissed.length === after.length && R.xin.every(x => g(`mySchool().players.some(p => p.id === "${x}" && p.xfer && p.yr >= 10)`)), `and the portal players you went after decide (${R.xin.length} came, ${R.xmissed.length} went elsewhere)`);
+  ok(!out.length || g(`Object.values(SEASON.schools).some(s => (s.joined || []).some(q => q.id === "${out[0]}t"))`), "a player who leaves lands at another program");
+  ok(!R.xout.length || /Left in the transfer portal/.test(g("vNewYear()")), "the new year's report lists who left in the portal and who came");
+  // Division III: no money for players
+  ok(g(`(() => { const s = Object.values(SEASON.schools).find(x => x.cls === "D3"); return payBudget(s) === 0 && valueOf({ pos: "QB", r: { acc: 99, arm: 99, awr: 99, spd: 99, str: 99 } }, "D3") === 0; })()`), "Division III can't pay players");
 }
 
 console.log(`${checks - fails}/${checks} checks passed`);

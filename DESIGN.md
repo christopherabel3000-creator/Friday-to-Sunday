@@ -538,7 +538,7 @@ Checked against current sources in November 2026, and to be checked against the 
 ### College players
 
 - Ratings stay on the one scale. Typical starters: Division III in the 40s and 50s, Division II in the 50s, the FCS in the 50s and 60s, the rest of FBS in the 60s, and the power conferences in the 60s to 80s, with a few stars higher. Your high school signees fit right in.
-- Class years: freshman to senior, plus a redshirt. A player can play in up to four games and still keep the year, so he has five years to play four seasons. (Eligibility rules were under review in 2026: to confirm while step 3 is built.)
+- Class years: freshman to senior, plus a redshirt. A freshman or sophomore outside the two-deep who plays in four games or fewer keeps the year, once, so he has five years to play four seasons. (Eligibility rules were under review in 2026.)
 - Rosters of up to 105 at every level that opted into the 2025 House settlement, which replaced the old 85-scholarship limit with a 105-player roster limit. Smaller levels carry smaller rosters (about 90 to 100 in Division II and III). Nobody plays both ways, so fatigue matters less and depth matters more.
 - Leaving: seniors run out of eligibility, players transfer, and the best juniors and redshirt sophomores may leave early for the pros, more likely the higher they're rated.
 - Practice works as in high school, with the same plan and units. Spring practice is four weeks of practice in the offseason, so a new coach can install his schemes before fall camp.
@@ -577,6 +577,7 @@ Checked against current sources in November 2026, and to be checked against the 
 
 - Each program has money to pay its players: revenue sharing from the school, plus NIL from its booster collective. In the real game the revenue-sharing cap was $20.5 million per school in 2025-26, rising at least 4 percent a year, with most of it going to football. Here, in real dollars: a power program has about $12 million to $16 million a year for football, the rest of FBS about $2 million to $5 million, the FCS a few hundred thousand, Division II scholarships and very little NIL, and Division III nothing. The collective adds more, by booster enthusiasm.
 - You spend it on NIL offers to recruits and on keeping your own players. Every player has a value from his ratings and position, and an underpaid starter is likelier to enter the portal.
+- How it works, in numbers: the collective adds up to a quarter more with the boosters all in. A player's worth is about $400,000 for a typical power-conference starter, doubling every 5 points of overall, twice that for a quarterback, scaled down at smaller levels; his fair pay at your program is that worth times what your money covers (three quarters of it over the whole roster). When you take over, each player is paid his fair pay, give or take a quarter. Each class gets 30 percent of the year's money for NIL offers, and recruits are paid what you offered.
 - Facilities belong to the athletic department in college: they're set by level and tradition and improve on their own, so your money goes to players.
 
 ### The transfer portal
@@ -584,7 +585,8 @@ Checked against current sources in November 2026, and to be checked against the 
 - One window a year, after the postseason, as the real January window works (January 2 to 16 in 2026).
 - Players enter for playing time, pay, or a coaching change (yours or a computer program's), and players move up and down levels.
 - You see the portal's players, by position and stars, and pursue them like recruits, with NIL offers. Computer programs take the rest on paper.
-- Your own players in the portal can be kept with a better offer, if you have the money.
+- Your own players in the portal can be kept with a better offer, if you have the money. Players who left for playing time can be asked to stay, which works about half the time. Your staff suggests keeping the starters who entered for pay when the money's there.
+- How it works, in numbers: a starter paid less than his fair pay over 1.3 enters 20 to 60 percent of the time, a good player stuck behind a starter 30 percent, other backups 8 percent and anyone else 2 percent. The portal holds 60 players from other programs, a level up or down, a third of them from programs that just changed coaches. Up to 15 can come from the portal, as roster spots allow, and each decides when the window closes, on playing time, the level, your program and you, and your offer. Your players who leave land at a program that fits them.
 
 ### Renaming schools
 

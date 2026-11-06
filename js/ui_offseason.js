@@ -88,6 +88,9 @@ function vNewYear() {
     ${(R.offers || []).length ? `<section class="panel"><h3>Offers from team camp</h3>${list(R.offers)}</section>` : ""}
     ${R.left.length ? `<section class="panel"><h3>Left the team</h3>${list(R.left.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.why}.`))}</section>` : ""}
     ${R.col && (R.rs || []).length ? `<section class="panel"><h3>Redshirted</h3><p>${esc(`${plural(R.rs.length, "player")} played in four games or fewer and keep the year: ${andList(R.rs.map(id => playerById(s, id)).filter(Boolean).slice(0, 12).map(fullName))}${R.rs.length > 12 ? ", and more" : ""}.`)}</p></section>` : ""}
+    ${R.col && (R.xout || []).length ? `<section class="panel"><h3>Left in the transfer portal</h3>${list(R.xout.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.to ? `, to ${x.to}` : ""}.`))}</section>` : ""}
+    ${R.col && (R.xin || []).length ? `<section class="panel"><h3>From the transfer portal</h3>${list(R.xin.map(id => playerById(s, id)).filter(Boolean).map(p => playerLine(p, s.level)))}</section>` : ""}
+    ${R.col && (R.xmissed || []).length ? `<p>${esc(`Went elsewhere: ${andList(R.xmissed)}.`)}</p>` : ""}
     ${R.col && (R.cut || []).length ? `<section class="panel"><h3>Over the roster limit</h3>${list(R.cut.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}.`))}</section>` : ""}
     <section class="panel"><h3>${R.col ? "The new class" : "New freshmen"}</h3>${fresh.length ? list(fresh.map(p => playerLine(p, s.level))) : "<p>No freshmen came out this year.</p>"}</section>
     ${(R.joined || []).length ? `<section class="panel"><h3>${R.col ? "From your old high school state" : "From the hallways"}</h3>${list(R.joined.map(id => playerById(s, id)).filter(Boolean).map(p => playerLine(p, s.level)))}</section>` : ""}

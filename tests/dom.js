@@ -731,6 +731,17 @@ function checkScreen(page, label) {
   tap(p9, "offseason");
   ok(ev9("APP.screen") === "review" && /Your contract/.test(d9.body.textContent), "the college review, with your contract");
   checkScreen(p9, "college review");
+  if (!ev9("SEASON.review.fired")) {
+    tap(p9, "carousel"); tap(p9, "market"); tap(p9, "stay");
+    ok(ev9("APP.screen") === "offseason" && /The transfer portal/.test(d9.body.textContent), "the college offseason: the transfer portal");
+    checkScreen(p9, "college offseason");
+    tap(p9, "portal");
+    ok(/transfer portal/.test(head9()) && /From other programs/.test(d9.body.textContent) && d9.querySelectorAll('[data-a="ptoffer"]').length > 0, "the portal screen");
+    checkScreen(p9, "transfer portal");
+    tap(p9, "ptpos", "OL");
+    ok(d9.activeElement && d9.activeElement.id === "pthead", "picking a position moves to the list");
+    tap(p9, "back");
+  }
   ok(p9.errors.length === 0, "no script errors in college: " + p9.errors.slice(0, 2).join(" | "));
 
   console.log(`${checks - fails}/${checks} checks passed`);

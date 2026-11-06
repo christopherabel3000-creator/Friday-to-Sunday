@@ -46,9 +46,9 @@ const askAt = (p, L) => { const x = p.ask * LEVEL_PAY[L]; return x < 2500 ? 0 : 
 const myAsk = p => askAt(p, REC_LV[mySchool().cls]);
 
 /* ---------- The class ---------- */
-// Spots to fill: the program's roster size less the players who aren't seniors (a few seniors who
-// redshirt will stay, and early departures and cuts make room), from 12 to 30
-const classSpots = s => clamp((CLASS_INFO[s.cls] || CLASS_INFO.P4).roster - s.players.filter(p => p.yr < 12).length, 12, 30);
+// Spots to fill: the program's roster size less the players who aren't seniors, with five left for
+// the transfer portal (early departures and cuts make more room), from 12 to 30
+const classSpots = s => clamp((CLASS_INFO[s.cls] || CLASS_INFO.P4).roster - 5 - s.players.filter(p => p.yr < 12).length, 12, 30);
 // A full roster's mix of positions (for 77 scholarship players; the rest are walk-ons)
 const POS_MIX = { QB: 4, RB: 5, WR: 9, TE: 5, OL: 16, DL: 12, LB: 9, CB: 8, S: 6, K: 2, P: 1 };
 const POS_MIX_SUM = 77;
@@ -218,7 +218,8 @@ function recBoard() {
 }
 function newRec() {
   const s = mySchool(), year = SEASON.year + 1, spots = classSpots(s), ranks = colRanks(weeksDone());
-  const rec = { year, spots, needs: classNeeds(s, spots), budget: roundMoney(playerMoney(s) * CLASS_SHARE), staff: { fill: true, visits: true, nil: 0 }, pool: [], vis: {}, log: {}, done: false, cls: null, sum: null, staffNil: 0 };
+  payInit(s);
+  const rec = { year, spots, needs: classNeeds(s, spots), budget: roundMoney(payBudget(s) * CLASS_SHARE), staff: { fill: true, visits: true, nil: 0 }, pool: [], vis: {}, log: {}, done: false, cls: null, sum: null, staffNil: 0 };
   rec.pool = inStatePool(s, year).concat(outStatePool(s, year));
   rec.pool.forEach(p => setupProspect(p, s, ranks));
   staffFill(rec, weeksDone(), true, ranks);
@@ -487,13 +488,13 @@ function colSigningDay(rec) {
     else if (to) lost.push([p, to]);
     if (to !== "me") { p.cm = to ? "lost" : null; p.to = to; }
   });
-  const signees = mine.map(p => Object.assign(asFreshman(prospectPlayer(p), year), { stars: p.st }));
+  const signees = mine.map(p => Object.assign(asFreshman(prospectPlayer(p), year), { stars: p.st, pay: p.nil || 0 }));
   // Walk-ons, for the spots left: a class rolled on paper, without its best third
   const walk = Math.max(0, rec.spots - signees.length);
   if (!s.classes) s.classes = {};
   if (!s.classes[year]) s.classes[year] = colClassOnPaper(s, year, ranks[s.id]);
   const paper = genClass(s, year).sort((a, b) => recruitOf(a).r - recruitOf(b).r), keep = paper.slice(0, Math.max(walk, Math.ceil(paper.length * 2 / 3)));
-  const walks = walk ? dice(hashSeed(`${s.seed}:${year}:walkons`)).shuffle(keep).slice(0, walk).map(p => Object.assign(p, { walkOn: true })) : [];
+  const walks = walk ? dice(hashSeed(`${s.seed}:${year}:walkons`)).shuffle(keep).slice(0, walk).map(p => Object.assign(p, { walkOn: true, pay: 0 })) : [];
   rec.cls = signees.concat(walks);
   const rs = signees.map(p => recruitOf(p).r);
   rec.paper = { n: rec.cls.length, lv: Math.round(((rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : LEVEL_MEDIAN[REC_LV[s.cls]] - 4) - 3) * 10) / 10 };
