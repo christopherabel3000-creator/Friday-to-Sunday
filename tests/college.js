@@ -140,5 +140,73 @@ function plain(g, extra) {
   ok(twoForced + twoPlays > 0, `games reached the second overtime or later (${twoForced} required tries, ${twoPlays} two-point plays)`);
 }
 
+// ---- Step 2: the college world ----
+{
+  const sb = load(), g = sb.__get;
+  const t0 = Date.now();
+  g(`SEASON = newColSeason(4242, 2026)`);
+  const ms = Date.now() - t0;
+  const n = g(`(() => { const o = {}; Object.values(SEASON.schools).forEach(s => { o[s.cls] = (o[s.cls] || 0) + 1; }); return o; })()`);
+  ok(n.P4 === 68 && n.G5 === 68 && n.FCS === 128 && n.D2 === 164 && n.D3 === 244, `five levels sized like real college football: ${JSON.stringify(n)}`);
+  ok(g("SEASON.confs.length") === 63 && g(`Object.values(SEASON.schools).filter(s => !s.conf).map(s => s.cls).sort().join()`) === "G5,G5,P4", "63 conferences, one power independent and two other FBS independents");
+  ok(g(`new Set(Object.values(SEASON.schools).map(s => s.town)).size`) === 672 && g(`new Set(SEASON.confs.map(c => c.name)).size`) === 63, "every program and conference has its own name");
+  ok(ms < 1500, `the college world is built quickly (${ms} ms)`);
+  const lv = g(`(() => { const o = {}; COL_CLASSES.forEach(c => { const l = Object.values(SEASON.schools).filter(s => s.cls === c); o[c] = Math.round(l.reduce((t, s) => t + (s.rating.off + s.rating.def) / 2, 0) / l.length); }); return o; })()`);
+  ok(lv.D3 < lv.D2 && lv.D2 < lv.FCS && lv.FCS < lv.G5 && lv.G5 < lv.P4 && lv.D3 >= 45 && lv.P4 <= 74, `each level's starters a step above the last: ${JSON.stringify(lv)}`);
+  // The schedule
+  const sch = g(`(() => { const games = {}, conf = {}, dup = []; SEASON.weeks.slice(0, 12).forEach(w => { const seen = new Set(); w.games.forEach(gm => { [gm.h, gm.a].forEach(id => { if (seen.has(id)) dup.push(id); seen.add(id); games[id] = (games[id] || 0) + 1; if (gm.conf) conf[id] = (conf[id] || 0) + 1; }); }); });
+    const ids = Object.keys(SEASON.schools), cross = SEASON.weeks.slice(0, 12).flatMap(w => w.games).filter(gm => divOf(SEASON.schools[gm.h]) !== divOf(SEASON.schools[gm.a]));
+    return { dup: dup.length, min: Math.min(...ids.map(id => games[id] || 0)), max: Math.max(...ids.map(id => games[id] || 0)), confMax: Math.max(...ids.map(id => conf[id] || 0)),
+      bigConf: SEASON.confs.filter(c => c.ids.length >= 10).every(c => c.ids.every(id => conf[id] === 9 || (c.ids.length % 2 && conf[id] === 8))), smallConf: SEASON.confs.filter(c => c.ids.length <= 9).every(c => c.ids.every(id => conf[id] === c.ids.length - 1)),
+      buy: cross.length, buyOk: cross.every(gm => SEASON.schools[gm.h].cls === "P4" && SEASON.schools[gm.a].cls === "FCS") }; })()`);
+  ok(sch.dup === 0 && sch.min >= 10 && sch.max === 12, `nobody plays twice in a week, and everyone plays 10 to 12 games (${sch.min} to ${sch.max})`);
+  ok(sch.bigConf && sch.smallConf, "9 conference games in a conference of 10 or more (8 now and then in an odd-sized one), every other member in a smaller one");
+  ok(sch.buyOk, `games across divisions are power programs hosting FCS programs (${sch.buy})`);
+  // A whole season on paper
+  const t1 = Date.now(), res = g("colSeasonOnPaper()"), ms2 = Date.now() - t1;
+  ok(DIV_IDS_OK(res), "every division crowns a champion");
+  function DIV_IDS_OK(r) { return ["FBS", "FCS", "D2", "D3"].every(d => !!r.champs[d]); }
+  ok(ms2 < 1500, `the season plays out on paper quickly (${ms2} ms)`);
+  const post = g(`(() => { const P = SEASON.post, champ = c => confChamp(c.id); return { sizes: DIV_IDS.map(d => P[d].seeds.length), p4: SEASON.confs.filter(c => c.cls === "P4").every(c => P.FBS.seeds.includes(champ(c))),
+    g5: SEASON.confs.filter(c => c.cls === "G5").some(c => P.FBS.seeds.includes(champ(c))), fcs: SEASON.confs.filter(c => c.cls === "FCS").every(c => P.FCS.seeds.includes(champ(c))),
+    titles: SEASON.weeks[12].games.length, titleConfs: SEASON.confs.filter(c => COL_LEVELS[c.cls].title && c.ids.length >= 8).length,
+    bowls: SEASON.weeks[14].games.filter(gm => gm.bowl && !gm.post), byes: P.FBS.rounds[0].length, finals: DIV_IDS.map(d => SEASON.weeks.flatMap(w => w.games).filter(gm => gm.post === d && gm.title).length) }; })()`);
+  ok(post.sizes.join() === "12,24,28,32", `the playoffs: FBS 12, FCS 24, Division II 28, Division III 32 (${post.sizes.join(", ")})`);
+  ok(post.p4 && post.g5 && post.fcs, "the four power conference champions and a champion from the rest of FBS are in, and every FCS champion");
+  ok(post.byes === 4, "in the 12-team playoff, the top four skip the first round");
+  ok(post.titles === post.titleConfs && post.titles >= 8, `FBS conferences play title games in week 13 (${post.titles})`);
+  ok(post.bowls.length >= 20 && post.bowls.every(gm => gm.neutral && /Bowl$/.test(gm.bowl)), `bowls for the rest of FBS (${post.bowls.length})`);
+  ok(post.finals.every(x => x === 1), "one national championship game in each division");
+  const bowlWins = g(`SEASON.weeks[14].games.filter(gm => gm.bowl && !gm.post).every(gm => [gm.h, gm.a].every(id => colRecord(id, 13).w >= 6))`);
+  ok(bowlWins, "bowl teams have 6 or more wins");
+  const pts = g(`(() => { let p = 0, k = 0; SEASON.weeks.forEach(w => w.games.forEach(gm => { if (played(gm)) { p += gm.hs + gm.as; k++; } })); return p / k / 2; })()`);
+  ok(pts > 21 && pts < 29, `quick sims score like the college engine, about 24 points a team (${pts.toFixed(1)})`);
+  const rk = g(`(() => { const t = colTop25("FBS", 13); return [colRecord(t[0], 13).l, colRecord(t[24], 13).l]; })()`);
+  ok(rk[0] <= 2 && rk[0] <= rk[1], `the top of the top 25 has the fewest losses (${rk.join(" and ")})`);
+  ok(JSON.stringify(g("newColSeason(4242, 2026).schools.c5")) === JSON.stringify(g("newColSeason(4242, 2026).schools.c5")), "the same seed builds the same college world");
+}
+
+// ---- Step 2: a college season of your own ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); SEASON = newColSeason(99, 2026); colTakeOver(SEASON.confs[1].ids[2]); APP.screen = "season";`);
+  ok(g("isFull(mySchool())") && g("mySchool().players.length") >= 95 && g("mySchool().coach === CAREER.coach") && g("SEASON.phase") === "preseason", "taking over a college program: its full roster, your coach, and camp");
+  ok(g(`Object.values(SEASON.schools).filter(isFull).length`) === 1, "every other program stays on paper");
+  const opp = g(`(() => { const gm = myGameIn(1); return gm ? seasonSchool(opponentIn(gm, SEASON.myId)).players.length : 0; })()`);
+  ok(opp >= 90, "an opponent's roster is rebuilt when you play it");
+  ok(/Camp, then 12 games/.test(g("vCSeason()")), "the season screen, in camp");
+  g("simCamp()");
+  ok(/data-a="keygame"/.test(g("vCSeason()")) && /On paper/.test(g("vCSeason()")), "the week ahead: your opponent, on paper, and play, key moments or sim");
+  g(`act("simgame")`);
+  ok(g("APP.screen") === "week" && g("SEASON.week") === 2 && g("S.cfg.level") === "col", "your game is played under college rules, and the week's results open");
+  ok(/Box score/.test(g("vCWeek()")), "with its box score");
+  for (let i = 0; i < 25 && g("SEASON.phase") !== "over"; i++) g(`(() => { const gm = myGameIn(SEASON.week); if (gm && !played(gm)) simMyGame(); finishWeek(); })()`);
+  ok(g("SEASON.phase") === "over" && g(`DIV_IDS.every(d => SEASON.post[d].champ)`), "the season plays through to the national champions");
+  ok(g(`colRecord(SEASON.myId).w + colRecord(SEASON.myId).l`) >= 11, "you played your schedule");
+  ["vCSeason", "vCStandings", "vCTop25", "vCPost", "vCSchedule"].forEach(v => ok(g(`${v}().length`) > 500, `${v} draws`));
+  g("APP.weekView = 13");
+  ok(g("vCWeek().length") > 300, "the championship week's results draw");
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

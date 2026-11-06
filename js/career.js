@@ -33,7 +33,9 @@ function coreKnown(s, off, def) {
 // Where a school's talent ranked in its district before the season: 1 is the most talent
 function talentRank(id) {
   const str = x => SEASON.schools[x].rating.off + SEASON.schools[x].rating.def;
-  return 1 + SEASON.districts[districtOf(id) - 1].ids.filter(x => x !== id && str(x) > str(id)).length;
+  // (in college: in its conference, or 1 for an independent)
+  const ids = SEASON.lvl === "col" ? ((SEASON.confs.find(c => c.id === SEASON.schools[id].conf) || { ids: [id] }).ids) : SEASON.districts[districtOf(id) - 1].ids;
+  return 1 + ids.filter(x => x !== id && str(x) > str(id)).length;
 }
 
 /* ---------- The season summary ---------- */

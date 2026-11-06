@@ -349,12 +349,12 @@ function runSeasonSim(stopAt) {
   setTimeout(step, 30);
 }
 function vSimming() {
-  const done = simJob ? SEASON.week - simJob.from : 0, total = simJob ? Math.min(simJob.stopAt, LAST_WEEK + 1) - simJob.from : 1;
+  const last = SEASON.lvl === "col" ? COL_LAST : LAST_WEEK, done = simJob ? SEASON.week - simJob.from : 0, total = simJob ? Math.min(simJob.stopAt, last + 1) - simJob.from : 1;
   return `
     <div class="masthead">
       <p class="eyebrow">${esc(nameOf(SEASON.myId))}</p>
       <h2 data-focus tabindex="-1">Simming the season</h2>
-      <p class="muted" aria-hidden="true">${SEASON.week <= LAST_WEEK ? `${weekName(SEASON.week)}…` : "Finishing up…"}</p>
+      <p class="muted" aria-hidden="true">${SEASON.week <= last ? `${weekName(SEASON.week)}…` : "Finishing up…"}</p>
     </div>
     <div class="simbar" aria-hidden="true"><i style="width:${Math.round(100 * clamp(done / Math.max(1, total), 0, 1))}%"></i></div>`;
 }

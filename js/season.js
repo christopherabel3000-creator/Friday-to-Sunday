@@ -166,6 +166,11 @@ function balanceHomes(ids, games) {
 //   ranked in the district at the start of the season, history: the state champions of past years
 //   [{ year, id, name }], yearReport: what happened to your team since last season (years.js)
 let SEASON = null;
+// The other world: the college world while you coach high school, and the high school state while you
+// coach in college (cworld.js). Both move on every year.
+let OTHER = null;
+const colWorld = () => SEASON && SEASON.lvl === "col" ? SEASON : OTHER && OTHER.lvl === "col" ? OTHER : null;
+const hsWorld = () => SEASON && SEASON.lvl !== "col" ? SEASON : OTHER && OTHER.lvl !== "col" ? OTHER : null;
 // Every season opens with three weeks of preseason camp: practice, and no games
 const PRESEASON_WEEKS = 3;
 const thisYear = () => new Date().getFullYear();
@@ -180,6 +185,8 @@ function newSeason(seed, year) {
   // Every school's boosters and facilities (money.js)
   moneyInit(SEASON);
   setExpectations();
+  // The college world, from the same seed (cworld.js)
+  OTHER = newColSeason(seed, year);
   return SEASON;
 }
 // The next season in the same state: every school's year ends (years.js), then a new schedule, and
@@ -245,8 +252,8 @@ function pickSchool(id) {
 const mySchool = () => SEASON.schools[SEASON.myId];
 const nameOf = id => schoolName(SEASON.schools[id]);
 const districtOf = id => SEASON.schools[id].district;
-const isPlayoffWeek = n => n > REGULAR_WEEKS;
-const weekName = n => n <= REGULAR_WEEKS ? `Week ${n}` : PLAYOFF_ROUNDS[n - REGULAR_WEEKS - 1];
+const isPlayoffWeek = n => SEASON && SEASON.lvl === "col" ? n >= COL_POST : n > REGULAR_WEEKS;
+const weekName = n => SEASON && SEASON.lvl === "col" ? colWeekName(n) : n <= REGULAR_WEEKS ? `Week ${n}` : PLAYOFF_ROUNDS[n - REGULAR_WEEKS - 1];
 // Practice weeks are numbered with the games: camp weeks come before week 1 (0, -1 and -2 for three
 // weeks of camp)
 const practiceSlot = () => SEASON.phase === "preseason" ? SEASON.camp - SEASON.pre : SEASON.week;
@@ -254,6 +261,8 @@ const practiceWeekName = n => n <= 0 ? `Camp week ${n + (SEASON.pre || PRESEASON
 const inCamp = () => !!(SEASON && SEASON.phase === "preseason");
 // A week's games: the schedule, or a playoff round
 function weekGames(n) {
+  // College: every week's games are in the schedule, postseason included (cworld.js)
+  if (SEASON.lvl === "col") return (SEASON.weeks[n - 1] || { games: [] }).games;
   if (n <= REGULAR_WEEKS) return (SEASON.weeks[n - 1] || { games: [] }).games;
   return (SEASON.bracket && SEASON.bracket.rounds[n - REGULAR_WEEKS - 1]) || [];
 }
@@ -416,10 +425,12 @@ const QUICK = { base: 13.48, off: 1.1235, def: -1.0335, home: 2, coach: .147, dr
 const TD_AVG = QUICK.td.reduce((s, [v, p]) => s + v * p, 0);
 // [home, away] expected points. rh, ra: ratings to use instead of the saved ones (your school as it
 // would line up this week)
+// (college has its own fit: cworld.js, QUICK_COL)
 function expectedPoints(hId, aId, neutral, rh, ra) {
-  const h = rh || SEASON.schools[hId].rating, a = ra || SEASON.schools[aId].rating, hh = neutral ? QUICK.home / 2 : QUICK.home, ha = neutral ? QUICK.home / 2 : 0;
-  return [QUICK.base + QUICK.off * h.off + QUICK.def * a.def + hh + QUICK.coach * (h.c - a.c),
-    QUICK.base + QUICK.off * a.off + QUICK.def * h.def + ha + QUICK.coach * (a.c - h.c)];
+  const Q = SEASON.lvl === "col" ? QUICK_COL : QUICK;
+  const h = rh || SEASON.schools[hId].rating, a = ra || SEASON.schools[aId].rating, hh = neutral ? Q.home / 2 : Q.home, ha = neutral ? Q.home / 2 : 0;
+  return [Q.base + Q.off * h.off + Q.def * a.def + hh + Q.coach * (h.c - a.c),
+    Q.base + Q.off * a.off + Q.def * h.def + ha + Q.coach * (a.c - h.c)];
 }
 function tdPoints() { let x = rand(); for (const [v, p] of QUICK.td) { if (x < p) return v; x -= p; } return 7; }
 function quickPoints(mu) {
@@ -525,7 +536,7 @@ function endOfWeek() {
   });
   for (const id in SEASON.schools) { const s = SEASON.schools[id]; if (!isFull(s)) { s.rating.off += WEEKLY_GROWTH; s.rating.def += WEEKLY_GROWTH; } }
   // College offers come with the report cards, for the seniors in your district (recruit.js)
-  if (cards && SEASON.myId) (SEASON.offerNews = SEASON.offerNews || {})[SEASON.week] = offerWindow("w" + SEASON.week).slice(0, 6);
+  if (cards && SEASON.myId && SEASON.lvl !== "col") (SEASON.offerNews = SEASON.offerNews || {})[SEASON.week] = offerWindow("w" + SEASON.week).slice(0, 6);
 }
 
 // Your injury news by week: who was hurt in the game, and who's back (the last few weeks are kept)
@@ -562,7 +573,7 @@ function simFullGame(gm) {
   const keep = S, kt = kickTD, ke = kickEnded;
   try {
     const hs = seasonSchool(gm.h), as = seasonSchool(gm.a);
-    initGame({ level: "hs", cpu: [true, true], title: !!gm.title, neutral: !!gm.neutral }, [hs, as]);
+    initGame({ level: SEASON.lvl === "col" ? "col" : "hs", cpu: [true, true], title: !!gm.title, neutral: !!gm.neutral }, [hs, as]);
     for (let i = 0; i < 8000 && S.phase !== "final"; i++) autoStep();
     Object.assign(gm, { hs: S.teams[0].score, as: S.teams[1].score, ot: Math.max(0, S.quarter - 4) });
     // Injuries stay with the schools that keep their rosters
@@ -583,7 +594,7 @@ function playOthers(n) {
 const isMyGame = () => !!(S && S.teams && S.season && SEASON && S.season.seed === SEASON.seed && S.season.week === SEASON.week);
 function myGameConfig(gm) {
   const mine = i => [gm.h, gm.a][i] === SEASON.myId, nd = SEASON.nextDepth, fresh = practiced() ? SEASON.practice.fresh : 100;
-  return { level: "hs", cpu: [!mine(0), !mine(1)], rot: [mine(0) ? SEASON.rot : "normal", mine(1) ? SEASON.rot : "normal"],
+  return { level: SEASON.lvl === "col" ? "col" : "hs", cpu: [!mine(0), !mine(1)], rot: [mine(0) ? SEASON.rot : "normal", mine(1) ? SEASON.rot : "normal"],
     depth: [mine(0) && nd ? nd.depth : null, mine(1) && nd ? nd.depth : null], title: !!gm.title, neutral: !!gm.neutral,
     fresh: [mine(0) ? fresh : 100, mine(1) ? fresh : 100] };
 }
@@ -645,6 +656,7 @@ function simMyGame() {
 // The rest of the week, once your game is in: everyone else's games, the news, then the next week
 // (or the bracket, the next round, or the end of the season). Returns the week it finished.
 function finishWeek() {
+  if (SEASON.lvl === "col") return colFinishWeek();
   const n = SEASON.week, gm = myGameIn(n);
   if (!["regular", "playoffs"].includes(SEASON.phase) || (gm && !played(gm))) return 0;
   cpuPractice(n);
@@ -662,7 +674,8 @@ function finishWeek() {
 // and the rest of camp first
 function simSeason(stopAt) {
   if (inCamp()) simCamp();
-  for (let guard = 0; guard < LAST_WEEK + 2 && SEASON.phase !== "over" && SEASON.phase !== "pick" && SEASON.week < (stopAt || 99); guard++) {
+  const last = SEASON.lvl === "col" ? COL_LAST : LAST_WEEK;
+  for (let guard = 0; guard < last + 2 && SEASON.phase !== "over" && SEASON.phase !== "pick" && SEASON.week < (stopAt || 99); guard++) {
     simMyGame();
     if (!finishWeek()) break;
   }

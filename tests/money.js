@@ -141,8 +141,10 @@ const toOffseason = g => g(`simSeason(); act("offseason"); autoMarket(); openBoo
   const { g } = fresh();
   start(g, 505);
   const cs = g("colleges()");
-  ok(cs.length === 120 && [1, 2, 3].map(t => cs.filter(c => c.tier === t).length).join() === "24,36,60", "120 colleges: 24 in Tier 1, 36 in Tier 2 and 60 in Tier 3");
-  ok(new Set(cs.map(c => c.name)).size === 120, "every college has its own name");
+  ok(cs.length === 672 && [1, 2, 3].map(t => cs.filter(c => c.tier === t).length).join() === "68,196,408", "the colleges are the college world's 672 programs: the power conferences are Tier 1, the rest of FBS and the FCS Tier 2, and Divisions II and III Tier 3");
+  ok(new Set(cs.map(c => c.name)).size === 672, "every college has its own name");
+  ok(Math.abs(g("tierScale(1)") * 68 - 24) < 1e-9, "each college offers less often, so a tier's offers add up as before");
+  ok(g("collegeOf(5).tier") === 1 && g("collegeOf(40).tier") === 2 && g("collegeOf(100).tier") === 3 && g("collegeOf(5).i") === g("collegeOf(5).i"), "an offer from before the college world goes to a program at the same tier");
   ok(JSON.stringify(g("(() => { COLLEGE_CACHE = null; return colleges(); })()")) === JSON.stringify(cs), "the same state always has the same colleges");
   ok(/^Tier [123] /.test(g("collegeText(5)")), "a college in words, with its tier");
   const needs = g(`(() => { const c = colleges()[3]; return ["OL", "DL", "K", "QB", "WR"].map(pos => [0, 1, 2, 3, 4, 5].map(k => collegeNeed(c, 2026 + k, pos))); })()`);

@@ -14,9 +14,20 @@ const COLLEGE_FORMS = [
   [t => `${t} College`, t => `${t} Christian`, t => `${t} Wesleyan`, t => `${t} State College`]
 ];
 let COLLEGE_CACHE = null;
+// The colleges are the college world's programs (cworld.js): the power conferences are Tier 1, the
+// rest of FBS and the FCS Tier 2, and Division II and III Tier 3. Without a college world (an
+// exhibition, an old test), 120 made-up colleges as before.
+const LEVEL_TIER = { P4: 1, G5: 2, FCS: 2, D2: 3, D3: 3 };
 function colleges() {
+  const W = colWorld();
+  if (W) {
+    if (COLLEGE_CACHE && COLLEGE_CACHE.world === W.world && COLLEGE_CACHE.col) return COLLEGE_CACHE.list;
+    const list = Object.values(W.schools).map(s => ({ i: s.id, tier: LEVEL_TIER[s.cls], name: s.town, mascot: s.mascot, color: s.color }));
+    COLLEGE_CACHE = { world: W.world, col: true, list, by: Object.fromEntries(list.map(c => [c.i, c])) };
+    return list;
+  }
   const world = SEASON ? SEASON.world : 0;
-  if (COLLEGE_CACHE && COLLEGE_CACHE.world === world) return COLLEGE_CACHE.list;
+  if (COLLEGE_CACHE && COLLEGE_CACHE.world === world && !COLLEGE_CACHE.col) return COLLEGE_CACHE.list;
   const g = dice(hashSeed(`${world}:colleges`)), taken = new Set(), names = new Set(), list = [], mascots = g.shuffle(MASCOTS);
   TIER_SIZES.forEach((n, t) => {
     for (let k = 0; k < n; k++) {
@@ -27,10 +38,20 @@ function colleges() {
       list.push({ i: list.length, tier: t + 1, name: nm, mascot: mascots[list.length % mascots.length], color: color[0] });
     }
   });
-  COLLEGE_CACHE = { world, list };
+  COLLEGE_CACHE = { world, list, by: Object.fromEntries(list.map(c => [c.i, c])) };
   return list;
 }
-const collegeOf = i => colleges()[i];
+// A college by id. An offer from before the college world (a number) goes to a program at the same
+// tier, the same one every time.
+function collegeOf(i) {
+  const list = colleges();
+  if (COLLEGE_CACHE.by[i]) return COLLEGE_CACHE.by[i];
+  if (typeof i === "number" && COLLEGE_CACHE.col) {
+    const tier = i < TIER_SIZES[0] ? 1 : i < TIER_SIZES[0] + TIER_SIZES[1] ? 2 : 3, at = list.filter(c => c.tier === tier);
+    return at[i % at.length];
+  }
+  return null;
+}
 // "Tier 2 Lakeshore State"
 const collegeText = i => { const c = collegeOf(i); return c ? `${TIER_NAMES[c.tier]} ${c.name}` : ""; };
 // How many players a college wants at a position this year: 2 to 4 linemen on each side, up to a
@@ -38,6 +59,12 @@ const collegeText = i => { const c = collegeOf(i); return c ? `${TIER_NAMES[c.ti
 function collegeNeed(c, year, pos) {
   const h = hashSeed(`${SEASON.world}:${c.i}:${year}:${pos}:need`);
   return pos === "OL" || pos === "DL" ? 2 + h % 3 : pos === "K" || pos === "P" ? h % 2 : h % 4;
+}
+// The offer chances were set for 120 colleges (24, 36 and 60 by tier); the college world has more at
+// each tier, so each one offers less often and the totals stay where they were
+function tierScale(tier) {
+  const cs = colleges(), n = cs.filter(c => c.tier === tier).length;
+  return n ? TIER_SIZES[tier - 1] / n : 1;
 }
 
 /* ---------- How a college sees a player ---------- */
@@ -74,7 +101,7 @@ const WINDOWS = { spring: 11, summer: 11, w4: 12, w8: 12, post: 12 };
 function rollOffers(s, w) {
   const yr = WINDOWS[w], out = [];
   if (!yr || !isFull(s)) return out;
-  const cs = colleges();
+  const cs = colleges(), scale = [0, 1, 2, 3].map(t => t ? tierScale(t) : 0);
   s.players.forEach(p => {
     if (p.yr !== yr || (w === "summer" && p.tc !== SEASON.year + 1)) return;
     const { r, pos } = recruitOf(p), year = offerYear(p), expo = exposureOf(s, p);
@@ -83,7 +110,7 @@ function rollOffers(s, w) {
     cs.forEach(c => {
       const bar = TIER_BAR[c.tier];
       if (r < bar || have.has(c.i) || !collegeNeed(c, year, pos)) return;
-      if (seededRandom(hashSeed(`${SEASON.world}:${p.id}:${year}:${w}:${c.i}`))() >= offerChance(r, bar, expo)) return;
+      if (seededRandom(hashSeed(`${SEASON.world}:${p.id}:${year}:${w}:${c.i}`))() >= offerChance(r, bar, expo) * scale[c.tier]) return;
       (p.off = p.off || []).push([c.i, w]); have.add(c.i);
       out.push({ s, p, c });
     });

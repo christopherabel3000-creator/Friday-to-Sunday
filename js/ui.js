@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 10;
+const BUILD = 11;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -48,7 +48,8 @@ const liveSeasonGame = () => liveGame() && !!S.season;
 
 /* ---------- Saving ---------- */
 // The whole app saves on the device after every tap: the season, and the game in progress
-const currentSave = () => ({ v: 1, build: BUILD, app: APP, game: S, season: SEASON, career: CAREER });
+// other: the world you aren't coaching in (the college world while you coach high school, and the other way)
+const currentSave = () => ({ v: 1, build: BUILD, app: APP, game: S, season: SEASON, career: CAREER, other: OTHER });
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(currentSave())); } catch (e) {} }
 function loadSaved() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); return s && s.v === 1 && s.app && s.app.ex ? upgradeSave(s) : null; } catch (e) { return null; }
@@ -100,6 +101,8 @@ function upgradeSave(s) {
   if (se6 && se6.schools) { if (!se6.cls) se6.cls = "1A"; addClasses(se6); }
   // Version 10: money and college offers. Every school gets boosters and facilities.
   if (se6 && se6.schools) moneyInit(se6);
+  // Version 11: the college world, built from the state's seed for the season's year
+  if (se6 && se6.schools && se6.lvl !== "col" && !s.other) s.other = newColSeason(se6.world, se6.year);
   s.build = BUILD;
   return s;
 }
@@ -388,8 +391,8 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
-const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: vSeason, week: vWeek, standings: vStandings, schedule: vSchedule,
-  bracket: vBracket, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
+const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason), week: byLevel(vWeek, vCWeek), standings: byLevel(vStandings, vCStandings),
+  schedule: byLevel(vSchedule, vCSchedule), bracket: byLevel(vBracket, vCPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits };
 function currentView() {
@@ -569,7 +572,7 @@ function act(a, ds) {
       if (!confirmed("newcareer")) break;
       keepBackup();
       if (S && S.season) S = null;
-      CAREER = null; SEASON = null; APP.coachDraft = newDraft(); draftErr = false; APP.cloud = null;
+      CAREER = null; SEASON = null; OTHER = null; APP.coachDraft = newDraft(); draftErr = false; APP.cloud = null;
       APP.screen = "newcoach"; scrollTop(); break;
     case "takejob": if (pickSchool(ds.v)) { APP.screen = "season"; scrollTop(); } break;
     // Key moments: practice, then the computer calls the game until it's close late (ai.js)
@@ -623,10 +626,10 @@ function act(a, ds) {
     case "simweek": { const gm = myGameIn(SEASON.week); if (gm && !played(gm)) break; const n = finishWeek(); if (n) { APP.weekView = n; APP.weekFrom = "season"; APP.screen = "week"; } scrollTop(); break; }
     case "simseason":
       if (liveSeasonGame() || !confirmed("simseason")) break;
-      runSeasonSim(ds.v === "playoffs" ? REGULAR_WEEKS + 1 : LAST_WEEK + 1); scrollTop(); break;
+      runSeasonSim(SEASON.lvl === "col" ? (ds.v === "playoffs" ? COL_TITLE_WEEK + 1 : COL_LAST + 1) : ds.v === "playoffs" ? REGULAR_WEEKS + 1 : LAST_WEEK + 1); scrollTop(); break;
     case "week": if (+ds.v >= 1 && +ds.v < SEASON.week) { APP.weekFrom = APP.screen; APP.weekView = +ds.v; APP.screen = "week"; scrollTop(); } break;
     case "standings": case "schedule": APP.screen = a; scrollTop(); break;
-    case "bracket": if (SEASON && SEASON.bracket) { APP.screen = a; scrollTop(); } break;
+    case "bracket": if (SEASON && (SEASON.bracket || SEASON.post)) { APP.topDiv = null; APP.screen = a; scrollTop(); } break;
     case "boxscore": if (S && S.teams) { APP.screen = "game"; scrollTop(); } break;
     case "sroster": if (SEASON && SEASON.schools[ds.t]) { seasonRoster(ds.t); scrollTop(); } break;
     // Roster screens
@@ -703,7 +706,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
+    default: if (!collegeAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
@@ -737,7 +740,7 @@ function startScreen() {
 }
 function start() {
   const saved = loadSaved();
-  if (saved) { APP = saved.app; S = saved.game && saved.game.teams ? saved.game : null; SEASON = saved.season || null; CAREER = saved.career || null; }
+  if (saved) { APP = saved.app; S = saved.game && saved.game.teams ? saved.game : null; SEASON = saved.season || null; CAREER = saved.career || null; OTHER = saved.other || null; }
   if (!APP || !APP.ex) { APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); }
   relinkCareer();
   APP.screen = startScreen();
@@ -765,5 +768,5 @@ if (typeof document !== "undefined") {
   // Headless test hook (tests/ load the scripts into Node)
   globalThis.__fts = { act, start, autoStep, simToEnd, initGame, cont, startPlay, newExhibition, startExhibition, typed,
     get S() { return S; }, set S(v) { S = v; }, get APP() { return APP; }, set APP(v) { APP = v; },
-    get SEASON() { return SEASON; }, set SEASON(v) { SEASON = v; }, get CAREER() { return CAREER; }, set CAREER(v) { CAREER = v; } };
+    get SEASON() { return SEASON; }, set SEASON(v) { SEASON = v; }, get OTHER() { return OTHER; }, set OTHER(v) { OTHER = v; }, get CAREER() { return CAREER; }, set CAREER(v) { CAREER = v; } };
 }

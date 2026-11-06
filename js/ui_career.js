@@ -299,7 +299,7 @@ function openSaveFile(file) {
 // Loads a save in place of the game on this device, keeping that game as the backup
 function adoptSave(d, cloud) {
   keepBackup();
-  APP = d.app; S = d.game && d.game.teams ? d.game : null; SEASON = d.season || null; CAREER = d.career || null;
+  APP = d.app; S = d.game && d.game.teams ? d.game : null; SEASON = d.season || null; CAREER = d.career || null; OTHER = d.other || null;
   if (!APP.ex) newExhibition();
   if (cloud) APP.cloud = cloud;
   relinkCareer();
