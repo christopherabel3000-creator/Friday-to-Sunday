@@ -87,12 +87,12 @@ function plain(g, extra) {
   ok(xp > .88 && xp <= .99, `extra points are good most of the time (${Math.round(xp * 100)} percent)`);
   // A fair-catch kick after a fair catch: on the next snap, from the spot, with no rush
   g("S.teams[0].cpu = false");
-  plain(g, { poss: 0, spot: 58, down: 1, toGo: 10, fcKick: true, quarter: 2, clock: 300 });
+  plain(g, { poss: 0, spot: 70, down: 1, toGo: 10, fcKick: true, quarter: 2, clock: 300 });
   g("startPlay()");
-  ok(g("S.phase") === "call" && g("fcKickNow()") && g("fgAvailable()") && g("kickDist()") === 52 && g("stPkgIds()").includes("fgu"), "after a fair catch, a fair-catch kick from the spot: 10 yards plus the distance to the goal line");
-  plain(g, { poss: 0, spot: 58, down: 1, toGo: 10, fcKick: false, quarter: 2, clock: 300 });
+  ok(g("S.phase") === "call" && g("fcKickNow()") && g("fgAvailable()") && g("kickDist()") === 40 && g("stPkgIds()").includes("fgu"), "after a fair catch, a fair-catch kick from the spot: 10 yards plus the distance to the goal line");
+  plain(g, { poss: 0, spot: 70, down: 1, toGo: 10, fcKick: false, quarter: 2, clock: 300 });
   g("startPlay()");
-  ok(!g("fcKickNow()") && g("kickDist()") === 59 && !g("fgAvailable()"), "without one, it's an ordinary field goal distance, and no kick on first down");
+  ok(!g("fcKickNow()") && g("kickDist()") === 47 && !g("fgAvailable()"), "without one, it's an ordinary field goal distance, and no kick on first down");
   let fckMade = 0, fckBlocked = 0;
   const kg = game(true).g;
   for (let i = 0; i < 60; i++) { plain(kg, { poss: 0, spot: 70, down: 1, toGo: 10, fcNow: true }); kg(`S.offCall = "fg"; S.defCall = "blk"; S.offPkg = "fgu"; S.defPkg = "base"`); const r = kg("doFG()"); if (/fair-catch kick is good/.test(r.text)) fckMade++; if (r.head === "Blocked!") fckBlocked++; }
@@ -206,6 +206,54 @@ function plain(g, extra) {
   ["vCSeason", "vCStandings", "vCTop25", "vCPost", "vCSchedule"].forEach(v => ok(g(`${v}().length`) > 500, `${v} draws`));
   g("APP.weekView = 13");
   ok(g("vCWeek().length") > 300, "the championship week's results draw");
+}
+
+// ---- Step 3: college players and the college year ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); SEASON = newColSeason(99, 2026); colTakeOver(SEASON.confs[1].ids[2]); APP.screen = "season";`);
+  // Redshirts and early departures, unit by unit
+  ok(g(`(() => { const keep = SEASON.stats; SEASON.stats = { a: { g: 3 }, b: { g: 9 } }; const r = [redshirtsNow({ id: "a" }), redshirtsNow({ id: "b" }), redshirtsNow({ id: "a", rs: true })].join(); SEASON.stats = keep; return r; })()`) === "true,false,false", "a player who played in four games or fewer keeps the year, once");
+  ok(g(`yearName({ yr: 10, rs: true })`) === "redshirt sophomore", "a redshirt sophomore");
+  const early = g(`(() => { const mk = (o, yr, rs) => { const p = genPlayer(dice(5), { id: "z", arch: "runner", yr, level: 60 }); for (const a in p.r) p.r[a] = o; p.rs = rs; return p; }; let n = 0, m = 0, k = 0;
+    for (let i = 0; i < 400; i++) { const r = seededRandom(i); if (leavesEarly(mk(95, 11), r)) n++; if (leavesEarly(mk(60, 11), r)) m++; if (leavesEarly(mk(95, 9), r)) k++; } return [n, m, k]; })()`);
+  ok(early[0] > 300 && early[1] === 0 && early[2] === 0, `stars leave early for the pros as juniors (${early[0]} of 400), and nobody rated 60, and no freshmen`);
+  ok(g(`colClassOnPaper(SEASON.schools.c0, 2027, 1).lv`) > g(`colClassOnPaper(Object.assign({}, SEASON.schools.c0, { trad: 10 }), 2027, 90).lv`), "a proud, top-ranked program recruits better on paper");
+  // A whole year at your program
+  g(`simSeason(); act("offseason")`);
+  ok(g("APP.screen") === "offseason" && /Spring practice comes next/.test(g("vCOffseason()")), "the college offseason: who's moving on, who might leave early, redshirts, and spring practice");
+  const seniors = g(`mySchool().players.filter(p => p.yr >= 12 && !redshirtsNow(p)).length`), rsCount = g(`mySchool().players.filter(redshirtsNow).length`);
+  g(`act("nextyear")`);
+  const R = g("SEASON.yearReport");
+  ok(g("SEASON.year") === 2027 && g("SEASON.phase") === "preseason" && g("APP.screen") === "newyear" && R && R.col, "the next season: a new year at the same program, with camp");
+  ok(R.grads.length === seniors && R.rs.length <= rsCount && R.rs.length >= rsCount - R.pros.length - R.left.length, `seniors move on (${seniors}) and redshirts keep the year (${R.rs.length} of ${rsCount}; the rest left)`);
+  ok(R.fresh.length >= 15 && g("mySchool().players.length") <= 105, `a new class comes in (${R.fresh.length}) and the roster stays at 105 or fewer (${g("mySchool().players.length")})`);
+  ok(R.spring && R.spring.n > 20, `spring practice: players got better (${R.spring && R.spring.n})`);
+  ok(/Spring practice/.test(g("vNewYear()")) && /Out of eligibility/.test(g("vNewYear()")), "the new year's report says so");
+  ok(g("SEASON.history.length") === 4 && g(`SEASON.history.every(x => x.year === 2026)`), "the national champions go into the history");
+  ok(g(`Object.values(SEASON.schools).every(s => s.classes[2027] && s.rating.off > 30)`), "every program brought in a class, and its ratings moved with it");
+  ok(g(`SEASON.weeks[0].games.length`) > 300 && g(`myGameIn(1) || myGameIn(2)`), "a new schedule");
+  const lv = g(`(() => { const o = {}; COL_CLASSES.forEach(c => { const l = Object.values(SEASON.schools).filter(s => s.cls === c); o[c] = Math.round(l.reduce((t, s) => t + (s.rating.off + s.rating.def) / 2, 0) / l.length); }); return o; })()`);
+  ok(lv.D3 < lv.D2 && lv.D2 < lv.FCS && lv.FCS < lv.G5 && lv.G5 < lv.P4, `the levels stay apart a year on: ${JSON.stringify(lv)}`);
+  // A program on paper, rebuilt for the new year, is about as good as its ratings say
+  const rb = g(`(() => { const ids = Object.keys(SEASON.schools).filter(id => id !== SEASON.myId && SEASON.schools[id].cls === "P4").slice(0, 6); return ids.map(id => { const s = seasonSchool(id); return [Math.round((sideRating(s, "off") + sideRating(s, "def")) / 2), Math.round((SEASON.schools[id].rating.off + SEASON.schools[id].rating.def) / 2), s.players.length]; }); })()`);
+  ok(rb.every(([a, b, n]) => Math.abs(a - b) <= 6 && n >= 90), `programs on paper rebuild close to their ratings: ${rb.map(x => x.slice(0, 2).join(" vs ")).join(", ")}`);
+}
+
+// ---- Step 3: high school players signing with colleges join their rosters ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); CAREER = null; newCareer("Pat", "Ruiz", "qb", "bal", "bal"); newSeason(506, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[4]);`);
+  ok(g("OTHER && OTHER.lvl") === "col" && g("Object.keys(OTHER.schools).length") === 672, "a high school career comes with its college world");
+  g(`(() => { const s = mySchool(), p = s.players.filter(p => p.yr === 12 && p.pos !== "K" && p.pos !== "P")[0]; for (const a in p.r) p.r[a] = Math.min(99, p.r[a] + 40); p.pot = 99; p.gr = 90; p.tag = "star"; })()`);
+  g(`simSeason(); act("offseason")`);
+  const st = g(`(() => { const p = mySchool().players.find(p => p.tag === "star"); return p.sign != null ? [p.sign, OTHER.schools[p.sign] ? (OTHER.schools[p.sign].joined || []).some(q => q.first === p.first && q.last === p.last && q.yr === 9 && q.from === 2027) : false] : null; })()`);
+  ok(st && st[1], "a senior who signs is kept with his college as a freshman for next season");
+  ok(g("OTHER.phase") === "over", "the college world's season is played out on paper with yours");
+  g(`autoMarket(); nextSeason()`);
+  ok(g("OTHER.year") === 2027 && g("OTHER.lvl") === "col", "and it moves on a year with you");
+  const seen = g(`(() => { const id = "${st ? st[0] : ""}"; if (!id) return false; return inWorld(OTHER, () => { const s = rebuildSchool(OTHER.schools[id], 0); return s.players.some(q => q.tag === "star" || (q.id || "").endsWith("c")); }); })()`);
+  ok(seen, "and he's on that program's roster when it's rebuilt");
 }
 
 console.log(`${checks - fails}/${checks} checks passed`);

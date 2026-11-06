@@ -393,7 +393,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason), week: byLevel(vWeek, vCWeek), standings: byLevel(vStandings, vCStandings),
   schedule: byLevel(vSchedule, vCSchedule), bracket: byLevel(vBracket, vCPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
-  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: vOffseason, newyear: vNewYear, halls: vHalls,
+  newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason), newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits };
 function currentView() {
   if (helpOpen) return vHelp;
@@ -545,6 +545,8 @@ function act(a, ds) {
     // The offseason, then the next season
     case "offseason":
       if (!SEASON || SEASON.phase !== "over" || !SEASON.myId) break;
+      // College: straight to the offseason (the job market comes with step 4)
+      if (SEASON.lvl === "col") { SEASON.phase = "offseason"; APP.screen = "offseason"; scrollTop(); break; }
       // The athletic director's review, the coaching changes and the job market come first
       recordCareerSeason(); yearEndReview(); SEASON.phase = "offseason"; marketMsg = ""; APP.screen = offseasonScreen(); scrollTop(); break;
     case "nextyear":

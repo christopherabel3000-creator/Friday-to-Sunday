@@ -112,7 +112,9 @@ function depthSide(ps, side, d, pen, away) {
   cands.sort((a, b) => b.v - a.v);
   cands.forEach(c => { if (!taken.has(c.p.id) && d[c.pos].length < DEPTH_SIZE[c.pos]) { d[c.pos].push(c.p.id); taken.add(c.p.id); } });
   // Anyone left over backs up wherever he fits best (a depth chart never runs dry)
-  side.forEach(pos => { if (d[pos].length < DEPTH_SIZE[pos]) { const o = new Map(ps.map(p => [p, ovr(p, pos)])); ps.filter(p => !d[pos].includes(p.id)).sort((a, b) => o.get(b) - o.get(a)).slice(0, DEPTH_SIZE[pos] - d[pos].length).forEach(p => d[pos].push(p.id)); } });
+  // (in college, players from this side of the ball first, so nobody ends up starting both ways)
+  const mine = p => !spec || side.includes(p.pos) || side.includes(p.pos2) ? 1 : 0;
+  side.forEach(pos => { if (d[pos].length < DEPTH_SIZE[pos]) { const o = new Map(ps.map(p => [p, ovr(p, pos) + 100 * mine(p)])); ps.filter(p => !d[pos].includes(p.id)).sort((a, b) => o.get(b) - o.get(a)).slice(0, DEPTH_SIZE[pos] - d[pos].length).forEach(p => d[pos].push(p.id)); } });
 }
 function autoDepth(team) {
   const ps = team.players.filter(p => !p.inj), d = {}, none = () => 0, away = isCollege(team.cls) ? -15 : -2;

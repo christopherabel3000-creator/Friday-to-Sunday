@@ -165,7 +165,7 @@ function vSummary() {
   if (L.tk) ld.push(`Tackles: ${fullName(L.tk[0])}, ${v(L.tk[1], "tk")}.`);
   if (L.sck) ld.push(`Sacks: ${fullName(L.sck[0])}, ${v(L.sck[1], "sck")}.`);
   if (L.int) ld.push(`Interceptions: ${fullName(L.int[0])}, ${v(L.int[1], "int")}.`);
-  const better = x.improved.map(y => `${fullName(y.p)}, ${YEAR_NAMES[y.p.yr]} ${posName(y.p.pos)}: ${y.from} to ${y.to}.`);
+  const better = x.improved.map(y => `${fullName(y.p)}, ${yearName(y.p)} ${posName(y.p.pos)}: ${y.from} to ${y.to}.`);
   const record = [`${recText(x.all)} overall, ${x.reg.dw}-${x.reg.dl} in district.`];
   // Where you finished, against where your starters ranked before the season
   if (x.place) record.push(`Finished ${ordWord(x.place - 1)} in District ${SEASON.district}${x.expect ? `, with ${x.expect === 1 ? "the best" : `the ${ordWord(x.expect - 1)}-best`} starters in the district before the season` : ""}.`);

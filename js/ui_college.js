@@ -182,6 +182,28 @@ function vCSchedule() {
     <button class="btn ghost" data-a="back">Back</button>`;
 }
 
+/* ---------- The offseason ---------- */
+// Who's moving on, who might leave early, who keeps a redshirt year, and spring practice ahead
+function vCOffseason() {
+  const s = mySchool(), list = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  const line = p => `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}.`;
+  const seniors = s.players.filter(p => p.yr >= 12 && !redshirtsNow(p)).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
+  const early = s.players.filter(p => (p.yr === 11 || (p.yr === 10 && p.rs) || (p.yr === 12 && redshirtsNow(p))) && ovr(p, p.pos) >= 74).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
+  const rs = s.players.filter(redshirtsNow);
+  return `
+    <div class="masthead" style="--team:${s.color}">
+      <p class="eyebrow">${SEASON.year} offseason</p>
+      <h2 data-focus tabindex="-1">${esc(nameOf(s.id))}</h2>
+      <p class="muted">${esc(`${colStatus()} Spring practice comes next: four weeks with your practice plan, then the summer and fall camp.`)}</p>
+    </div>
+    <section class="panel"><h3>Out of eligibility</h3>${seniors.length ? list(seniors.map(line)) : "<p>No seniors are moving on.</p>"}</section>
+    ${early.length ? `<section class="panel"><h3>Could leave early for the pros</h3><p>The best juniors may declare. The higher a player is rated, the likelier he goes.</p>${list(early.map(line))}</section>` : ""}
+    <section class="panel"><h3>Redshirts</h3><p>${esc(rs.length ? `${plural(rs.length, "player")} played in four games or fewer and keep the year.` : "Nobody redshirts this year.")}</p></section>
+    <section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan. Opponent prep time goes into install.`)}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>
+    <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
+    <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;
+}
+
 /* ---------- Screens by level ---------- */
 // The season's screens, for whichever level the season is
 const byLevel = (hs, col) => function () { return (SEASON && SEASON.lvl === "col" ? col : hs).apply(this, arguments); };

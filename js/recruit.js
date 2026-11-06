@@ -173,6 +173,8 @@ function signingDay() {
       if (id === me && held.length) out.pending.push({ name: fullName(p), tier: held[0].tier, signed: !!c });
       if (!c) return;
       p.sign = c.i; n++;
+      // He joins that program's roster next season (cyear.js)
+      if (typeof c.i === "string") sendToCollege(p, c.i, year);
       s.bst = clamp(boostersOf(s) + SIGN_BOOST[c.tier], 0, 100);
       if (id === me) {
         out.mine.push({ id: p.id, name: fullName(p), pos: recruitOf(p).pos, c: c.i });
@@ -207,7 +209,7 @@ function myProspects() {
 // One prospect in a sentence: "Marcus Hill, senior running back: a strong prospect. Two Tier 2 offers. Tier 2 offers wait on his grades (54)."
 function prospectText(p) {
   const { r, pos } = recruitOf(p), w = recruitWord(r), offs = offersOf(p), held = offs.filter(c => !qualifies(p, c.tier));
-  const bits = [`${fullName(p)}, ${YEAR_NAMES[p.yr]} ${posName(pos)}${w ? `: ${w}` : ""}.`];
+  const bits = [`${fullName(p)}, ${yearName(p)} ${posName(pos)}${w ? `: ${w}` : ""}.`];
   bits.push(offs.length ? `${capFirst(offerSummary(p))}.` : "No offers yet.");
   if (p.sign != null) bits.push(`Signed with ${collegeText(p.sign)}.`);
   else if (held.length) bits.push(`His ${TIER_NAMES[held[0].tier]} offers need grades of ${GRADE_NEED}; he has ${gradesOf(p)}.`);

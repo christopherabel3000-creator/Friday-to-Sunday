@@ -194,6 +194,8 @@ function newSeason(seed, year) {
 function nextSeason() {
   const old = SEASON;
   if (!old || old.phase !== "offseason" || !old.myId) return null;
+  // College: the college world moves on (cyear.js)
+  if (old.lvl === "col") return colNextSeason();
   // The year-end review and the job market come first (jobs.js): if nobody finished the market, you
   // stay (or, fired, take the first offer), and the carousel fills every open job
   yearEndReview(); autoMarket(); fillJobs();
@@ -225,6 +227,8 @@ function nextSeason() {
   SEASON.yearReport = yearReportOf(report, old.year);
   REBUILT.clear();
   setExpectations();
+  // The college world moves on with you (cyear.js)
+  colWorldNextYear();
   return SEASON.yearReport;
 }
 // You take over a school, and its coach's job, with your coach (career.js) and your schemes. The team

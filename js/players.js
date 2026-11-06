@@ -30,6 +30,8 @@ const POS_INFO = {
   P: { name: "punter", group: "Punters", skills: ["leg", "kac"], w: { leg: .65, kac: .35 } }
 };
 const YEAR_NAMES = { 9: "freshman", 10: "sophomore", 11: "junior", 12: "senior" };
+// A college player who has used his redshirt year is a "redshirt sophomore" and so on
+const yearName = p => `${p.rs ? "redshirt " : ""}${YEAR_NAMES[p.yr]}`;
 // A player's overall rating at a position (the weights as arrays, made once, since this runs a lot)
 const POS_W = {};
 for (const pos in POS_INFO) POS_W[pos] = [Object.keys(POS_INFO[pos].w), Object.values(POS_INFO[pos].w)];
@@ -140,7 +142,7 @@ function playerLine(p, level, opts) {
   opts = opts || {};
   const posPart = [p.pos, p.pos2].filter(Boolean).map((pos, i) => `${i ? posName(pos) : capFirst(posName(pos))} ${ovr(p, pos)}`).join(", ");
   const st = strengths(p, level).map(a => ATTR_PRAISE[a]);
-  const bits = [`${fullName(p)}, ${YEAR_NAMES[p.yr]}.`, `${posPart}.`];
+  const bits = [`${fullName(p)}, ${yearName(p)}.`, `${posPart}.`];
   if (st.length) bits.push(`${capFirst(st.join(", "))}.`);
   if (!opts.noPot) bits.push(`${capFirst(POT_BANDS[p.potSeen])} potential.`);
   if (p.inj) bits.push(p.inj.at === "grades" ? "Ineligible." : "Injured.");

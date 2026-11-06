@@ -74,19 +74,23 @@ function vOffseason() {
 function vNewYear() {
   const R = SEASON.yearReport, s = mySchool(), list = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
   const fresh = R.fresh.map(id => playerById(s, id)).filter(Boolean).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
-  const grew = R.grew.map(([id, a, b]) => { const p = playerById(s, id); return p ? `${fullName(p)}, ${YEAR_NAMES[p.yr]}: ${a} to ${b} at ${posName(p.pos)}.` : ""; }).filter(Boolean).slice(0, 8);
+  const grew = R.grew.map(([id, a, b]) => { const p = playerById(s, id); return p ? `${fullName(p)}, ${yearName(p)}: ${a} to ${b} at ${posName(p.pos)}.` : ""; }).filter(Boolean).slice(0, 8);
   const rank = talentRank(s.id);
   return `
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${SEASON.year} preseason</p>
       <h2 data-focus tabindex="-1">The ${SEASON.year} ${esc(s.mascot)}</h2>
-      <p class="muted">${talentText(s.rating)} ${rank === 1 ? "The best starters" : `The ${ordWord(rank - 1)}-best starters`} in District ${SEASON.district}. ${plural(s.players.length, "player")} on the roster.</p>
+      <p class="muted">${talentText(s.rating)} ${rank === 1 ? "The best starters" : rank <= 8 ? `The ${ordWord(rank - 1)}-best starters` : `Starters ranked ${rank}th`} in ${SEASON.lvl === "col" ? esc(s.conf ? `the ${confName(s.id)}` : "your schedule") : `District ${SEASON.district}`}. ${plural(s.players.length, "player")} on the roster.</p>
     </div>
-    <section class="panel"><h3>Graduated</h3>${R.grads.length ? list(R.grads.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.${x.col ? ` On to ${x.col}.` : ""}`)) : "<p>Nobody graduated.</p>"}</section>
+    ${R.col && R.spring ? `<section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan: ${plural(R.spring.n, "player")} improved.${R.spring.mastery.length ? ` Plays learned: ${R.spring.mastery.map(([id, a, b]) => `${playName(id)} ${a} to ${b}`).join(", ")}.` : ""}`)}</p></section>` : ""}
+    ${R.col && R.pros.length ? `<section class="panel"><h3>Left early for the pros</h3>${list(R.pros.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.`))}</section>` : ""}
+    <section class="panel"><h3>${R.col ? "Out of eligibility" : "Graduated"}</h3>${R.grads.length ? list(R.grads.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.${x.col ? ` On to ${x.col}.` : ""}`)) : "<p>Nobody graduated.</p>"}</section>
     ${(R.offers || []).length ? `<section class="panel"><h3>Offers from team camp</h3>${list(R.offers)}</section>` : ""}
     ${R.left.length ? `<section class="panel"><h3>Left the team</h3>${list(R.left.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.why}.`))}</section>` : ""}
-    <section class="panel"><h3>New freshmen</h3>${fresh.length ? list(fresh.map(p => playerLine(p, s.level))) : "<p>No freshmen came out this year.</p>"}</section>
-    ${(R.joined || []).length ? `<section class="panel"><h3>From the hallways</h3>${list(R.joined.map(id => playerById(s, id)).filter(Boolean).map(p => playerLine(p, s.level)))}</section>` : ""}
+    ${R.col && (R.rs || []).length ? `<section class="panel"><h3>Redshirted</h3><p>${esc(`${plural(R.rs.length, "player")} played in four games or fewer and keep the year: ${andList(R.rs.map(id => playerById(s, id)).filter(Boolean).slice(0, 12).map(fullName))}${R.rs.length > 12 ? ", and more" : ""}.`)}</p></section>` : ""}
+    ${R.col && (R.cut || []).length ? `<section class="panel"><h3>Over the roster limit</h3>${list(R.cut.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}.`))}</section>` : ""}
+    <section class="panel"><h3>${R.col ? "The new class" : "New freshmen"}</h3>${fresh.length ? list(fresh.map(p => playerLine(p, s.level))) : "<p>No freshmen came out this year.</p>"}</section>
+    ${(R.joined || []).length ? `<section class="panel"><h3>${R.col ? "From your old high school state" : "From the hallways"}</h3>${list(R.joined.map(id => playerById(s, id)).filter(Boolean).map(p => playerLine(p, s.level)))}</section>` : ""}
     <section class="panel"><h3>Grew over the summer</h3>${R.went ? `<p>${plural(R.went, "player")} came to summer workouts.</p>` : ""}${grew.length ? list(grew) : "<p>Nobody's overall rating went up over the summer.</p>"}</section>
     <button class="btn" data-a="season">${inCamp() ? "On to preseason camp" : "Back to the season"}</button>`;
 }
@@ -97,7 +101,7 @@ const weeksText = w => !w ? "none" : `${w < 1 ? "under a week" : `about ${Math.r
 // One athlete in a sentence: "Marcus Hill, junior next season. Plays basketball. Receiver 34, cornerback 29. Fast. High potential."
 function prospectLine(p, s) {
   const sp = SPORTS.find(x => x.id === p.sport), st = strengths(p, s.level).map(a => ATTR_PRAISE[a]);
-  return `${fullName(p)}, ${YEAR_NAMES[p.yr]} next season. ${capFirst(sp ? sp.what : "")}. ${capFirst(posName(p.pos))} ${ovr(p, p.pos)}, ${posName(p.pos2)} ${ovr(p, p.pos2)}.${st.length ? ` ${capFirst(st.join(", "))}.` : ""} ${capFirst(POT_BANDS[p.potSeen])} potential. ${capFirst(INTEREST[p.interest])}.`;
+  return `${fullName(p)}, ${yearName(p)} next season. ${capFirst(sp ? sp.what : "")}. ${capFirst(posName(p.pos))} ${ovr(p, p.pos)}, ${posName(p.pos2)} ${ovr(p, p.pos2)}.${st.length ? ` ${capFirst(st.join(", "))}.` : ""} ${capFirst(POT_BANDS[p.potSeen])} potential. ${capFirst(INTEREST[p.interest])}.`;
 }
 function vHalls() {
   const s = mySchool(), H = hallsNow(), left = pitchesLeft();

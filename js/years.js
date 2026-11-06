@@ -120,11 +120,12 @@ function rosterAt(sum, year) {
     const opts = { id: sum.id, cls: sum.cls, mascot: sum.mascot, town: sum.town, color: [sum.color, sum.colorName, sum.colorFam], trad: sum.trad0 != null ? sum.trad0 : sum.trad };
     s = genSchool(dice(sum.seed), opts);
     Object.assign(s, { seed: sum.seed, district: sum.district, colorFam: sum.colorFam, trad: sum.trad, classes: sum.classes, coach: clone(sum.coach), off: sum.off, def: sum.def,
-      fac: sum.fac, bst: sum.bst, sent: sum.sent });
+      fac: sum.fac, bst: sum.bst, sent: sum.sent, joined: sum.joined });
     if (year <= Y0) return s;
   } else s = Object.assign({}, sum, { coach: clone(sum.coach), players: [] });
   let players = year < Y0 + 4 ? s.players : [];
-  for (let E = Math.max(Y0 + 1, year - 3); E <= year; E++) players = players.concat(genClass(s, E));
+  // (a college program also takes in the high school players who signed with it: cyear.js)
+  for (let E = Math.max(Y0 + 1, year - 3); E <= year; E++) players = players.concat(genClass(s, E), joinedFor(s, E));
   const used = new Set();
   const kept = players.filter(p => {
     for (let y = Math.max(p.from || Y0, Y0); y < year; y++) if (playerYear(s, p, y, true)) return false;

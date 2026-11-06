@@ -195,6 +195,8 @@ function applyCoach(s) {
 //   offer, fallback, took, from, transfers: [names], done }
 function yearEndReview() {
   if (SEASON.review) return SEASON.review;
+  // The college world's season is played out on paper too, so its results are in (cyear.js)
+  colWorldSeasonDone();
   const res = finishState(), me = SEASON.myId, R = { open: [], why: {}, fired: false, news: [], moves: [], filled: false };
   if (CAREER && me) {
     recordCareerSeason();
