@@ -12,7 +12,7 @@ You're a first-time head coach at a tiny high school with a losing tradition. Yo
 - **A career you build.** Players grow and graduate, your coach gets better, and your reputation follows you from job to job.
 - **Management without busywork.** Plans stay in place until you change them, and reports only say what changed.
 - **Screen reader first.** Everything works with VoiceOver on iPhone and with a screen reader on a computer.
-- **A made-up world.** Fictional schools, conferences and pro league. Real NFL and college names and logos are trademarks.
+- **A made-up world.** Fictional schools, conferences and pro league. Real NFL and college names and logos are trademarks. Players can rename schools themselves (Milestone 4).
 
 ## The career at a glance
 
@@ -449,58 +449,77 @@ You can also give any amount of your earnings to the program fund. Earnings neve
 
 ## Milestone 4: college
 
-From Friday nights to Saturdays. The 120 colleges your players have been signing with since Milestone 3b become a world you coach in. A strong high school coach gets a call from a small college, and the climb starts again: Tier 3, then Tier 2, then the top programs. College talent comes from recruiting, revenue sharing and NIL, and the transfer portal, so building a roster is the new heart of the game. Calling the plays still decides close games.
+From Friday nights to Saturdays. A high school coach who has become one of the state's best gets a call from a small college, and the climb starts again: Division III or Division II, then the FCS, then the smaller FBS conferences, then the power conferences. College talent comes from recruiting, revenue sharing and NIL, and the transfer portal, so building a roster is the new heart of the game. Calling the plays still decides close games.
+
+Decisions (Nov 2026):
+
+- The college world has the real shape and size of college football, about 670 programs, with made-up names. Players can rename any school or conference themselves.
+- College offers start at a high school reputation of 80, and they're Division III and Division II head coaching jobs.
+- Head coaching only. Coordinator jobs come later, with Milestone 6.
+- Recruiting runs from a board with priorities. You make the big calls (offers, visits, NIL) and nothing needs a tap every week.
+- Money is in real dollars.
 
 In this milestone:
 
-- The college world: 120 programs in 10 conferences and two divisions, each program with tradition, boosters and facilities.
+- The college world: about 670 programs in five levels and about 60 conferences, each program with tradition, boosters and facilities.
 - College rules, as the NCAA plays them in 2026, and college overtime.
-- A college season: camp, 12 games, conference title games, a weekly top 25, bowls, a 12-team playoff for the top division and a 16-team playoff for small colleges.
+- A college season: fall camp, 12 games, conference title games, a weekly top 25, bowls and the College Football Playoff, and playoffs for the FCS, Division II and Division III.
 - College players: class years and redshirts, rosters of up to 105, early departures for the pros.
-- Getting a college job from the high school job market, with contracts, salaries, buyouts and counteroffers.
+- A college reputation, college job markets, contracts, salaries, buyouts and counteroffers.
 - Recruiting high school prospects, from your old state and beyond, with a new coach rating, Recruiting.
 - Revenue sharing and NIL, with the boosters as the collective.
 - The transfer portal, once a year.
 - Spring practice in the offseason.
+- Renaming schools and conferences.
 
-Not in this milestone: assistant coaches on your staff, the coordinator path (Milestone 6), the pro draft (Milestone 5; players who leave early just leave), conference realignment, and detailed recruiting for any program but yours.
+Not in this milestone: assistant coaches on your staff, the coordinator path (Milestone 6), the pro draft (Milestone 5; players who leave early just leave), conference realignment, the NAIA and junior colleges, and detailed recruiting for any program but yours.
 
 Build steps, each one playable and tested before the next:
 
 1. College rules and an exhibition college game between two generated programs, with college level of play checked.
-2. The college world and its season: conferences, schedules, the quick sim refit, rankings, title games, bowls and both playoffs. (A test career can start at a college.)
+2. The college world and its season: every level and conference, schedules, the quick sim refit, rankings, title games, bowls and all four playoffs, with speed and save size measured. Milestone 3b's colleges move into it. (A test career can start at a college.)
 3. College players: class years, redshirts, early departures, spring practice, and programs on paper with recruiting classes.
-4. The college job: college jobs in the market, contracts, salaries, buyouts, counteroffers, expectations, grades, job security, and college coaches' careers.
+4. The college job: the college reputation, college jobs in the market, contracts, salaries, buyouts, counteroffers, expectations, grades, job security, and college coaches' careers.
 5. Recruiting: the prospects, the Recruiting rating and perk, your recruiting board, visits, commitments and signing day.
 6. Revenue sharing, NIL and the transfer portal.
+7. Renaming schools and conferences, with a list of names to save and load.
 
 Milestone 4 is done when:
 
-- A coach who keeps beating expectations in high school gets a Tier 3 offer, and one who keeps winning in college can reach Tier 1 in about 10 to 15 seasons.
+- A coach who keeps beating expectations in high school reaches a reputation of 80 and gets Division III or Division II offers, and one who keeps winning in college can reach a power conference in about 12 to 18 seasons.
 - Recruiting decides a program's talent over the years: a good recruiter at a modest program can build a winner.
-- Every level plays like itself: college games look like college football, and Tier 3 looks different from Tier 1.
-- The college world moves on to a new year in a few seconds, and the save stays small enough for the cloud and save codes.
+- Every level plays like itself: Division III looks different from a power conference.
+- The whole world, high school and college, moves on to a new year in a few seconds on a phone, and the save stays small enough for the cloud and save codes.
 - Every new screen works with VoiceOver, on iPhone and on a computer.
 
 ### The college world
 
-- 120 programs, from Milestone 3b's colleges, in two divisions:
-  - The top division: the 24 Tier 1 programs in two conferences of 12, and the 36 Tier 2 programs in three conferences of 12. Like the real top division, with its biggest conferences and the rest.
-  - Small colleges: the 60 Tier 3 programs, in five conferences of 12.
-- Conferences have made-up names and stay together (no realignment).
-- Each program has tradition (as high schools do), boosters and the five facilities from 3b, set by its tier and tradition. Tier 1 programs start mostly great and elite, Tier 3 mostly basic and good.
-- Your program keeps its full roster. Every other program is kept on paper, as high schools outside your district are: its seed plus the size and level of each recruiting class, rebuilt when you play it or look at it.
-- Only your games run on the full engine. Every other game is a quick sim, refit for college from full-engine games at each tier. That keeps a 120-team world fast.
+Five levels, sized like real college football in 2026 (about 136 FBS programs, 127 FCS, around 165 in Division II and 245 in Division III; the exact counts move every year, so these are targets, not rules):
+
+| Level | Programs | Conferences | Postseason | Recruiting tier (3b) |
+|---|---|---|---|---|
+| Power conferences | 68 | 4 of 16 to 18, plus 1 independent | College Football Playoff and bowls | Tier 1 |
+| The rest of FBS | 68 | 6 of 8 to 14, plus 2 independents | College Football Playoff and bowls | Tier 2 |
+| FCS | 128 | 13 | 24-team playoff | Tier 2 |
+| Division II | 164 | about 14 | 28-team playoff | Tier 3 |
+| Division III | 244 | about 26 | a 28- or 32-team playoff (to confirm) | Tier 3 |
+
+- Every school, conference and bowl has a made-up name. Names sound real: state schools, directional schools ("Central," "Western"), small private colleges, and A&M and Tech schools, but never a real school's name.
+- Each program has tradition, boosters and the five facilities from 3b, set by its level and tradition: power programs mostly great and elite, Division III mostly basic and good.
+- Your program keeps its full roster. Every other program is a summary: its ratings, coach, boosters, facilities and the size and level of each recruiting class. Its roster is rebuilt from its seed and those classes only when you play it or open it, so a new year never rebuilds 670 rosters.
+- Only your games run on the full engine. Every other game is a quick sim, refit for each level from full-engine games.
+- Milestone 3b's colleges become this world. Offers and signings go to programs at the matching tier, and the offer chances are rescaled for the bigger world so signing rates stay where 3b put them. A save from 3b keeps each signee's tier and gets a program at that tier from the seed.
+- To measure in step 2: the new year (high school and college together) on a phone, and the save size with about 670 college summaries. If it's too much, Division III and Division II programs can be kept even more simply.
 
 ### The college season
 
 - The calendar: spring practice and the summer in the offseason, three weeks of fall camp, 12 regular-season games, conference title games, then the postseason. Signing day and the transfer portal come in the offseason.
-- The schedule: 9 conference games (each conference plays 9 of its 11 others, so not everyone meets every year) and 3 non-conference games. Now and then a Tier 1 program pays a Tier 3 program to come play it.
-- Standings: conference record, then head-to-head, then overall record. The top two meet in the conference title game.
-- The top 25: a weekly ranking of the top division from record, strength of schedule, margin of victory (capped) and quality wins, shown as a list that reads aloud cleanly ("7. Lakeshore State, 8-1").
-- The playoff, for the top division, as the real 12-team format works in 2026: the two Tier 1 conference champions (as the real Power Four champions are guaranteed spots) and the best-ranked Tier 2 champion get in, and the rest are the best-ranked teams left. Seeded straight by ranking. The top four get byes, first-round games are on the higher seed's campus, and the rest are at neutral bowl sites.
-- Bowls: the other top-division teams with 6 or more wins play in made-up bowls, matched by ranking. A bowl win counts like a playoff win for grades and XP, at half the weight.
-- Small colleges: a 16-team playoff, with the five conference champions and 11 at-large teams, seeded by record and strength of schedule.
+- The schedule: mostly conference games (9 at the biggest conferences, all of them in small ones), and the rest non-conference, mostly against the same level. Now and then a big program pays a smaller one to come play it.
+- Standings: conference record, then head-to-head, then overall record. The top two meet in the conference title game, where a conference has one.
+- The top 25: a weekly ranking of FBS from record, strength of schedule, margin of victory (capped) and quality wins, read as a plain list ("7. Lakeshore State, 8-1"). The FCS, Division II and Division III have their own top 25s.
+- The College Football Playoff, as the real 12-team format works in 2026: the four power conference champions are guaranteed spots, and the rest are the best-ranked teams left (to confirm whether the best champion of the other FBS conferences is also guaranteed one). Seeded straight by ranking. The top four get byes, first-round games are on the higher seed's campus, and the rest are at neutral bowl sites.
+- Bowls: the other FBS teams with 6 or more wins play in made-up bowls, matched by ranking and conference. A bowl win counts like a playoff win for grades and XP, at half the weight.
+- The FCS, Division II and Division III playoffs: conference champions where they have automatic bids, plus at-large teams, seeded by ranking.
 
 ### College rules
 
@@ -514,55 +533,63 @@ Checked against current sources in November 2026, and to be checked against the 
 - The defense can return a try for two points.
 - A fair-catch kick is allowed (new in college in 2026; high school allows it too, so high school gets it at the same time).
 - College overtime: possessions from the 25, a two-point try required after a touchdown in the second overtime, and two-point plays from the third on.
+- All five levels play by the same NCAA rules.
 
 ### College players
 
-- Ratings stay on the one scale: Tier 3 starters mostly in the 40s to 60s, Tier 2 in the 50s to 70s, and Tier 1 in the 60s to 80s, with a few stars higher. Your high school signees fit right in.
+- Ratings stay on the one scale. Typical starters: Division III in the 40s and 50s, Division II in the 50s, the FCS in the 50s and 60s, the rest of FBS in the 60s, and the power conferences in the 60s to 80s, with a few stars higher. Your high school signees fit right in.
 - Class years: freshman to senior, plus a redshirt. A player can play in up to four games and still keep the year, so he has five years to play four seasons. (Eligibility rules were under review in 2026: to confirm while step 3 is built.)
-- Rosters of up to 105, with no separate scholarship limit (the 2025 House settlement replaced the old 85-scholarship limit with a 105-player roster limit). Nobody plays both ways, so fatigue matters less and depth matters more.
+- Rosters of up to 105 at every level that opted into the 2025 House settlement, which replaced the old 85-scholarship limit with a 105-player roster limit. Smaller levels carry smaller rosters (about 90 to 100 in Division II and III). Nobody plays both ways, so fatigue matters less and depth matters more.
 - Leaving: seniors run out of eligibility, players transfer, and the best juniors and redshirt sophomores may leave early for the pros, more likely the higher they're rated.
 - Practice works as in high school, with the same plan and units. Spring practice is four weeks of practice in the offseason, so a new coach can install his schemes before fall camp.
-- Your former players: the players you sent to college in Milestone 3b are kept with their colleges, so they're on the roster when you take over there, or play against you.
+- Your former players: the players you sent to college in Milestone 3b are kept with their programs, so they're on the roster when you take over there, or play against you.
 
-### Getting the job
+### The college reputation and the job
 
-- College jobs appear in the high school job market once your reputation is high enough: Tier 3 jobs from about 60 (a proven winner), and Tier 2 jobs only for a legend (about 85). Tier 1 jobs go to college coaches.
-- In college the same reputation keeps growing, with bigger stages: each tier's jobs have a bar, plus a bit for a proud program, and job security, expectations and the season grade work as in high school, counting conference titles, bowls and playoff wins.
-- Contracts: a college job comes with a salary and a length. Tier 3 about $150,000 to $400,000 a year for 3 years, Tier 2 about $800,000 to $3 million for 4 or 5, and Tier 1 about $4 million to $10 million for 5 or 6, more at proud programs and for coaches with bigger reputations. Your earnings go into the same career earnings.
+- College has its own reputation, 0 to 100, with the same words as high school. Your high school reputation gets you in the door; the college one moves with your college seasons. A coach who arrives from high school starts at 20, plus a little for a high school legend.
+- The way in: once your high school reputation reaches 80 (one of the state's best), Division III and Division II head coaching jobs appear in your high school job market, with the usual bar for a proud program.
+- In college, each level's jobs have a bar on the college reputation: Division III 0, Division II 10, the FCS 30, the rest of FBS 45 and the power conferences 65, plus a bit for tradition. Expectations, the season grade and job security work as in high school, counting conference titles, bowls and playoff wins, and a bigger level is a bigger stage.
+- Contracts, in real dollars (to check against current salaries while step 4 is built): Division III about $60,000 to $110,000 a year, often with teaching, Division II about $90,000 to $200,000, the FCS about $200,000 to $600,000, the rest of FBS about $700,000 to $3 million, and the power conferences about $4 million to $11 million, more at proud programs and for coaches with bigger reputations. Lengths run from 2 years in Division III to 6 at the top. Your earnings go into the same career earnings.
 - Buyouts: a fired coach is paid most of what's left on his contract (60 percent here), which makes schools a little slower to fire. Leaving early is allowed; your new school pays your old one.
 - Counteroffers: when another school offers you a job, your school may counter with a raise and more years, more likely the more it wants to keep you.
-- You can go back to high school any time a high school job is interested in you.
-- College coaches have careers like high school coaches, and the best high school coaches in the state move up to Tier 3 jobs.
+- You can go back to high school any time a high school job is interested in you, on your high school reputation.
+- College coaches have careers like high school coaches, and the best high school coaches in the state move up to Division III and Division II jobs.
 
 ### Recruiting
 
-- The prospects: each year's class of high school seniors. Some come from your old high school state, rebuilt from the schools on paper, so you may recruit kids you coached against, or coached. The rest are made up, from out of state. Each prospect has the 3b recruit rating, shown as stars (two to five).
+- The prospects: each year's class of high school seniors. Some come from your old high school state, from the schools on paper, so you may recruit kids you coached against, or coached. The rest are made up, from out of state. Each prospect has the 3b recruit rating, shown as stars (two to five).
 - A new coach rating, Recruiting, starts at 40 for every coach, and a Recruiter perk makes your pitches stronger. Computer coaches have it too.
-- Your board: up to 30 prospects you're recruiting, each with a priority (top, high or normal). Your staff's recruiting time each week is shared out by priority, like the practice plan, so nothing needs doing every week unless you want to.
-- What a prospect cares about: the program's tier, tradition and ranking, playing time at his position (your depth chart), the NIL offer against what he's looking for, the facilities, your reputation and Recruiting, and knowing you (players from your old school, and players you coached against, start more interested).
+- Your board: up to 30 prospects you're recruiting, each with a priority (top, high or normal). Your staff's recruiting time each week is shared out by priority, like the practice plan, so nothing needs doing every week unless you want to. You decide offers, visits and NIL.
+- What a prospect cares about: the program's level, tradition and ranking, playing time at his position (your depth chart), the NIL offer against what he's looking for, the facilities, your reputation and Recruiting, and knowing you (players from your old school, and players you coached against, start more interested). Division III can't pay or give athletic scholarships, so there it's playing time, the program and you.
 - Visits: invite up to three prospects to each home game. A win in front of them helps.
 - Interest is in words ("leaning your way", "in your top three", "not interested") with a number. A prospect commits when one school leads him by enough, and can flip until signing day.
 - Signing day comes after the regular season. The weekly report lists only what changed: commitments, flips and visits.
-- Computer programs recruit on paper: each one's class size comes from its roster needs, and its level from its tier, tradition, ranking, coach and NIL. The prospects on your board go somewhere real when you lose them, and the news says where.
+- Computer programs recruit on paper: each one's class size comes from its roster needs, and its level from its level, tradition, ranking, coach and NIL. The prospects on your board go somewhere real when you lose them, and the news says where.
 
 ### Money: revenue sharing and NIL
 
-- Each program has money to pay its players: revenue sharing from the school, plus NIL from its booster collective. In the real game the revenue-sharing cap was $20.5 million per school in 2025-26, rising at least 4 percent a year, with most of it going to football. Here, a Tier 1 program has about $12 to $16 million a year for football, a Tier 2 program about $2 to $5 million, and Tier 3 programs only scholarships. The collective adds more, by booster enthusiasm.
+- Each program has money to pay its players: revenue sharing from the school, plus NIL from its booster collective. In the real game the revenue-sharing cap was $20.5 million per school in 2025-26, rising at least 4 percent a year, with most of it going to football. Here, in real dollars: a power program has about $12 million to $16 million a year for football, the rest of FBS about $2 million to $5 million, the FCS a few hundred thousand, Division II scholarships and very little NIL, and Division III nothing. The collective adds more, by booster enthusiasm.
 - You spend it on NIL offers to recruits and on keeping your own players. Every player has a value from his ratings and position, and an underpaid starter is likelier to enter the portal.
-- Facilities belong to the athletic department in college: they're set by tier and tradition and improve on their own, so your money goes to players.
+- Facilities belong to the athletic department in college: they're set by level and tradition and improve on their own, so your money goes to players.
 
 ### The transfer portal
 
 - One window a year, after the postseason, as the real January window works (January 2 to 16 in 2026).
-- Players enter for playing time, pay, or a coaching change (yours or a computer program's).
+- Players enter for playing time, pay, or a coaching change (yours or a computer program's), and players move up and down levels.
 - You see the portal's players, by position and stars, and pursue them like recruits, with NIL offers. Computer programs take the rest on paper.
 - Your own players in the portal can be kept with a better offer, if you have the money.
+
+### Renaming schools
+
+- Any school (high school or college), conference or bowl can be renamed, from a names screen with a text field for each, grouped by level and conference, with a search.
+- The names can be copied out as a list and loaded back in, to share or to move to another device.
+- Names you type are yours and stay on your device and in your saves. The game itself ships only made-up names.
 
 ### Screens
 
 - The season screen, as now, plus your ranking, conference standings and the recruiting board.
-- The recruiting board, the weekly recruiting report, the top 25, the bowl list and both playoff brackets, signing day, the portal, contract offers and counteroffers.
-- Every new screen moves VoiceOver to its heading, choices are buttons, and changes are announced once, briefly.
+- The recruiting board, the weekly recruiting report, the top 25s, the bowl list and the playoff brackets, signing day, the portal, contract offers and counteroffers, and the names screen.
+- Every new screen moves VoiceOver to its heading, choices are buttons, and changes are announced once, briefly. Long lists (a conference, a top 25, the portal) are grouped under headings so they can be skipped through.
 
 ## The world
 
