@@ -82,7 +82,7 @@ function genColWorld(seed, year) {
         s.off = s.coach.off_style; s.def = s.coach.def_style;
         s.bon = { o: COL_BON.o + Math.round(g.n(0, 1.2) * 10) / 10, d: COL_BON.d + Math.round(g.n(0, 1.2) * 10) / 10 };
         s.classes = {};
-        for (let y = year - 3; y <= year; y++) s.classes[y] = { n: Math.round(CLASS_INFO[cls].roster / 4), lv: level };
+        for (let y = year - 4; y <= year; y++) s.classes[y] = { n: Math.round(CLASS_INFO[cls].roster / 5), lv: level };
         s.rating = colRating(s, year);
         schools[id] = s;
         if (conf) conf.ids.push(id);
@@ -91,9 +91,9 @@ function genColWorld(seed, year) {
   });
   return { schools, confs };
 }
-// A program's quick-sim ratings from its last four classes and its coach
+// A program's quick-sim ratings from its last five classes and its coach
 function colRating(s, year) {
-  const lvs = [0, 1, 2, 3].map(k => (s.classes[year - k] || { lv: s.level }).lv), lv = avg(lvs), dev = ((s.coach.dev || 50) - 50) * .03;
+  const lvs = [0, 1, 2, 3, 4].map(k => (s.classes[year - k] || { lv: s.level }).lv), lv = avg(lvs), dev = ((s.coach.dev || 50) - 50) * .03;
   return { off: Math.round((lv + s.bon.o + dev) * 10) / 10, def: Math.round((lv + s.bon.d + dev) * 10) / 10, c: Math.round((s.coach.off + s.coach.def) / 2) };
 }
 const confOf = id => (SEASON.confs || []).find(c => c.id === SEASON.schools[id].conf) || null;
@@ -365,7 +365,7 @@ function newColSeason(seed, year, prev) {
   const se = { v: 1, lvl: "col", seed: hashSeed(`${seed}:${year}:col`), world: seed, year, year0: prev ? prev.year0 : year, myId: prev ? prev.myId : null,
     schools: w.schools, confs: w.confs, weeks: null, week: 1, phase: "regular", camp: 0, pre: PRESEASON_WEEKS, post: null, champion: null,
     rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {}, plan: newPlan(), practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {},
-    history: prev ? prev.history : [], summer: newSummer(), halls: null, cls: null,
+    history: prev ? prev.history : [], summer: newSummer(), halls: null, cls: null, fiveYears: true,
     // "Your district" in college is just your program: the loops over it practice and heal your team
     district: 1, districts: [{ n: 1, ids: prev && prev.myId ? [prev.myId] : [] }] };
   se.weeks = makeColSchedule(se, g);

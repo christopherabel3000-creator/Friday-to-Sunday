@@ -63,7 +63,7 @@ const UNITS = {
 // About 4 points a season in a unit's main skills on a balanced week, for a player with room to grow
 // (tests/season.js checks a season's growth)
 const GROW_RATE = .3;
-const YEAR_GROW = { 9: 1.15, 10: 1.08, 11: 1, 12: .9 };
+const YEAR_GROW = { 9: 1.15, 10: 1.08, 11: 1, 12: .9, 13: .85 };
 const ethMul = p => .6 + .8 * (p.eth || 50) / 100;
 // The coach's Development rating: 1 at a typical small-school coach's 42
 const devMul = c => clamp(1 + (((c && c.dev) || 42) - 42) * .012, .6, 1.5);

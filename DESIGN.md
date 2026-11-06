@@ -464,7 +464,7 @@ In this milestone:
 - The college world: about 670 programs in five levels and about 60 conferences, each program with tradition, boosters and facilities.
 - College rules, as the NCAA plays them in 2026, and college overtime.
 - A college season: fall camp, 12 games, conference title games, a weekly top 25, bowls and the College Football Playoff, and playoffs for the FCS, Division II and Division III.
-- College players: class years and redshirts, rosters of up to 105, early departures for the pros.
+- College players: five class years, rosters of up to 105, early departures for the pros.
 - A college reputation, college job markets, contracts, salaries, buyouts and counteroffers.
 - Recruiting high school prospects, from your old state and beyond, with a new coach rating, Recruiting.
 - Revenue sharing and NIL, with the boosters as the collective.
@@ -478,7 +478,7 @@ Build steps, each one playable and tested before the next:
 
 1. **Done:** college rules and an exhibition college game between two generated programs, with college level of play checked.
 2. **Done:** the college world and its season: every level and conference, schedules, the quick sim refit, rankings, title games, bowls and all four playoffs, with speed and save size measured. Milestone 3b's colleges move into it. (A test career can start at a college.)
-3. **Done:** college players: class years, redshirts, early departures, spring practice, and programs on paper with recruiting classes.
+3. **Done:** college players: class years, early departures, spring practice, and programs on paper with recruiting classes.
 4. **Done:** the college job: the college reputation, college jobs in the market, contracts, salaries, buyouts, counteroffers, expectations, grades, job security, and college coaches' careers.
 5. **Done:** recruiting: the prospects, the Recruiting rating and perk, your recruiting board, visits, commitments and signing day.
 6. **Done:** revenue sharing, NIL and the transfer portal.
@@ -538,9 +538,9 @@ Checked against current sources in November 2026, and to be checked against the 
 ### College players
 
 - Ratings stay on the one scale. Typical starters: Division III in the 40s and 50s, Division II in the 50s, the FCS in the 50s and 60s, the rest of FBS in the 60s, and the power conferences in the 60s to 80s, with a few stars higher. Your high school signees fit right in.
-- Class years: freshman to senior, plus a redshirt. A freshman or sophomore outside the two-deep who plays in four games or fewer keeps the year, once, so he has five years to play four seasons. (Eligibility rules were under review in 2026.)
+- Class years: every player has five years of eligibility, no more and no less: freshman, sophomore, junior, senior and fifth-year senior. No redshirts and no exceptions. (Decided Nov 2026, to keep it simple.) Programs on paper bring in classes of about a fifth of a roster, and their ratings come from their last five classes.
 - Rosters of up to 105 at every level that opted into the 2025 House settlement, which replaced the old 85-scholarship limit with a 105-player roster limit. Smaller levels carry smaller rosters (about 90 to 100 in Division II and III). Nobody plays both ways, so fatigue matters less and depth matters more.
-- Leaving: seniors run out of eligibility, players transfer, and the best juniors and redshirt sophomores may leave early for the pros, more likely the higher they're rated.
+- Leaving: seniors run out of eligibility, players transfer, and the best juniors and seniors may leave early for the pros, more likely the higher they're rated.
 - Practice works as in high school, with the same plan and units. Spring practice is four weeks of practice in the offseason, so a new coach can install his schemes before fall camp.
 - Your former players: the players you sent to college in Milestone 3b are kept with their programs, so they're on the roster when you take over there, or play against you.
 
@@ -604,12 +604,12 @@ Checked against current sources in November 2026, and to be checked against the 
 
 ### How it's built (Milestone 4)
 
-- Files: rules.js has the college rules (the `col` profile), and engine.js and sim.js the college clock, kicks, tries and overtime. cworld.js is the college world and its season (levels, conferences, schedules, quick sims, rankings, title games, bowls and the four playoffs), cyear.js the college year (redshirts, early departures, spring practice, classes on paper, every program a year on), cjobs.js the college job (reputation, contracts, buyouts, counteroffers, moving between the two worlds), crecruit.js recruiting (prospects, stars, the board, the staff, visits, NIL offers, commitments and signing day), cportal.js paying players and the transfer portal, and names.js the names you choose. The screens are ui_college.js (the season, standings, the top 25, the postseason, the offseason), ui_board.js (the recruiting board, a prospect, finding prospects, the portal) and ui_names.js (the names screen).
+- Files: rules.js has the college rules (the `col` profile), and engine.js and sim.js the college clock, kicks, tries and overtime. cworld.js is the college world and its season (levels, conferences, schedules, quick sims, rankings, title games, bowls and the four playoffs), cyear.js the college year (five years of eligibility, early departures, spring practice, classes on paper, every program a year on), cjobs.js the college job (reputation, contracts, buyouts, counteroffers, moving between the two worlds), crecruit.js recruiting (prospects, stars, the board, the staff, visits, NIL offers, commitments and signing day), cportal.js paying players and the transfer portal, and names.js the names you choose. The screens are ui_college.js (the season, standings, the top 25, the postseason, the offseason), ui_board.js (the recruiting board, a prospect, finding prospects, the portal) and ui_names.js (the names screen).
 - Two worlds: SEASON is the world you coach in and OTHER the other one (the college world while you coach high school, the state while you coach college). The other world's season is played on paper when yours ends and moves on a year with you. Taking a job in the other world swaps them when the next season starts.
 - Your program is kept in full; every other program is a summary, rebuilt from its seed and classes only when you play it or open it. Your recruited class (and the players you bring in from the portal) replace the class rolled on paper for your program.
 - The state's seniors are noted as each school is rebuilt for the new year, so the recruiting board can draw on them without rebuilding the state again.
 - Measured on a desktop computer: a new year in college takes about 2.6 seconds (most of it the high school state moving on), and a save mid-career is about 1.4 MB as text, about 230 KB compressed in a save code.
-- Saves from version 11 get Recruiting for your coach; a season under way gets its recruiting board when it's next opened.
+- Saves from version 12 move a player who had used his redshirt year up a class, and shrink the classes on paper to a fifth of a roster. Saves from version 11 get Recruiting for your coach; a season under way gets its recruiting board when it's next opened.
 - Still to check through play: how many seasons a winning coach takes to reach a power conference (the aim is 12 to 18).
 
 ## The world

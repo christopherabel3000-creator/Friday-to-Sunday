@@ -46,18 +46,18 @@ const askAt = (p, L) => { const x = p.ask * LEVEL_PAY[L]; return x < 2500 ? 0 : 
 const myAsk = p => askAt(p, REC_LV[mySchool().cls]);
 
 /* ---------- The class ---------- */
-// Spots to fill: the program's roster size less the players who aren't seniors, with five left for
+// Spots to fill: the program's roster size less the players who aren't in their fifth year, with five left for
 // the transfer portal (early departures and cuts make more room), from 12 to 30
-const classSpots = s => clamp((CLASS_INFO[s.cls] || CLASS_INFO.P4).roster - 5 - s.players.filter(p => p.yr < 12).length, 12, 30);
+const classSpots = s => clamp((CLASS_INFO[s.cls] || CLASS_INFO.P4).roster - 5 - s.players.filter(p => !lastYearNow(p)).length, 12, 30);
 // A full roster's mix of positions (for 77 scholarship players; the rest are walk-ons)
 const POS_MIX = { QB: 4, RB: 5, WR: 9, TE: 5, OL: 16, DL: 12, LB: 9, CB: 8, S: 6, K: 2, P: 1 };
 const POS_MIX_SUM = 77;
-// What the class needs at each position: the gaps the seniors leave against a full roster's mix,
+// What the class needs at each position: the gaps the fifth-year seniors leave against a full roster's mix,
 // shared out over the spots. Returns { pos: n }.
 function classNeeds(s, spots) {
   const roster = (CLASS_INFO[s.cls] || CLASS_INFO.P4).roster, gap = {}, out = {};
   for (const pos in POS_MIX) {
-    const back = s.players.filter(p => p.pos === pos && p.yr < 12).length;
+    const back = s.players.filter(p => p.pos === pos && !lastYearNow(p)).length;
     gap[pos] = Math.max(0, POS_MIX[pos] * roster / POS_MIX_SUM - back) + POS_MIX[pos] / POS_MIX_SUM;
   }
   const tot = Object.values(gap).reduce((a, b) => a + b, 0) || 1;
@@ -181,7 +181,7 @@ function appealOf(p, s, o) {
 // Playing time at your program: a chance to start soon if few returning players at his position are
 // as good as he is, buried behind a crowd if many are
 function playingTime(s, p) {
-  const st = STARTERS[p.pos] || 1, ahead = s.players.filter(q => q.pos === p.pos && q.yr < 12 && ovr(q, q.pos) >= p.o - 3).length;
+  const st = STARTERS[p.pos] || 1, ahead = s.players.filter(q => q.pos === p.pos && !lastYearNow(q) && ovr(q, q.pos) >= p.o - 3).length;
   return ahead < st ? 10 : ahead < 2 * st ? 4 : -4 - Math.min(6, ahead - 2 * st);
 }
 function myAppeal(p, s, rank) {
@@ -476,7 +476,7 @@ function recWeek(n) {
 // After the regular season. Committed prospects sign where they're committed, the rest of your board
 // with the school he likes best (you, if you have a spot), and walk-ons fill any spots left. The
 // prospects who sign elsewhere go to those programs for real.
-const asFreshman = (p, year) => Object.assign(clone(p), { yr: 9, from: year, rs: false, inj: null, off: undefined, offT: undefined, sign: undefined, tc: undefined, num: undefined });
+const asFreshman = (p, year) => Object.assign(clone(p), { yr: 9, from: year, inj: null, off: undefined, offT: undefined, sign: undefined, tc: undefined, num: undefined });
 function prospectPlayer(p) {
   if (p.hs) {
     const H = hsWorld(), sum = H && H.schools[p.hs];

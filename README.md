@@ -10,7 +10,7 @@ Milestones 1 to 4 are built (see [DESIGN.md](DESIGN.md)): create your coach, tak
 
 - College: about 670 made-up programs in five levels (the power conferences, the rest of FBS, the FCS, Division II and Division III) and about 60 conferences, each with tradition, boosters and facilities. A college season is fall camp, 12 games, conference title games, a weekly top 25 in each division, bowls, the 12-team College Football Playoff, and playoffs for the FCS, Division II and Division III. An exhibition can be a college game.
 - College rules as the NCAA plays them in 2026: 15-minute quarters, the two-minute timeout, the clock stopping for first downs only late in each half, kickoffs from the 35 with touchbacks at the 25, no kicking tees, missed field goals back to the line of scrimmage, tries the defense can return, and college overtime.
-- College players: freshman to senior and redshirts, rosters of up to 105 with no two-way starters, early departures for the pros, and four weeks of spring practice. Every other program is kept on paper with its recruiting classes.
+- College players: five years for every player (freshman to fifth-year senior, no redshirts), rosters of up to 105 with no two-way starters, early departures for the pros, and four weeks of spring practice. Every other program is kept on paper with its recruiting classes.
 - The college job: offers from Division III and Division II at a high school reputation of 80, a separate college reputation, contracts with salaries in real dollars, years and buyouts, counteroffers, and jobs in both worlds on each market. You can go back to high school.
 - Recruiting: a board of up to 30 prospects from your old state (including kids you coached and coached against) and from out of state, rated in stars, with priorities, visits at home games, NIL offers, commitments and flips, a weekly report with only what changed, and signing day. Your staff can fill the board, handle visits and make NIL offers. A new coach rating, Recruiting, and a Recruiter perk.
 - Money for players: revenue sharing plus the booster collective, about $12 million to $16 million a year at a power program and nothing in Division III. Every player has a fair pay, and recruits are paid what you offered.
@@ -102,7 +102,7 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `recruit.js`: the colleges, recruit ratings, offers, signing day and its rewards
 - `names.js`: the names you choose for schools, conferences and bowls, and the list to copy out and load
 - `cworld.js`: the college world and its season: levels, conferences, schedules, quick sims, rankings, title games, bowls and the playoffs
-- `cyear.js`: the college year: redshirts, early departures, spring practice, classes on paper and every program a year on
+- `cyear.js`: the college year: five years of eligibility, early departures, spring practice, classes on paper and every program a year on
 - `cjobs.js`: the college job: the college reputation, contracts, buyouts, counteroffers, and moving between high school and college
 - `crecruit.js`: recruiting for your college program: prospects, stars, the board, your staff, visits, NIL offers, commitments and signing day
 - `cportal.js`: money for players, what each player is worth, your players' pay, and the transfer portal

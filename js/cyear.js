@@ -1,34 +1,26 @@
-// Friday to Sunday: the college year (Milestone 4). Redshirts, seniors moving on, juniors leaving
-// early for the pros, spring practice, recruiting classes, and every program a year on: yours in
+// Friday to Sunday: the college year (Milestone 4). Five years for every player, fifth-year seniors
+// moving on, juniors and seniors leaving early for the pros, spring practice, recruiting classes, and every program a year on: yours in
 // full, the rest on paper.
 "use strict";
 
 /* ---------- Your players' year ---------- */
-// A player who played in 4 games or fewer keeps the year once in his career: a redshirt (p.rs). He
-// stays in the same class and still grows.
-const REDSHIRT_GAMES = 4;
-const gamesPlayed = p => ((SEASON.stats || {})[p.id] || {}).g || 0;
-// (only freshmen and sophomores outside the two-deep: the box score counts a game only when a
-// player shows up in it, so a backup lineman who played every week might show none)
-const inTwoDeep = p => { const s = SEASON && SEASON.myId && SEASON.schools[SEASON.myId], d = s && s.depth && s.depth[p.pos]; return !!d && d.slice(0, 2 * (STARTERS[p.pos] || 1)).includes(p.id); };
-const redshirtsNow = p => !p.rs && (p.yr || 9) <= 10 && gamesPlayed(p) <= REDSHIRT_GAMES && !inTwoDeep(p);
-// The best juniors (and redshirt sophomores, in their third year) may leave early for the pros: none
-// under 74 at their position, about half at 80, nearly all from 86
+// Every college player has five years: freshman, sophomore, junior, senior and fifth-year senior, no
+// redshirts and no exceptions. The best juniors and seniors may leave early for the pros: none under
+// 74 at their position, about half at 80, nearly all from 86.
+const lastYearNow = p => p.yr >= 13;
 function leavesEarly(p, rng) {
-  const third = p.yr === 11 || (p.yr === 10 && p.rs);
-  if (!third && p.yr !== 12) return false;
+  if (p.yr !== 11 && p.yr !== 12) return false;
   const o = ovr(p, p.pos), chance = clamp((o - 74) / 12, 0, .9);
   return chance > 0 && rng() < chance;
 }
 // One of your players' year, from the end of the season to the next: "grad", "pros", "left" or ""
 function colPlayerYear(s, p, year) {
-  const rng = playerRng(s, p, year), rs = redshirtsNow(p);
-  if (p.yr >= 12 && !rs) return "grad";
+  const rng = playerRng(s, p, year);
+  if (lastYearNow(p)) return "grad";
   if (leavesEarly(p, rng)) return "pros";
   if (quitsAfter(p, rng)) return "left";
   summerGrow(p, s.coach, rng, 1);
-  if (rs) p.rs = true; else p.yr++;
-  if (rs) p.rsNow = year;
+  p.yr++;
   return "";
 }
 // Spring practice: four weeks with your practice plan (opponent prep goes into install, as in camp),
@@ -50,11 +42,11 @@ function cutToLimit(s) {
   s.players = s.players.filter(p => !cands.includes(p));
   return cands;
 }
-// Your program a year on: spring practice, then seniors moving on, early departures, redshirts and
+// Your program a year on: spring practice, then fifth-year seniors moving on, early departures and
 // summer growth, then the new class (with any of your old high school players who signed here).
 // Returns { grads, pros, left, rs, fresh, joined, cut, grew, spring }.
 function colAdvanceMine(s, year, plan) {
-  const rep = { grads: [], pros: [], left: [], rs: [], fresh: [], joined: [], cut: [], grew: [] }, before = {};
+  const rep = { grads: [], pros: [], left: [], fresh: [], joined: [], cut: [], grew: [] }, before = {};
   // The transfer portal closes first (cportal.js): the players who left are gone before spring practice
   const xfer = portalClose(s);
   rep.xout = xfer.out; rep.xkept = xfer.kept; rep.xin = xfer.in; rep.xmissed = xfer.missed;
@@ -65,7 +57,7 @@ function colAdvanceMine(s, year, plan) {
     if (out === "grad") rep.grads.push(p);
     if (out === "pros") rep.pros.push(p);
     if (out === "left") rep.left.push(p);
-    if (!out) { p.inj = null; delete p.en; delete p.rest; if (p.rsNow === year) rep.rs.push(p); }
+    if (!out) { p.inj = null; delete p.en; delete p.rest; }
     return !out;
   });
   rep.grew = s.players.map(p => [p.id, before[p.id], ovr(p, p.pos)]).filter(x => x[2] > x[1]).sort((a, b) => (b[2] - b[1]) - (a[2] - a[1]));
@@ -93,7 +85,7 @@ function sendToCollege(p, cid, year) {
   const W = colWorld(), c = W && W.schools[cid];
   if (!c) return;
   const q = clone(p);
-  Object.assign(q, { id: `${p.id}c`, yr: 9, from: year + 1, rs: false, inj: null, off: undefined, offT: undefined, sign: undefined, tc: undefined, gr: p.gr, hsFrom: p.hsFrom || null });
+  Object.assign(q, { id: `${p.id}c`, yr: 9, from: year + 1, inj: null, off: undefined, offT: undefined, sign: undefined, tc: undefined, gr: p.gr, hsFrom: p.hsFrom || null });
   delete q.cs; delete q.en; delete q.rest; delete q.num;
   (c.joined = c.joined || []).push(q);
   c.joined = c.joined.filter(x => x.from > year - 5);
@@ -101,7 +93,7 @@ function sendToCollege(p, cid, year) {
 const joinedFor = (s, year) => (s.joined || []).filter(p => p.from === year).map(p => clone(p));
 
 /* ---------- Programs on paper ---------- */
-// A recruiting class on paper: about a quarter of the roster, at a level from the program's level,
+// A recruiting class on paper: about a fifth of the roster, at a level from the program's level,
 // tradition, last season's ranking and its coach. (Your own class is recruited for real from step 5;
 // until then it's rolled the same way.)
 function colClassOnPaper(s, year, rank) {
@@ -109,7 +101,7 @@ function colClassOnPaper(s, year, rank) {
   const rk = rank <= 10 ? 1.5 : rank <= 25 ? .8 : rank <= 60 ? 0 : -.5;
   const coach = (((s.coach.rct != null ? s.coach.rct : s.coach.pbd) || 45) - 50) * .04;
   const lv = Math.round((CLASS_LEVEL[cls] + (s.trad - 50) * .06 + rk + coach + g.n(0, 1.8)) * 10) / 10;
-  return { n: clamp(Math.round(CLASS_INFO[cls].roster / 4 + g.n(0, 2)), 15, 32), lv };
+  return { n: clamp(Math.round(CLASS_INFO[cls].roster / 5 + g.n(0, 2)), 12, 28), lv };
 }
 
 /* ---------- The college world, a year on ---------- */
@@ -166,6 +158,6 @@ function colYearReport(rep, year) {
   return { col: true, from: year, grads: best(rep.grads).map(who), pros: best(rep.pros).map(who), left: best(rep.left).map(who), cut: best(rep.cut).map(who),
     xout: best(rep.xout || []).map(p => Object.assign(who(p), { to: p.xferTo ? SEASON.schools[p.xferTo].town : "" })), xin: (rep.xin || []).map(p => p.id), xkept: (rep.xkept || []).map(p => p.id),
     xmissed: (rep.xmissed || []).map(q => `${q.first} ${q.last}`),
-    rs: rep.rs.map(p => p.id), fresh: rep.fresh.map(p => p.id), joined: rep.joined.map(p => p.id), grew: rep.grew.slice(0, 10), went: 0, offers: [],
+    fresh: rep.fresh.map(p => p.id), joined: rep.joined.map(p => p.id), grew: rep.grew.slice(0, 10), went: 0, offers: [],
     spring: rep.spring ? { mastery: rep.spring.mastery.slice(0, 8), n: Object.keys(rep.spring.grew).length } : null };
 }

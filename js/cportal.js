@@ -64,7 +64,7 @@ function startersOf(s) {
 function portalEntries(s) {
   const st = startersOf(s), out = [], d3 = !REC_LV[s.cls], k = payScale(s);
   s.players.forEach(p => {
-    if (p.yr >= 12 && !redshirtsNow(p)) return;
+    if (lastYearNow(p)) return;
     const g = seededRandom(hashSeed(`${p.id}:${SEASON.year}:portal`)), v = fairPay(p, s, k), o = ovr(p, p.pos), start = st.has(p.id);
     const best = Math.max(...s.players.filter(q => q.pos === p.pos && st.has(q.id)).map(q => ovr(q, q.pos)), 0);
     let why = "", ch = .02;
@@ -80,7 +80,7 @@ function portalEntries(s) {
 // staying, the class you signed, your players you keep, and the portal players you're after)
 function portalMoney(P) {
   const s = mySchool(), out = new Set(P.out.filter(x => !x.keep).map(x => x.id));
-  const stay = s.players.filter(p => !(p.yr >= 12 && !redshirtsNow(p)) && !out.has(p.id));
+  const stay = s.players.filter(p => !lastYearNow(p) && !out.has(p.id));
   const raises = P.out.filter(x => x.keep).reduce((n, x) => n + Math.max(0, x.ask - payOf(x.id)), 0);
   const rec = SEASON.rec && SEASON.rec.cls ? payroll(SEASON.rec.cls) : 0;
   const offers = P.pool.reduce((n, q) => n + (q.offer || 0), 0);
@@ -91,7 +91,7 @@ function portalMoney(P) {
 const PORTAL_MAX = 15;
 function portalSpots(P) {
   const s = mySchool(), out = new Set(P.out.filter(x => !x.keep).map(x => x.id));
-  const stay = s.players.filter(p => !(p.yr >= 12 && !redshirtsNow(p)) && !out.has(p.id)).length;
+  const stay = s.players.filter(p => !lastYearNow(p) && !out.has(p.id)).length;
   const signed = SEASON.rec && SEASON.rec.cls ? SEASON.rec.cls.filter(p => !p.walkOn).length : 0, after = P.pool.filter(q => q.offer != null).length;
   return Math.min(PORTAL_MAX - after, COL_ROSTER_MAX - stay - signed - after);
 }
@@ -103,7 +103,7 @@ function portalPool(s) {
   const arch = { lineman: 8, speed: 4, runner: 3, bigath: 3, backer: 3, dback: 4, passer: 1.5, kicker: .4 };
   for (let k = 0; k < PORTAL_N; k++) {
     const fl = clamp(L + g.w({ "-1": 2, 0: 5, 1: 2 }) * 1, 0, 4), from = changed.length && g.f() < .35 ? g.pick(changed) : g.pick(levelIds(REC_LV_ORDER[fl]));
-    const yr = +g.w({ 10: 3, 11: 3, 12: 2 }), lv = Math.round(LEVEL_MEDIAN[REC_LV[SEASON.schools[from].cls]] + 2 + g.n(0, 3));
+    const yr = +g.w({ 10: 3, 11: 3, 12: 3, 13: 2 }), lv = Math.round(LEVEL_MEDIAN[REC_LV[SEASON.schools[from].cls]] + 2 + g.n(0, 3));
     const q = { id: `pt${SEASON.year}${s.id}n${k}`, arch: g.w(arch), yr, lv, last: g.pick(LAST_NAMES), seed: hashSeed(`${SEASON.world}:${SEASON.year}:${s.id}:pt:${k}`), from };
     const p = portalPlayer(q);
     Object.assign(q, { first: p.first, pos: p.pos, o: ovr(p, p.pos), offer: null });
@@ -114,14 +114,14 @@ function portalPool(s) {
 }
 // A portal player in full, the same every time: built as a player of his year (next season's)
 function portalPlayer(q) {
-  const g = dice(q.seed), p = genPlayer(g, { id: q.id, arch: q.arch, yr: Math.min(12, q.yr), level: q.lv, last: q.last });
+  const g = dice(q.seed), p = genPlayer(g, { id: q.id, arch: q.arch, yr: Math.min(13, q.yr), level: q.lv, last: q.last });
   if (p.pos2 && posSide(p.pos2) !== posSide(p.pos)) p.pos2 = null;
   if (q.first) p.first = q.first;
-  return Object.assign(p, { from: SEASON.year + 1, rs: q.yr >= 12 ? false : !!q.rs });
+  return Object.assign(p, { from: SEASON.year + 1 });
 }
 // Where he'd fit on your depth chart next season: "start", "compete" or "backup"
 function portalFit(s, q) {
-  const st = STARTERS[q.pos] || 1, better = s.players.filter(p => p.pos === q.pos && !(p.yr >= 12 && !redshirtsNow(p)) && ovr(p, p.pos) >= q.o).length;
+  const st = STARTERS[q.pos] || 1, better = s.players.filter(p => p.pos === q.pos && !lastYearNow(p) && ovr(p, p.pos) >= q.o).length;
   return better < st ? "start" : better < 2 * st ? "compete" : "backup";
 }
 const FIT_WORDS = { start: "He'd start for you", compete: "He'd compete for a starting job", backup: "He'd be a backup" };
@@ -133,7 +133,7 @@ function portalYes(s, q) {
   if (q.ask > 0) a += 15 * Math.min(1.3, (q.offer || 0) / q.ask) - 10;
   return clamp(a / 100, .05, .95);
 }
-const YR_WORD = { 10: "sophomore", 11: "junior", 12: "senior" };
+const YR_WORD = { 10: "sophomore", 11: "junior", 12: "senior", 13: "fifth-year senior" };
 function portalLine(s, q) {
   const t = SEASON.schools[q.from];
   return `${q.first} ${q.last}, ${starText(q.st)}, ${posName(q.pos)}, a ${YR_WORD[q.yr] || "senior"} next season, overall ${q.o}, from ${t.town} (${levelName(t.cls)}). ${FIT_WORDS[portalFit(s, q)]}.${q.ask ? ` Looking for about ${moneyText(q.ask)}.` : ""}${q.offer != null ? ` You're after him${q.offer ? `: ${moneyText(q.offer)}` : ""}.` : ""}`;
@@ -196,7 +196,7 @@ function transferAway(p, s) {
   if (!c) return;
   const q = Object.assign(clone(p), { id: `${p.id}t`, from: SEASON.year + 1, inj: null, pay: undefined });
   delete q.cs; delete q.en; delete q.rest; delete q.num;
-  if (!p.rs && !redshirtsNow(p)) q.yr = Math.min(12, p.yr + 1);
+  q.yr = Math.min(13, p.yr + 1);
   (c.joined = c.joined || []).push(q);
   p.xferTo = cid;
 }

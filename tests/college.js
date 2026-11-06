@@ -213,20 +213,20 @@ function plain(g, extra) {
   const sb = load(), g = sb.__get;
   g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); SEASON = newColSeason(99, 2026); colTakeOver(SEASON.confs[1].ids[2]); APP.screen = "season";`);
   // Redshirts and early departures, unit by unit
-  ok(g(`(() => { const keep = SEASON.stats; SEASON.stats = { a: { g: 3 }, b: { g: 9 } }; const r = [redshirtsNow({ id: "a" }), redshirtsNow({ id: "b" }), redshirtsNow({ id: "a", rs: true })].join(); SEASON.stats = keep; return r; })()`) === "true,false,false", "a player who played in four games or fewer keeps the year, once");
-  ok(g(`yearName({ yr: 10, rs: true })`) === "redshirt sophomore", "a redshirt sophomore");
+  ok(g(`yearName({ yr: 13 })`) === "fifth-year senior" && g(`yearName({ yr: 10 })`) === "sophomore", "five years: freshman to fifth-year senior");
   const early = g(`(() => { const mk = (o, yr, rs) => { const p = genPlayer(dice(5), { id: "z", arch: "runner", yr, level: 60 }); for (const a in p.r) p.r[a] = o; p.rs = rs; return p; }; let n = 0, m = 0, k = 0;
     for (let i = 0; i < 400; i++) { const r = seededRandom(i); if (leavesEarly(mk(95, 11), r)) n++; if (leavesEarly(mk(60, 11), r)) m++; if (leavesEarly(mk(95, 9), r)) k++; } return [n, m, k]; })()`);
-  ok(early[0] > 300 && early[1] === 0 && early[2] === 0, `stars leave early for the pros as juniors (${early[0]} of 400), and nobody rated 60, and no freshmen`);
+  ok(early[0] > 300 && early[1] === 0 && early[2] === 0, `stars leave early for the pros as juniors or seniors (${early[0]} of 400), and nobody rated 60, and no freshmen`);
   ok(g(`colClassOnPaper(SEASON.schools.c0, 2027, 1).lv`) > g(`colClassOnPaper(Object.assign({}, SEASON.schools.c0, { trad: 10 }), 2027, 90).lv`), "a proud, top-ranked program recruits better on paper");
   // A whole year at your program
   g(`simSeason(); act("offseason"); act("carousel"); act("market"); act("stay")`);
-  ok(g("APP.screen") === "offseason" && /Spring practice comes next/.test(g("vCOffseason()")), "the college offseason: who's moving on, who might leave early, redshirts, and spring practice");
-  const seniors = g(`mySchool().players.filter(p => p.yr >= 12 && !redshirtsNow(p)).length`), rsCount = g(`mySchool().players.filter(redshirtsNow).length`);
+  ok(g("APP.screen") === "offseason" && /Spring practice comes next/.test(g("vCOffseason()")), "the college offseason: who's moving on, who might leave early, and spring practice");
+  const seniors = g(`mySchool().players.filter(p => p.yr === 13).length`), backYr = g(`mySchool().players.filter(p => p.yr < 13).map(p => [p.id, p.yr])`);
   g(`act("nextyear")`);
   const R = g("SEASON.yearReport");
   ok(g("SEASON.year") === 2027 && g("SEASON.phase") === "preseason" && g("APP.screen") === "newyear" && R && R.col, "the next season: a new year at the same program, with camp");
-  ok(R.grads.length === seniors && R.rs.length <= rsCount && R.rs.length >= rsCount - R.pros.length - R.left.length, `seniors move on (${seniors}) and redshirts keep the year (${R.rs.length} of ${rsCount}; the rest left)`);
+  ok(R.grads.length === seniors && seniors > 0, `fifth-year seniors move on (${seniors})`);
+  ok(backYr.every(([id, yr]) => { const p = g(`mySchool().players.find(q => q.id === "${id}")`); return !p || p.yr === yr + 1; }), "everyone else moves up a year: no redshirts");
   ok(R.fresh.length >= 15 && g("mySchool().players.length") <= 105, `a new class comes in (${R.fresh.length}) and the roster stays at 105 or fewer (${g("mySchool().players.length")})`);
   ok(R.spring && R.spring.n > 20, `spring practice: players got better (${R.spring && R.spring.n})`);
   ok(/Spring practice/.test(g("vNewYear()")) && /Out of eligibility/.test(g("vNewYear()")), "the new year's report says so");
@@ -378,7 +378,7 @@ function plain(g, extra) {
   ok(g(`SEASON.rec.cls.filter(p => !p.walkOn).every(p => p.pay === (recById(SEASON.rec, p.id) || recById(SEASON.rec, "r" + p.id.replace(/c$/, "")) || { nil: p.pay }).nil)`), "recruits bring their NIL offers as their pay");
   g(`simSeason(); act("offseason"); SEASON.review.fired = false; act("carousel"); act("market"); act("stay")`);
   ok(g("APP.screen") === "offseason" && /The transfer portal/.test(g("vCOffseason()")), "the offseason opens the transfer portal");
-  const P = g(`(() => { const P = colPortal(); return { out: P.out.length, why: P.out.every(x => ["pay", "time", "own"].includes(x.why)), pool: P.pool.length, ask: P.pool.every(q => q.ask >= 0 && q.yr >= 10 && q.yr <= 12) }; })()`);
+  const P = g(`(() => { const P = colPortal(); return { out: P.out.length, why: P.out.every(x => ["pay", "time", "own"].includes(x.why)), pool: P.pool.length, ask: P.pool.every(q => q.ask >= 0 && q.yr >= 10 && q.yr <= 13) }; })()`);
   ok(P.out >= 1 && P.why && P.pool === 60 && P.ask, `${P.out} of your players entered (for pay, playing time or their own reasons), and 60 from other programs are in it`);
   g(`act("portal")`);
   ok(g("APP.screen") === "portal" && /left for next season/.test(g("vPortal()")) && /From other programs/.test(g("vPortal()")), "the portal screen: your money and spots, your players, and everyone else's");

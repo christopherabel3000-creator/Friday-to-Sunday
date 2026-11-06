@@ -70,7 +70,10 @@ function summerAttrs(p) {
 // Growth over the summer, on top of the season's practice: a player matures, lifts and plays on his own.
 // About 2 points at his position for a rising sophomore or junior, a little less for a rising senior,
 // with work ethic and the coach's Development (opts.mul: anything extra). Nobody grows past potential.
-const SUMMER_GROW = { 9: 1.9, 10: 2.1, 11: 1.7, 12: 0 };
+// (only college players grow after their senior year, into a fifth year)
+const SUMMER_GROW = { 9: 1.9, 10: 2.1, 11: 1.7, 12: 1.2, 13: 0 };
+// A player's last year: senior in high school, fifth-year senior in college
+const finalYear = s => isCollege(s && s.cls) ? 13 : 12;
 const unitOfPos = pos => Object.keys(UNITS).find(u => UNITS[u][pos]);
 function summerGrow(p, coach, rng, mul) {
   const amt = (SUMMER_GROW[p.yr] || 0) * ethMul(p) * devMul(coach) * unitGrowMul(coach, unitOfPos(p.pos)) * (mul || 1);
@@ -98,7 +101,7 @@ function seasonOnPaper(p, coach, rng, s) {
 // One player's year, from the end of one season to the next: graduation, leaving, then (on paper) the
 // season's practice, and the summer. Returns "grad", "left" or "" (still on the team).
 function playerYear(s, p, year, onPaper) {
-  if (p.yr >= 12) return "grad";
+  if (p.yr >= finalYear(s)) return "grad";
   const rng = playerRng(s, p, year);
   if (quitsAfter(p, rng)) return "left";
   if (onPaper) seasonOnPaper(p, s.coach, rng, s);
@@ -110,22 +113,22 @@ function playerYear(s, p, year, onPaper) {
 /* ---------- Schools on paper, any year ---------- */
 // A school outside your district as it stands at the start of a year: the roster it started with in
 // the state's first year, or the classes that have come out since, each player taken through his
-// years on paper. Only the last four classes matter, so this takes the same time in any year.
+// years on paper. Only the last four classes matter (five in college), so this takes the same time in any year.
 function rosterAt(sum, year) {
-  const Y0 = SEASON.year0 || SEASON.year || year;
+  const Y0 = SEASON.year0 || SEASON.year || year, span = finalYear(sum) - 8;
   // The first roster comes from the seed, with the tradition the school started with. Four years on,
   // everyone on it has graduated, and the school is all classes that came out since.
   let s;
-  if (year < Y0 + 4) {
+  if (year < Y0 + span) {
     const opts = { id: sum.id, cls: sum.cls, mascot: sum.mascot, town: sum.town, color: [sum.color, sum.colorName, sum.colorFam], trad: sum.trad0 != null ? sum.trad0 : sum.trad };
     s = genSchool(dice(sum.seed), opts);
     Object.assign(s, { seed: sum.seed, district: sum.district, colorFam: sum.colorFam, trad: sum.trad, classes: sum.classes, coach: clone(sum.coach), off: sum.off, def: sum.def,
       fac: sum.fac, bst: sum.bst, sent: sum.sent, joined: sum.joined });
     if (year <= Y0) return s;
   } else s = Object.assign({}, sum, { coach: clone(sum.coach), players: [] });
-  let players = year < Y0 + 4 ? s.players : [];
+  let players = year < Y0 + span ? s.players : [];
   // (a college program also takes in the high school players who signed with it: cyear.js)
-  for (let E = Math.max(Y0 + 1, year - 3); E <= year; E++) players = players.concat(genClass(s, E), joinedFor(s, E));
+  for (let E = Math.max(Y0 + 1, year - span + 1); E <= year; E++) players = players.concat(genClass(s, E), joinedFor(s, E));
   const used = new Set();
   const kept = players.filter(p => {
     for (let y = Math.max(p.from || Y0, Y0); y < year; y++) if (playerYear(s, p, y, true)) return false;

@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 12;
+const BUILD = 13;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -105,6 +105,16 @@ function upgradeSave(s) {
   if (se6 && se6.schools) moneyInit(se6);
   // Version 11: the college world, built from the state's seed for the season's year
   if (se6 && se6.schools && se6.lvl !== "col" && !s.other) s.other = newColSeason(se6.world, se6.year);
+  // Version 13: five years of eligibility for every college player, and no redshirts. A player who
+  // had used his redshirt year moves up a class, and the classes on paper are a fifth of a roster.
+  [s.season, s.other].forEach(w => {
+    if (!w || w.lvl !== "col" || w.fiveYears) return;
+    Object.values(w.schools).forEach(sc => {
+      for (const y in sc.classes || {}) sc.classes[y].n = Math.round(sc.classes[y].n * .8);
+      (sc.players || []).forEach(p => { if (p.rs) p.yr = Math.min(13, p.yr + 1); delete p.rs; delete p.rsNow; });
+    });
+    w.fiveYears = true;
+  });
   s.build = BUILD;
   return s;
 }
@@ -302,7 +312,7 @@ function vHelp() {
       "The college world has about 670 programs in five levels, with made-up names. A season is fall camp, 12 games, conference title games, a weekly top 25, bowls and the 12-team College Football Playoff, and playoffs for the FCS, Division II and Division III.",
       "College rules: 15-minute quarters, a two-minute timeout in each half, the clock stopping for a first down only in the last two minutes of a half, kickoffs from the 35 with touchbacks at the 25 (a fair catch inside the 25 counts as one), no kicking tees, a missed field goal coming back to the line of scrimmage, and tries from the 3 that the defense can return for two points.",
       "College overtime: each team gets the ball at the 25. In the second overtime you must go for two, and from the third on it's one two-point play each.",
-      "Rosters go up to 105, and nobody plays both ways. A freshman or sophomore outside the two-deep who plays in four games or fewer keeps the year: a redshirt. The best juniors may leave early for the pros. Spring practice is four weeks with your practice plan.",
+      "Rosters go up to 105, and nobody plays both ways. Every player has five years: freshman, sophomore, junior, senior and fifth-year senior, with no redshirts. The best juniors and seniors may leave early for the pros. Spring practice is four weeks with your practice plan.",
       "Recruiting: your board holds up to 30 prospects, from your old state and from out of state, rated in stars. Give each one a priority (top, high or normal): your staff's recruiting time each week is shared out by priority. Invite up to three to each home game, and a win in front of them helps. Make NIL offers from the class's money. A prospect commits when one school leads him by enough, and can flip until signing day, after the regular season.",
       "Your staff can fill the board, handle visits and make NIL offers up to a share of the money you set. A new coach rating, Recruiting, and the Recruiter perk make your staff's time count for more.",
       "Money for players: revenue sharing plus the booster collective, from about $12 million to $16 million a year at a power program down to nothing in Division III, which can't pay players. Every player has a fair pay at your program from his ratings and position.",

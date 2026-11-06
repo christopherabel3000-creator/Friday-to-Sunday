@@ -29,9 +29,9 @@ const POS_INFO = {
   K: { name: "kicker", group: "Kickers", skills: ["leg", "kac"], w: { leg: .55, kac: .45 } },
   P: { name: "punter", group: "Punters", skills: ["leg", "kac"], w: { leg: .65, kac: .35 } }
 };
-const YEAR_NAMES = { 9: "freshman", 10: "sophomore", 11: "junior", 12: "senior" };
-// A college player who has used his redshirt year is a "redshirt sophomore" and so on
-const yearName = p => `${p.rs ? "redshirt " : ""}${YEAR_NAMES[p.yr]}`;
+const YEAR_NAMES = { 9: "freshman", 10: "sophomore", 11: "junior", 12: "senior", 13: "fifth-year senior" };
+// College players have five years: freshman to senior, then a fifth-year senior
+const yearName = p => YEAR_NAMES[p.yr] || "senior";
 // A player's overall rating at a position (the weights as arrays, made once, since this runs a lot)
 const POS_W = {};
 for (const pos in POS_INFO) POS_W[pos] = [Object.keys(POS_INFO[pos].w), Object.values(POS_INFO[pos].w)];
@@ -64,7 +64,7 @@ const ARCHETYPES = {
 };
 // Roster recipe for a small school: about 30 players, most of them playing both ways
 const ROSTER_1A = [["passer", 1], ["dual", 1], ["runner", 3], ["speed", 5], ["bigath", 3], ["lineman", 10], ["backer", 3], ["dback", 4], ["kicker", 1]];
-const YEAR_MEAN = { 9: -10, 10: -5, 11: 0, 12: 4 };
+const YEAR_MEAN = { 9: -10, 10: -5, 11: 0, 12: 4, 13: 7 };
 // level: the average ability of a junior at this kind of school
 function genPlayer(g, opts) {
   const yr = opts.yr, arch = ARCHETYPES[opts.arch], t = g.n(opts.level + YEAR_MEAN[yr], 8);
@@ -75,7 +75,8 @@ function genPlayer(g, opts) {
     eth: clamp(Math.round(g.n(52, 15)), 5, 99), sta: clamp(Math.round(g.n(opts.arch === "lineman" ? 46 : 54, 12)), 10, 99), hlt: clamp(Math.round(g.n(62, 14)), 10, 99) };
   setPositions(p);
   // Potential: how good the player can become. The true number stays hidden.
-  const room = { 9: g.n(16, 7), 10: g.n(12, 6), 11: g.n(7, 5), 12: g.n(3, 3) }[yr];
+  // (a college fifth-year senior has a senior's room, from the same dice)
+  const room = { 9: g.n(16, 7), 10: g.n(12, 6), 11: g.n(7, 5), 12: g.n(3, 3) }[Math.min(12, yr)];
   p.pot = clamp(Math.round(ovr(p, p.pos) + Math.max(0, room)), 1, 99);
   // The staff's estimate is right most of the time
   const band = potBand(p.pot), miss = g.f();
@@ -117,7 +118,9 @@ function genRoster(g, schoolId, level, cls) {
   const used = new Set();
   archs.forEach((arch, i) => {
     // The kid who's been groomed to play quarterback is usually an upperclassman
-    const yr = +g.w(arch === "passer" ? { 9: 8, 10: 20, 11: 34, 12: 38 } : { 9: 22, 10: 24, 11: 27, 12: 27 });
+    // (college rosters have five years of players)
+    const yr = isCollege(cls) ? +g.w(arch === "passer" ? { 9: 8, 10: 16, 11: 24, 12: 26, 13: 26 } : { 9: 21, 10: 20, 11: 20, 12: 20, 13: 19 })
+      : +g.w(arch === "passer" ? { 9: 8, 10: 20, 11: 34, 12: 38 } : { 9: 22, 10: 24, 11: 27, 12: 27 });
     const p = genPlayer(g, { id: `${schoolId}p${i + 1}`, arch, yr, level, last: lasts[i] });
     p.num = jerseyFor(g, p.pos, used);
     // College players are specialists: a second position only on the same side of the ball

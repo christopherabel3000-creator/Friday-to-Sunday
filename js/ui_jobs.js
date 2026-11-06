@@ -120,7 +120,7 @@ function vJobLook() {
 }
 function jobLookHtml(id, M, canPursue, isOffer, interest) {
   const sum = SEASON.schools[id], s = seasonSchool(id), c = CAREER.coach;
-  const back = s.players.filter(p => p.yr < 12), team = { id, cls: s.cls, players: back.map(p => p), coach: s.coach };
+  const back = s.players.filter(p => p.yr < finalYear(s)), team = { id, cls: s.cls, players: back.map(p => p), coach: s.coach };
   team.depth = autoDepth(team);
   const ro = sideRating(team, "off"), rd = sideRating(team, "def");
   const peers = Object.values(SEASON.schools).filter(x => x.cls === s.cls), avgR = Math.round(peers.reduce((n, x) => n + (x.rating.off + x.rating.def) / 2, 0) / peers.length);
