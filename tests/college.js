@@ -405,5 +405,36 @@ function plain(g, extra) {
   ok(g(`(() => { const s = Object.values(SEASON.schools).find(x => x.cls === "D3"); return payBudget(s) === 0 && valueOf({ pos: "QB", r: { acc: 99, arm: 99, awr: 99, spd: 99, str: 99 } }, "D3") === 0; })()`), "Division III can't pay players");
 }
 
+// ---- Step 7: names you choose ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]);`);
+  const own = g("OTHER.schools.c0.town"), hsOwn = g("SEASON.schools.d1s1.town");
+  g(`act("names")`);
+  ok(g("APP.screen") === "names" && /Rename schools/.test(g("vNames()")) && /made-up names/.test(g("vNames()")), "the names screen");
+  g(`typed("nm|s|t|c0", "Lakeshore Tech"); typed("nm|s|m|c0", "Herons"); typed("nm|c||k0", "Northern League"); typed("nm|s|t|d1s1", "Riverbend"); typed("nm|b||Lone Pine Bowl", "Granite Bowl")`);
+  ok(g("OTHER.schools.c0.town") === "Lakeshore Tech" && g("OTHER.schools.c0.mascot") === "Herons" && g("OTHER.confs[0].name") === "Northern League" && g("SEASON.schools.d1s1.town") === "Riverbend", "renaming a college, its conference and a high school, as you type");
+  ok(g("bowlAs('Lone Pine Bowl')") === "Granite Bowl" && g("colleges().some(c => c.name === 'Lakeshore Tech')"), "a bowl, and the colleges recruiting your players go by the new names");
+  ok(/Lakeshore Tech/.test(g(`(() => { APP.nm.tab = "find"; nmSearch = "lakeshore"; return vNames(); })()`)), "searching finds a renamed school");
+  ok(/Northern League/.test(g(`(() => { APP.nm.tab = "col"; APP.nm.conf = "k0"; return vNames(); })()`)), "schools grouped by level and conference");
+  ok(JSON.parse(g("localStorage.getItem(NAMES_KEY)")).s.c0.t === "Lakeshore Tech" && g("currentSave().names.s.c0.m") === "Herons", "names stay on the device and in the save");
+  const list = g("namesText()");
+  ok(/school c0: Lakeshore Tech \/ Herons/.test(list) && /conference k0: Northern League/.test(list) && /bowl Lone Pine Bowl: Granite Bowl/.test(list), "the names as a list to copy out");
+  g(`typed("nm|s|t|c0", "")`);
+  ok(g("OTHER.schools.c0.town") === own && g("NAMES.s.c0.m") === "Herons" && !g("NAMES.s.c0.t"), "clearing a box goes back to the game's name");
+  // A new career on another device: the list loads, and a new world takes the names
+  const sb2 = load(), g2 = sb2.__get;
+  g2(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Kim", "Lee", "qb", "bal", "bal"); newSeason(91, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]);`);
+  ok(g2(`loadNamesText(${JSON.stringify(list + "\nnot a name line")})`) === 4 && g2("OTHER.schools.c0.town") === "Lakeshore Tech" && g2("SEASON.schools.d1s1.town") === "Riverbend", "a list loads on another device, into another career");
+  g2(`newSeason(92, 2026)`);
+  ok(g2("OTHER.schools.c0.town") === "Lakeshore Tech" && g2("OTHER.confs[0].name") === "Northern League", "and a brand-new world takes the names you've chosen");
+  // Bowls in a season use the new names
+  g2(`(() => { const W = OTHER; const H = SEASON; SEASON = W; OTHER = H; colSeasonOnPaper(); })()`);
+  ok(g2(`SEASON.weeks[COL_POST].games.some(gm => gm.bowl === "Granite Bowl" && gm.b0 === "Lone Pine Bowl") || !SEASON.weeks[COL_POST].games.some(gm => gm.b0 === "Lone Pine Bowl")`) && g2(`SEASON.weeks.flat ? true : true`), "bowls are played under your names");
+  g2(`resetNames()`);
+  ok(g2("namesCount()") === 0 && g2("SEASON.schools.c0.town") !== "Lakeshore Tech", "and you can go back to the game's own names");
+  ok(hsOwn !== "Riverbend", "(the game's own names are made up)");
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

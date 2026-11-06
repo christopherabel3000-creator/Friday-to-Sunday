@@ -276,7 +276,7 @@ function playoffRound(dv) {
     if (!a || !b) { next.push(a || b); continue; }
     const hi = seedOf(a) < seedOf(b) ? a : b, lo = hi === a ? b : a, neutral = last || B.round >= B.nf;
     const gm = { h: hi, a: lo, conf: false, post: dv, round: B.round, left: B.cur.filter(Boolean).length, neutral, title: last, hs: null, as: null, ot: 0 };
-    if (dv === "FBS" && neutral && !last) gm.bowl = CFP_SITES[(made.length + B.round * 2) % CFP_SITES.length];
+    if (dv === "FBS" && neutral && !last) { gm.b0 = CFP_SITES[(made.length + B.round * 2) % CFP_SITES.length]; gm.bowl = bowlAs(gm.b0); }
     wk.games.push(gm); made.push([w, wk.games.length - 1]); next.push(null);
   }
   B.rounds.push(made); B.pending = next;
@@ -321,7 +321,7 @@ function colPostseason() {
     let a = eligible[k], b = eligible[k + 1];
     // Teams from the same conference don't meet in a bowl: swap with the next pair if they can
     if (SEASON.schools[a].conf && SEASON.schools[a].conf === SEASON.schools[b].conf && eligible[k + 2]) { const c = eligible[k + 2]; eligible[k + 2] = b; b = c; eligible[k + 1] = b; }
-    wk.games.push({ h: a, a: b, conf: false, bowl: `${names[k / 2]} Bowl`, neutral: true, hs: null, as: null, ot: 0 });
+    wk.games.push({ h: a, a: b, conf: false, b0: `${names[k / 2]} Bowl`, bowl: bowlAs(`${names[k / 2]} Bowl`), neutral: true, hs: null, as: null, ot: 0 });
   }
 }
 
@@ -370,6 +370,7 @@ function newColSeason(seed, year, prev) {
     district: 1, districts: [{ n: 1, ids: prev && prev.myId ? [prev.myId] : [] }] };
   se.weeks = makeColSchedule(se, g);
   moneyInit(se);
+  nameWorld(se);
   inWorld(se, colSetExpectations);
   return se;
 }

@@ -283,3 +283,4 @@ tr.me th, tr.me td, li.me { font-weight: 700; }
 .xplist { gap: 12px; }
 .xprow { display: grid; gap: 6px; }
 .xprow .btn.slim { justify-self: start; margin-top: 0; }
+.nmgroup { display: grid; gap: 8px; margin: 14px 0; }

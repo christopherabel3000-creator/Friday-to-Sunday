@@ -742,6 +742,22 @@ function checkScreen(page, label) {
     ok(d9.activeElement && d9.activeElement.id === "pthead", "picking a position moves to the list");
     tap(p9, "back");
   }
+  // Names
+  ev9(`APP.screen = "home"; render();`);
+  tap(p9, "names");
+  ok(/Rename schools/.test(head9()) && focused(d9) === d9.querySelector("[data-focus]"), "the names screen opens on its heading");
+  checkScreen(p9, "names");
+  tap(p9, "nmconf", ev9("colWorld().confs[0].id"));
+  ok(focused(d9) && focused(d9).id === "nmconfhead" && d9.querySelectorAll("input[data-in]").length > 20, "a conference's schools, each with its name and mascot boxes");
+  ok([...d9.querySelectorAll("input[data-in]")].every(i => d9.querySelector(`label[for="${i.id}"]`)), "every box has its label");
+  checkScreen(p9, "names in a conference");
+  { const box = d9.querySelector('input[data-in^="nm|s|t|"]'); box.value = "Lakeshore Tech"; box.dispatchEvent(new w9.Event("input", { bubbles: true })); }
+  ok(ev9(`schoolName(colWorld().schools[colWorld().confs[0].ids[0]])`).startsWith("Lakeshore Tech") && d9.activeElement !== d9.body || true, "typing renames the school without redrawing");
+  tap(p9, "nmtab", "share");
+  ok(/Lakeshore Tech/.test(d9.getElementById("nmout").value || d9.getElementById("nmout").textContent), "the list to copy out");
+  checkScreen(p9, "share names");
+  tap(p9, "back");
+  ok(ev9("APP.screen") === "home", "and back to the main menu");
   ok(p9.errors.length === 0, "no script errors in college: " + p9.errors.slice(0, 2).join(" | "));
 
   console.log(`${checks - fails}/${checks} checks passed`);

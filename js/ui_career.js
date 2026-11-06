@@ -112,7 +112,10 @@ function typed(k, v) {
     if (APP.screen === "newcoach") { (APP.coachDraft = APP.coachDraft || newDraft())[k] = String(v).slice(0, NAME_MAX); }
     else if (APP.screen === "coach" && CAREER) CAREER.coach[k] = cleanName(v);
     save();
-  } else if (k === "importtext") importText = String(v);
+  } else if (k.startsWith("nm|")) nameTyped(k, v);
+  else if (k === "nmsearch") nmSearch = String(v);
+  else if (k === "nmimport") nmImport = String(v);
+  else if (k === "importtext") importText = String(v);
   else if (k === "cloudkey") cloudKeyText = String(v);
 }
 
@@ -300,7 +303,7 @@ function openSaveFile(file) {
 // Loads a save in place of the game on this device, keeping that game as the backup
 function adoptSave(d, cloud) {
   keepBackup();
-  APP = d.app; S = d.game && d.game.teams ? d.game : null; SEASON = d.season || null; CAREER = d.career || null; OTHER = d.other || null;
+  APP = d.app; S = d.game && d.game.teams ? d.game : null; SEASON = d.season || null; CAREER = d.career || null; OTHER = d.other || null; adoptNames(d.names); nameAll();
   if (!APP.ex) newExhibition();
   if (cloud) APP.cloud = cloud;
   relinkCareer();

@@ -93,18 +93,33 @@ function knownSchools(H) {
   });
   return { mine, near };
 }
+// The state's seniors, noted as each school on paper is rebuilt for the new year (years.js:
+// advanceState), so the board doesn't have to rebuild them again. Kept while the page is open.
+let SENIORS = null;
+function noteSeniors(world, year, id, t) {
+  if (!SENIORS || SENIORS.world !== world || SENIORS.year !== year) SENIORS = { world, year, by: {} };
+  SENIORS.by[id] = t.players.filter(p => p.yr === 12).map(p => { const { r, pos } = recruitOf(p); return { id: p.id, first: p.first, last: p.last, pos, r, o: ovr(p, pos) }; });
+}
 function inStatePool(s, year) {
   const H = hsWorld();
   if (!H || H === SEASON) return [];
   const m = LEVEL_MEDIAN[REC_LV[s.cls]], K = knownSchools(H), all = [];
+  // (every school's seniors if they were noted as the year turned; otherwise the schools you know and
+  // a third of the rest, picked by luck, since each roster has to be rebuilt from paper)
+  const noted = SENIORS && SENIORS.world === H.world && SENIORS.year === H.year ? SENIORS.by : null;
+  const pick = seededRandom(hashSeed(`${SEASON.world}:${year}:${s.id}:hsschools`));
   inWorld(H, () => {
     for (const id in H.schools) {
-      const sum = H.schools[id], t = isFull(sum) ? sum : rosterAt(sum, H.year), kn = K.mine.has(id) ? 2 : K.near.has(id) ? 1 : 0;
-      t.players.forEach(p => {
-        if (p.yr !== 12) return;
-        const { r, pos } = recruitOf(p);
-        if (r < m - (kn ? 12 : 10)) return;
-        all.push({ id: `r${p.id}`, first: p.first, last: p.last, pos, r, o: ovr(p, pos), kn, hs: id, pid: p.id, home: schoolName(sum) });
+      const kn = K.mine.has(id) ? 2 : K.near.has(id) ? 1 : 0, sum = H.schools[id];
+      let list = noted && noted[id];
+      if (!list) {
+        if (!noted && !kn && pick() >= 1 / 3) continue;
+        const t = isFull(sum) ? sum : rosterAt(sum, H.year);
+        list = t.players.filter(p => p.yr === 12).map(p => { const { r, pos } = recruitOf(p); return { id: p.id, first: p.first, last: p.last, pos, r, o: ovr(p, pos) }; });
+      }
+      list.forEach(q => {
+        if (q.r < m - (kn ? 12 : 10)) return;
+        all.push({ id: `r${q.id}`, first: q.first, last: q.last, pos: q.pos, r: q.r, o: q.o, kn, hs: id, pid: q.id, home: schoolName(sum) });
       });
     }
   });
@@ -274,7 +289,8 @@ function interestWord(p) {
 }
 // The others after him: "Also after him: Lakeshore State and Central Ivesdale."
 const rivalsText = p => p.rv.length ? `Also after him: ${andList(p.rv.slice(0, 3).map(x => SEASON.schools[x[0]].town))}.` : "Nobody else is after him yet.";
-const homeText = p => p.hs ? `${p.home}, in your old state${p.kn === 2 ? " (your old school)" : p.kn === 1 ? " (your old district)" : ""}` : "from out of state";
+const hsHome = p => { const H = hsWorld(), t = H && H !== SEASON && H.schools[p.hs]; return t ? schoolName(t) : p.home; };
+const homeText = p => p.hs ? `${hsHome(p)}, in your old state${p.kn === 2 ? " (your old school)" : p.kn === 1 ? " (your old district)" : ""}` : "from out of state";
 // "Marcus Hill, 4 stars, running back, Bellmont Greyhounds, in your old state."
 const prospectHead = p => `${p.first} ${p.last}, ${starText(p.st)}, ${posName(p.pos)}, ${homeText(p)}`;
 function boardLine(rec, p) {

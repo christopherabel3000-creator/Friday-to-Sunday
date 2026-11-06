@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1, 2, 3a and 3b are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments. Next is Milestone 4, college (designed below, not built yet).
+Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose. Next is Milestone 5, the pros.
 
 ## The pitch
 
@@ -302,7 +302,7 @@ In this milestone:
 - Five facilities, each one making an existing system better.
 - One-season purchases: team camp, a summer strength coach and a tutor.
 - Coaching clinics, paid from your own career earnings, for XP.
-- A fictional college world of 120 programs in three tiers, which Milestone 4 will use.
+- A fictional college world of 120 programs in three tiers. (Milestone 4 replaced them with the college world.)
 - College interest and offers for your juniors and seniors, and signing day.
 - Rewards for sending players to college: XP, reputation, boosters and turnout.
 - Key moments: sim a game until it's close late, then call it yourself.
@@ -476,13 +476,13 @@ Not in this milestone: assistant coaches on your staff, the coordinator path (Mi
 
 Build steps, each one playable and tested before the next:
 
-1. College rules and an exhibition college game between two generated programs, with college level of play checked.
-2. The college world and its season: every level and conference, schedules, the quick sim refit, rankings, title games, bowls and all four playoffs, with speed and save size measured. Milestone 3b's colleges move into it. (A test career can start at a college.)
-3. College players: class years, redshirts, early departures, spring practice, and programs on paper with recruiting classes.
-4. The college job: the college reputation, college jobs in the market, contracts, salaries, buyouts, counteroffers, expectations, grades, job security, and college coaches' careers.
-5. Recruiting: the prospects, the Recruiting rating and perk, your recruiting board, visits, commitments and signing day.
-6. Revenue sharing, NIL and the transfer portal.
-7. Renaming schools and conferences, with a list of names to save and load.
+1. **Done:** college rules and an exhibition college game between two generated programs, with college level of play checked.
+2. **Done:** the college world and its season: every level and conference, schedules, the quick sim refit, rankings, title games, bowls and all four playoffs, with speed and save size measured. Milestone 3b's colleges move into it. (A test career can start at a college.)
+3. **Done:** college players: class years, redshirts, early departures, spring practice, and programs on paper with recruiting classes.
+4. **Done:** the college job: the college reputation, college jobs in the market, contracts, salaries, buyouts, counteroffers, expectations, grades, job security, and college coaches' careers.
+5. **Done:** recruiting: the prospects, the Recruiting rating and perk, your recruiting board, visits, commitments and signing day.
+6. **Done:** revenue sharing, NIL and the transfer portal.
+7. **Done:** renaming schools, conferences and bowls, with a list of names to copy out and load.
 
 Milestone 4 is done when:
 
@@ -593,12 +593,24 @@ Checked against current sources in November 2026, and to be checked against the 
 - Any school (high school or college), conference or bowl can be renamed, from a names screen with a text field for each, grouped by level and conference, with a search.
 - The names can be copied out as a list and loaded back in, to share or to move to another device.
 - Names you type are yours and stay on your device and in your saves. The game itself ships only made-up names.
+- The list is one name to a line: "school c12: Lakeshore State / Panthers", "conference k3: Heartland Conference", "bowl Lone Pine Bowl: Granite Bowl". School and conference ids follow the shape of the state and the college world, the same in every career, so a list works in any career. Loading a list adds to the names you have, and clearing a box goes back to the game's own name.
+- The names screen is on the main menu: College (by level, then conference), High school (by class, then district), Bowls, Search and Share. Typing renames as you go.
 
 ### Screens
 
 - The season screen, as now, plus your ranking, conference standings and the recruiting board.
 - The recruiting board, the weekly recruiting report, the top 25s, the bowl list and the playoff brackets, signing day, the portal, contract offers and counteroffers, and the names screen.
 - Every new screen moves VoiceOver to its heading, choices are buttons, and changes are announced once, briefly. Long lists (a conference, a top 25, the portal) are grouped under headings so they can be skipped through.
+
+### How it's built (Milestone 4)
+
+- Files: rules.js has the college rules (the `col` profile), and engine.js and sim.js the college clock, kicks, tries and overtime. cworld.js is the college world and its season (levels, conferences, schedules, quick sims, rankings, title games, bowls and the four playoffs), cyear.js the college year (redshirts, early departures, spring practice, classes on paper, every program a year on), cjobs.js the college job (reputation, contracts, buyouts, counteroffers, moving between the two worlds), crecruit.js recruiting (prospects, stars, the board, the staff, visits, NIL offers, commitments and signing day), cportal.js paying players and the transfer portal, and names.js the names you choose. The screens are ui_college.js (the season, standings, the top 25, the postseason, the offseason), ui_board.js (the recruiting board, a prospect, finding prospects, the portal) and ui_names.js (the names screen).
+- Two worlds: SEASON is the world you coach in and OTHER the other one (the college world while you coach high school, the state while you coach college). The other world's season is played on paper when yours ends and moves on a year with you. Taking a job in the other world swaps them when the next season starts.
+- Your program is kept in full; every other program is a summary, rebuilt from its seed and classes only when you play it or open it. Your recruited class (and the players you bring in from the portal) replace the class rolled on paper for your program.
+- The state's seniors are noted as each school is rebuilt for the new year, so the recruiting board can draw on them without rebuilding the state again.
+- Measured on a desktop computer: a new year in college takes about 2.6 seconds (most of it the high school state moving on), and a save mid-career is about 1.4 MB as text, about 230 KB compressed in a save code.
+- Saves from version 11 get Recruiting for your coach; a season under way gets its recruiting board when it's next opened.
+- Still to check through play: how many seasons a winning coach takes to reach a power conference (the aim is 12 to 18).
 
 ## The world
 

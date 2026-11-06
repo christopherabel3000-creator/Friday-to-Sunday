@@ -185,8 +185,9 @@ function newSeason(seed, year) {
   // Every school's boosters and facilities (money.js)
   moneyInit(SEASON);
   setExpectations();
-  // The college world, from the same seed (cworld.js)
+  // The college world, from the same seed (cworld.js), and the names you've chosen (names.js)
   OTHER = newColSeason(seed, year);
+  nameWorld(SEASON);
   return SEASON;
 }
 // The next season in the same state: every school's year ends (years.js), then a new schedule, and

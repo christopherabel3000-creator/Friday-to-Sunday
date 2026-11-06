@@ -49,7 +49,7 @@ const liveSeasonGame = () => liveGame() && !!S.season;
 /* ---------- Saving ---------- */
 // The whole app saves on the device after every tap: the season, and the game in progress
 // other: the world you aren't coaching in (the college world while you coach high school, and the other way)
-const currentSave = () => ({ v: 1, build: BUILD, app: APP, game: S, season: SEASON, career: CAREER, other: OTHER });
+const currentSave = () => ({ v: 1, build: BUILD, app: APP, game: S, season: SEASON, career: CAREER, other: OTHER, names: NAMES });
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(currentSave())); } catch (e) {} }
 function loadSaved() {
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); return s && s.v === 1 && s.app && s.app.ex ? upgradeSave(s) : null; } catch (e) { return null; }
@@ -154,6 +154,11 @@ function vHome() {
       <span class="eyebrow">Saves</span>
       <p class="muted">The game saves on this device as you play. Save to the cloud or keep a save code to play on another device.</p>
       <button class="btn ghost" data-a="saves">Cloud saves and save codes</button>
+    </section>
+    <section class="panel">
+      <span class="eyebrow">Names</span>
+      <p class="muted">Rename any school, conference or bowl.</p>
+      <button class="btn ghost" data-a="names">Rename schools</button>
     </section>`;
 }
 
@@ -291,6 +296,19 @@ function vHelp() {
       "On signing day, after the season, each senior signs with the best tier that offered him. Tier 1 and Tier 2 offers need grades of 60, so study hall and a tutor matter.",
       "Signings earn XP, reputation and booster enthusiasm, and for four years every player you sent on helps your hallway pitches and brings out a few more freshmen."
     ]))}
+    ${sec("College", ul([
+      "Get to a high school reputation of 80 and small colleges call: Division III and Division II head coaching jobs. From there the climb is the FCS, then the rest of FBS, then the power conferences, on a separate college reputation. You can go back to high school any time a school wants you.",
+      "College jobs come with a contract: a salary in real dollars, a number of years, a buyout if you're fired with years left, and sometimes a counteroffer when you're about to leave.",
+      "The college world has about 670 programs in five levels, with made-up names. A season is fall camp, 12 games, conference title games, a weekly top 25, bowls and the 12-team College Football Playoff, and playoffs for the FCS, Division II and Division III.",
+      "College rules: 15-minute quarters, a two-minute timeout in each half, the clock stopping for a first down only in the last two minutes of a half, kickoffs from the 35 with touchbacks at the 25 (a fair catch inside the 25 counts as one), no kicking tees, a missed field goal coming back to the line of scrimmage, and tries from the 3 that the defense can return for two points.",
+      "College overtime: each team gets the ball at the 25. In the second overtime you must go for two, and from the third on it's one two-point play each.",
+      "Rosters go up to 105, and nobody plays both ways. A freshman or sophomore outside the two-deep who plays in four games or fewer keeps the year: a redshirt. The best juniors may leave early for the pros. Spring practice is four weeks with your practice plan.",
+      "Recruiting: your board holds up to 30 prospects, from your old state and from out of state, rated in stars. Give each one a priority (top, high or normal): your staff's recruiting time each week is shared out by priority. Invite up to three to each home game, and a win in front of them helps. Make NIL offers from the class's money. A prospect commits when one school leads him by enough, and can flip until signing day, after the regular season.",
+      "Your staff can fill the board, handle visits and make NIL offers up to a share of the money you set. A new coach rating, Recruiting, and the Recruiter perk make your staff's time count for more.",
+      "Money for players: revenue sharing plus the booster collective, from about $12 million to $16 million a year at a power program down to nothing in Division III, which can't pay players. Every player has a fair pay at your program from his ratings and position.",
+      "The transfer portal opens once a year, after the postseason. Underpaid starters and players stuck behind others may enter. Keep yours by matching what they want, or ask them to stay. Go after other programs' players with NIL offers; they decide when the window closes.",
+      "Any school, conference or bowl can be renamed from the main menu."
+    ]))}
     ${sec("The offseason", ul([
       "After the job market comes the offseason. Your seniors graduate, and the offseason screen shows who's leaving and who's coming back.",
       "Starting the next season, everyone else gets a summer older: players grow over the summer, a few leave the team, and a new class of freshmen comes out. How many depends on your school's size and tradition.",
@@ -396,7 +414,7 @@ const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, p
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason), week: byLevel(vWeek, vCWeek), standings: byLevel(vStandings, vCStandings),
   schedule: byLevel(vSchedule, vCSchedule), bracket: byLevel(vBracket, vCPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason), newyear: vNewYear, halls: vHalls,
-  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal };
+  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal, names: vNames };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -652,6 +670,7 @@ function act(a, ds) {
       else if (APP.screen === "prospect") APP.screen = APP.prospectBack === "rfind" ? "rfind" : "board";
       else if (APP.screen === "rfind") APP.screen = "board";
       else if (APP.screen === "portal") APP.screen = "offseason";
+      else if (APP.screen === "names") APP.screen = SCREENS[APP.namesBack] && APP.namesBack !== "names" ? APP.namesBack : "home";
       else if (APP.screen === "board") APP.screen = ["season", "week"].includes(APP.boardBack) ? APP.boardBack : seasonScreen();
       else APP.screen = seasonScreen();
       APP.reportView = null;
@@ -712,7 +731,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!collegeAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
+    default: if (!collegeAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !namesAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
@@ -746,7 +765,9 @@ function startScreen() {
 }
 function start() {
   const saved = loadSaved();
-  if (saved) { APP = saved.app; S = saved.game && saved.game.teams ? saved.game : null; SEASON = saved.season || null; CAREER = saved.career || null; OTHER = saved.other || null; }
+  loadNames();
+  if (saved) { APP = saved.app; S = saved.game && saved.game.teams ? saved.game : null; SEASON = saved.season || null; CAREER = saved.career || null; OTHER = saved.other || null; adoptNames(saved.names); }
+  nameAll();
   if (!APP || !APP.ex) { APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); }
   relinkCareer();
   APP.screen = startScreen();

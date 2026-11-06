@@ -214,7 +214,7 @@ function advanceState() {
     for (const k in s.classes) if (+k < next - 3) delete s.classes[k];
     s.classes[next] = classParams(s, next);
     if (isFull(s)) { const rep = advanceSchool(s, year); if (id === SEASON.myId) mine = rep; }
-    else s.rating = schoolRating(rosterAt(s, next));
+    else { const t = rosterAt(s, next); s.rating = schoolRating(t); noteSeniors(SEASON.world, next, id, t); }
   }
   return mine;
 }
