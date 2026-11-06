@@ -301,5 +301,64 @@ function plain(g, extra) {
   ok(g("COL_STAGE.P4") > g("COL_STAGE.D3"), "a bigger level is a bigger stage");
 }
 
+// ---- Step 5: recruiting ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]);
+    CAREER.seasons.push({ lvl: "hs", school: schoolName(mySchool()) });
+    (() => { const W = OTHER, ids = Object.keys(W.schools).filter(id => W.schools[id].cls === "FCS"); CAREER.crep = 40; const H = SEASON; SEASON = W; OTHER = H; colTakeOver(ids[2]); startColJob(ids[2]); CAREER.job.sec = 99; APP.screen = "season"; })();`);
+  // The coach's new rating and perk
+  ok(g(`COACH_RATINGS.some(r => r[0] === "rct")`) && g("CAREER.coach.rct") === 40 && g(`PERKS.rcr && PERK_IDS.includes("rcr")`), "a new coach rating, Recruiting (40 to start), and the Recruiter perk");
+  ok(g(`Object.values(SEASON.schools).slice(0, 50).every(s => coachRct(s.coach) >= 15 && coachRct(s.coach) <= 90)`) && g(`genCoach(dice(3), "P4").rct`) === g(`genCoach(dice(3), "P4").rct`), "computer coaches have it too");
+  ok(g(`starsOf(81)`) === 5 && g(`starsOf(70)`) === 4 && g(`starsOf(60)`) === 3 && g(`starsOf(50)`) === 2, "stars from the recruit rating: five at 80, four at 68, three at 56");
+  const rec = g(`(() => { const r = recBoard(); return { spots: r.spots, budget: r.budget, n: r.pool.length, inS: r.pool.filter(p => p.hs).length, kn: r.pool.filter(p => p.kn === 2).length, board: onBoard(r).length, top: onBoard(r).filter(p => p.pr === 2).length, year: r.year }; })()`);
+  ok(rec.year === 2027 && rec.spots >= 12 && rec.spots <= 30, `the class arriving next year has spots to fill (${rec.spots})`);
+  ok(rec.inS > 20 && rec.n - rec.inS === 150 && rec.kn > 0, `prospects from your old state (${rec.inS}, ${rec.kn} from your old school) and from out of state (${rec.n - rec.inS})`);
+  ok(rec.board >= 20 && rec.board <= 30 && rec.top === 6, `your staff fills the board (${rec.board}), the best six at high priority`);
+  ok(rec.budget > 0 && rec.budget === g(`roundMoney(playerMoney(mySchool()) * CLASS_SHARE)`) && g(`playerMoney({ cls: "D3", trad: 90 })`) === 0 && g(`playerMoney({ cls: "P4", trad: 50 })`) >= 12e6, `NIL money for the class in real dollars (${g("moneyText(SEASON.rec.budget)")}), and none in Division III`);
+  ok(g(`JSON.stringify(newRec().pool.map(p => p.id))`) === g(`JSON.stringify(SEASON.rec.pool.map(p => p.id))`), "the same program and year always draw the same prospects");
+  ok(/Recruiting board/.test(g("vCSeason()")) && /committed, \d+ spots/.test(g("vCSeason()")), "the season screen has the class's line and the board");
+  // Priorities, effort, NIL and visits
+  const id = g(`onBoard(SEASON.rec).find(p => p.pr === 1).id`);
+  const e1 = g(`effortOf(SEASON.rec, recById(SEASON.rec, "${id}"))`);
+  g(`act("board"); act("prospect", { v: "${id}" }); act("rpri", { v: "3" })`);
+  ok(g("APP.screen") === "prospect" && g(`recById(SEASON.rec, "${id}").pr`) === 3 && g(`effortOf(SEASON.rec, recById(SEASON.rec, "${id}"))`) > e1, "top priority gets more of your staff's time");
+  ok(/Where he stands/.test(g("vProspect()")) && /Priority/.test(g("vProspect()")), "a prospect's screen: where he stands, and his buttons");
+  const ask = g(`(() => { const p = SEASON.rec.pool.filter(p => p.pr).find(p => myAsk(p) > 0) || SEASON.rec.pool.find(p => myAsk(p) > 0); if (!p.pr) addProspect(SEASON.rec, p.id, 1); return [p.id, myAsk(p)]; })()`);
+  if (ask[1]) {
+    const left = g("nilLeft(SEASON.rec)");
+    ok(g(`setNil(SEASON.rec, "${ask[0]}", ${ask[1]})`) && g("nilLeft(SEASON.rec)") === left - ask[1], "an NIL offer comes out of the class's money");
+    ok(!g(`setNil(SEASON.rec, "${ask[0]}", ${left * 10})`), "and can't go past what's left");
+    g(`setNil(SEASON.rec, "${ask[0]}", 0)`);
+  }
+  g(`act("rvisit")`);
+  const vw = g(`+Object.keys(SEASON.rec.vis).find(w => SEASON.rec.vis[w].includes("${id}"))`);
+  ok(vw >= 1 && g(`myGameIn(${vw}).h === SEASON.myId`) && g(`Object.values(SEASON.rec.vis).every(v => v.length <= 3)`), "visits: up to three prospects at each home game");
+  g(`act("back"); act("rfind"); act("rfstars", { v: "3" })`);
+  ok(g("APP.screen") === "rfind" && g(`findList(SEASON.rec).every(p => p.st === 3 && !p.pr)`), "finding prospects, by stars");
+  g(`act("rfhome")`);
+  ok(g(`findList(SEASON.rec).every(p => p.hs)`), "or from your old state");
+  g(`act("back"); act("rstaff", { v: "fill" })`);
+  ok(g("SEASON.rec.staff.fill") === false && /Only you add/.test(g("vBoard()")), "staff settings: you can fill the board yourself");
+  g(`act("rstaff", { v: "fill" }); act("rstaffnil", { v: "2" })`);
+  ok(g("SEASON.rec.staff.nil") === .5, "and let your staff spend half the class's NIL");
+  // The season: commitments, the weekly report, signing day
+  g(`simSeason(${"13"})`);
+  const R = g(`(() => { const r = SEASON.rec; return { done: r.done, n: r.cls.length, spots: r.spots, signed: r.sum.n, walk: r.sum.walk, log: Object.values(r.log).flat().join(" "), stars: r.cls.filter(p => !p.walkOn).every(p => p.stars >= 2 && p.yr === 9 && p.from === 2027) }; })()`);
+  ok(R.done && R.n === R.spots && R.signed + R.walk === R.spots && R.signed > 0, `signing day after the regular season: ${R.signed} signed and ${R.walk} walk-ons fill the ${R.spots} spots`);
+  ok(R.stars, "signees are freshmen for next season, with their stars");
+  ok(/committed to you/.test(R.log) && /Signing day/.test(R.log) && /Visits:/.test(R.log), "the weekly report: commitments, visits and signing day");
+  g(`APP.weekView = 12; APP.screen = "week"`);
+  ok(/Signing day/.test(g("vCWeek()")), "signing day is in the week's results");
+  ok(/Signed with you/.test(g("vBoard()")), "and the board shows the class");
+  const lost = g(`(() => { const x = SEASON.rec.sum.lost[0]; return x ? (SEASON.schools[x[1]].joined || []).some(q => q.from === 2027) : true; })()`);
+  ok(lost, "prospects who sign elsewhere go to those programs for real");
+  // The year turns: your class joins the team, and a new board opens
+  const ids = g(`SEASON.rec.cls.map(p => p.id)`);
+  g(`simSeason(); act("offseason"); act("carousel"); act("market"); act("stay"); act("nextyear")`);
+  ok(g("SEASON.year") === 2027 && ids.every(x => g(`mySchool().players.some(p => p.id === "${x}") || SEASON.yearReport.cut.length > 0`)), "the recruited class joins the roster as freshmen");
+  ok(g("SEASON.rec && SEASON.rec.year") === 2028 && g("onBoard(SEASON.rec).length") > 10, "and the next class's board opens");
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

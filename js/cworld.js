@@ -395,6 +395,7 @@ function colFinishWeek() {
   colAfterWeek(n);
   colPostXP(n);
   colNews(n);
+  recWeek(n);
   if (SEASON.phase === "over") seasonEndXP(n);
   return n;
 }

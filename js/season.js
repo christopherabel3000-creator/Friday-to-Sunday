@@ -203,6 +203,7 @@ function nextSeason() {
     colSetExpectations();
     hsWorldNextYear();
     if (CAREER.next) switchWorlds();
+    recBoard();
     return rep;
   }
   // The year-end review and the job market come first (jobs.js): if nobody finished the market, you
@@ -239,6 +240,7 @@ function nextSeason() {
   // The college world moves on with you (cyear.js), and if you took a college job, you move there
   colWorldNextYear();
   if (CAREER.next) switchWorlds();
+  recBoard();
   return SEASON.yearReport;
 }
 // You take over a school, and its coach's job, with your coach (career.js) and your schemes. The team

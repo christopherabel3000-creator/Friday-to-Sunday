@@ -172,13 +172,13 @@ function coachCareer(c, s) {
 }
 // A coach's ratings grow about a point a year for his first 15 years
 function growCoach(c) {
-  ROLLED_RATINGS.concat(["pbd"]).forEach(k => { if (c[k] != null) c[k] = Math.min(COACH_RATING_TOP, c[k] + 1); });
+  ROLLED_RATINGS.concat(["pbd", "rct"]).forEach(k => { if (c[k] != null) c[k] = Math.min(COACH_RATING_TOP, c[k] + 1); });
 }
 // A new coach from outside: young, with ratings in the 30s and 40s, and a reputation of 15
 function outsideCoach(s) {
   const g = dice(hashSeed(`${s.seed}:${SEASON.year}:hire`)), c = genCoach(g, s.cls);
   ROLLED_RATINGS.forEach(k => { c[k] = clamp(Math.round(g.n(40, 5)), 30, 49); });
-  delete c.pbd; c.pbd = coachPbd(c);
+  delete c.pbd; c.pbd = coachPbd(c); delete c.rct; c.rct = coachRct(c);
   const span = g.i(30, 40);
   return Object.assign(c, { span, yrs: 0, age: g.i(24, 35), rep: 15, job: newJob() });
 }

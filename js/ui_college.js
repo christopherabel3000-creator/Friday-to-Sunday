@@ -64,6 +64,7 @@ function vCSeason() {
     ${main}
     ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>` : ""}
     ${lastPanel}
+    ${SEASON.phase === "over" ? "" : recPanel()}
     ${s.conf ? `<section class="panel"><h3>${esc(confName(id))}</h3>${confTable(s.conf, Math.min(last, COL_REG), true)}</section>` : ""}
     <section class="panel"><h3>The season</h3>
       <div class="choices"><button class="btn ghost" data-a="standings">Conference standings</button><button class="btn ghost" data-a="top25">Top 25</button></div>
@@ -152,6 +153,7 @@ function vCWeek() {
     ${box ? `<button class="btn ghost" data-a="boxscore">Box score and play-by-play</button>` : ""}
     ${xpLine(n) ? `<p class="banner">${esc(xpLine(n))}</p>` : ""}
     ${news.length ? `<section class="panel"><h3>News</h3>${list(news)}</section>` : ""}
+    ${recWeekPanel(n)}
     ${injuryPanel(n)}
     ${confGames.length ? `<section class="panel"><h3>${esc(confName(me))}</h3>${list(confGames.map(g2 => colScoreText(g2, ranks)))}</section>` : ""}
     ${ranked.length ? `<section class="panel"><h3>Ranked teams</h3>${list(ranked.map(g2 => colScoreText(g2, ranks)))}</section>` : ""}

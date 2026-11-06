@@ -64,7 +64,9 @@ function colAdvanceMine(s, year, plan) {
   });
   rep.grew = s.players.map(p => [p.id, before[p.id], ovr(p, p.pos)]).filter(x => x[2] > x[1]).sort((a, b) => (b[2] - b[1]) - (a[2] - a[1]));
   const used = new Set(s.players.map(p => p.num)), g = dice(hashSeed(`${s.seed}:${year + 1}:numbers`));
-  rep.fresh = genClass(s, year + 1);
+  // The class you recruited (crecruit.js), or for a season without a board, one rolled on paper
+  const rec = SEASON.rec;
+  rep.fresh = rec && rec.year === year + 1 && rec.cls ? rec.cls.map(p => clone(p)) : genClass(s, year + 1);
   rep.joined = joinedFor(s, year + 1);
   rep.fresh.concat(rep.joined).forEach(p => { p.num = jerseyFor(g, p.pos, used); });
   s.players = s.players.concat(rep.fresh, rep.joined);
@@ -118,13 +120,14 @@ function colResultsOf(id) {
 function colNextSeason() {
   const old = SEASON, year = old.year, next = year + 1, ranks = colRanks(COL_LAST), me = old.myId;
   let mine = null;
+  if (me && old.rec && old.rec.year === next && !old.rec.done && isFull(old.schools[me])) colSigningDay(old.rec);
   for (const id in old.schools) {
     const s = old.schools[id], r = colResultsOf(id);
     if (s.trad0 == null) s.trad0 = s.trad;
     s.trad = newTradition(s, r.w, r.l, Math.floor(r.pw), !!r.ch);
     s.classes = s.classes || {};
     for (const k in s.classes) if (+k < next - 4) delete s.classes[k];
-    s.classes[next] = colClassOnPaper(s, next, ranks[id]);
+    s.classes[next] = id === me && old.rec && old.rec.year === next && old.rec.paper ? old.rec.paper : colClassOnPaper(s, next, ranks[id]);
     if (id === me && isFull(s)) mine = colAdvanceMine(s, year, old.plan);
     else s.rating = colRating(s, next);
   }

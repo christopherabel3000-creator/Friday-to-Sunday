@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 11;
+const BUILD = 12;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -96,6 +96,8 @@ function upgradeSave(s) {
   // coach from before you could create one), and the season a summer plan.
   const co = s.career && s.career.coach;
   if (co && co.pbd == null) co.pbd = co.bg ? COACH_START : COACH_LEVEL["1A"];
+  // Version 12: college recruiting. Your coach gets Recruiting, as Program building came.
+  if (co && co.rct == null) co.rct = co.bg ? COACH_START : COACH_LEVEL["1A"];
   if (se6 && se6.schools && !se6.summer) se6.summer = newSummer();
   // Version 9: the whole state, 1A to 6A. A state from before then gets the other five classes.
   if (se6 && se6.schools) { if (!se6.cls) se6.cls = "1A"; addClasses(se6); }
@@ -394,7 +396,7 @@ const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, p
 const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason), week: byLevel(vWeek, vCWeek), standings: byLevel(vStandings, vCStandings),
   schedule: byLevel(vSchedule, vCSchedule), bracket: byLevel(vBracket, vCPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason), newyear: vNewYear, halls: vHalls,
-  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits };
+  review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind };
 function currentView() {
   if (helpOpen) return vHelp;
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
@@ -647,6 +649,9 @@ function act(a, ds) {
       else if (APP.screen === "halls" || APP.screen === "fund") APP.screen = "offseason";
       else if (APP.screen === "recruits") APP.screen = SCREENS[APP.recruitBack] && APP.recruitBack !== "recruits" ? APP.recruitBack : seasonScreen();
       else if (APP.screen === "joblook") APP.screen = seasonScreen();
+      else if (APP.screen === "prospect") APP.screen = APP.prospectBack === "rfind" ? "rfind" : "board";
+      else if (APP.screen === "rfind") APP.screen = "board";
+      else if (APP.screen === "board") APP.screen = ["season", "week"].includes(APP.boardBack) ? APP.boardBack : seasonScreen();
       else APP.screen = seasonScreen();
       APP.reportView = null;
       scrollTop(); break;
@@ -706,7 +711,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!collegeAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
+    default: if (!collegeAct(a, ds) && !boardAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();

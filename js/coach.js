@@ -4,7 +4,7 @@
 /* ---------- Coach ratings ---------- */
 // Every coach is rated 1 to 100. Program building came with more seasons (Milestone 2); Recruiting
 // arrives with college.
-const COACH_RATINGS = [["off", "Offense"], ["def", "Defense"], ["st", "Special teams"], ["dev", "Development"], ["mot", "Motivation"], ["gm", "Game management"], ["sct", "Scouting"], ["pbd", "Program building"]];
+const COACH_RATINGS = [["off", "Offense"], ["def", "Defense"], ["st", "Special teams"], ["dev", "Development"], ["mot", "Motivation"], ["gm", "Game management"], ["sct", "Scouting"], ["pbd", "Program building"], ["rct", "Recruiting"]];
 // Small-school coaches: mostly 30s to 50s, a few better or worse
 // A typical coach at each class: bigger schools hire a little better
 const COACH_LEVEL = { "1A": 42, "2A": 44, "3A": 46, "4A": 48, "5A": 50, "6A": 52, D3: 52, D2: 55, FCS: 58, G5: 61, P4: 65 };
@@ -15,6 +15,7 @@ function genCoach(g, cls) {
   const base = g.n(COACH_LEVEL[cls] || 42, 7), c = { first: g.pick(COACH_FIRST), last: g.pick(LAST_NAMES) };
   ROLLED_RATINGS.forEach(k => { c[k] = clamp(Math.round(base + g.n(0, 8)), 15, 90); });
   c.pbd = coachPbd(c);
+  c.rct = coachRct(c);
   // Small schools lean on the run, and bigger ones throw a little more
   // (college coaches throw about as much as a 4A coach: real college teams still run about half the time)
   const k = Math.min(4, classIndex(cls));
@@ -28,6 +29,13 @@ function coachPbd(c) {
   if (!c) return 42;
   if (c.pbd != null) return c.pbd;
   return clamp(Math.round(42 + ((c.mot || 42) - 42) * .5 + (hashSeed(`${c.first} ${c.last}:pbd`) % 17) - 8), 15, 90);
+}
+
+// Recruiting (for college) for a coach who doesn't have it yet: about his Program building, give or take 8
+function coachRct(c) {
+  if (!c) return 45;
+  if (c.rct != null) return c.rct;
+  return clamp(Math.round(45 + (coachPbd(c) - 45) * .5 + (hashSeed(`${c.first} ${c.last}:rct`) % 17) - 8), 15, 90);
 }
 
 /* ---------- How ratings coach a game ---------- */
@@ -80,6 +88,7 @@ const RATING_EFFECTS = {
   mot: "An edge late in close games and comebacks.",
   gm: "Help on the call sheet. At 45 and up, your staff gives the odds of converting on fourth down as a percentage.",
   pbd: "More freshmen come out, more of your players show up for the summer program, and more of the athletes you pitch say yes.",
+  rct: "College recruiting: how much your staff's time with a prospect counts, and how prospects see you.",
   sct: "Scouting reports and the edge from film study. At 45 and up, a fuller report from the same film time. At 60 and up, your staff sometimes spots a disguised look at the line."
 };
 
@@ -102,9 +111,10 @@ const PERKS = {
   trick: { name: "Trick play artist", cost: 150, desc: "Fake punts, fake field goals and Tackle Eligible work more often." },
   motv: { name: "Motivator", cost: 200, desc: "A bigger edge late in close games and comebacks." },
   inst: { name: "Install expert", cost: 200, desc: "Install time teaches plays 30 percent faster." },
-  rec: { name: "Hallway recruiter", cost: 150, desc: "One more pitch each offseason, and athletes say yes more often." }
+  rec: { name: "Hallway recruiter", cost: 150, desc: "One more pitch each offseason, and athletes say yes more often." },
+  rcr: { name: "Recruiter", cost: 200, desc: "College recruiting: your staff's time with each prospect counts 20 percent more, and prospects start out more interested in you." }
 };
-const PERK_IDS = ["qbw", "linew", "skill", "dbs", "offg", "defm", "blitz", "film", "disg", "trick", "motv", "inst", "rec"];
+const PERK_IDS = ["qbw", "linew", "skill", "dbs", "offg", "defm", "blitz", "film", "disg", "trick", "motv", "inst", "rec", "rcr"];
 const coachHas = (c, k) => !!(c && c.perks && c.perks.includes(k));
 // Growth for one practice unit: the background's (1.3 for a former quarterback's quarterbacks, say),
 // times 1.25 for a perk that covers it
