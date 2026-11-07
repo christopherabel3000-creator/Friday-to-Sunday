@@ -557,6 +557,18 @@ function keyPanel() {
     ${K.scores.length ? `<p class="sechead" role="heading" aria-level="4">Scoring so far</p><ul class="hlist">${K.scores.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p>No scoring so far.</p>"}</section>`;
 }
 
+/* ---------- Shortening a blowout ---------- */
+// The choice of quarter length, under the footer once "Shorten the game" is opened
+let shortenOpen = false;
+function shortenPanel() {
+  if (!shortenOpen || !shortenOK()) { shortenOpen = false; return ""; }
+  const lens = shortenLens();
+  return `<div class="panel shortbox" role="group" aria-label="Shorten the game">
+    <p>Both coaches and the referee can agree to play the rest of the game with shorter quarters. Quarters are ${S.cfg.qLen / 60} minutes now.</p>
+    <div class="clockbtns">${lens.map(l => `<button class="btn ghost" data-a="shortento" data-v="${l}">${l / 60}-minute quarters</button>`).join("")}</div>
+  </div>`;
+}
+
 /* ---------- Box score, play-by-play and the footer ---------- */
 function vExtras() {
   if (!S || !S.teams) return "";
@@ -579,6 +591,7 @@ function vExtras() {
     ${S.season && SEASON && SEASON.practice && SEASON.practice.film && SEASON.practice.week === S.season.week ? `<button class="linkbtn" data-a="scout">Scouting report</button>` : ""}
     ${live ? `<button class="linkbtn ${confirming === "sim" ? "warn" : ""}" data-a="sim">${confirming === "sim" ? "Tap again to sim to the end" : "Sim to the end"}</button>` : ""}
     ${live && !S.season ? `<button class="linkbtn ${confirming === "end" ? "warn" : ""}" data-a="end">${confirming === "end" ? "Tap again to end this game" : "End game"}</button>` : ""}
+    ${live && shortenOK() ? `<button class="linkbtn" data-a="shorten" aria-expanded="${!!shortenOpen}">Shorten the game</button>` : ""}
   </div>`;
-  return box + players + log + foot;
+  return box + players + log + foot + (live ? shortenPanel() : "");
 }

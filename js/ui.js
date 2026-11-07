@@ -339,7 +339,7 @@ function vHelp() {
       "Get to a high school reputation of 80 and small colleges call: Division III and Division II head coaching jobs. From there the climb is the FCS, then the rest of FBS, then the power conferences, on a separate college reputation. You can go back to high school any time a school wants you.",
       "College jobs come with a contract: a salary in real dollars, a number of years, a buyout if you're fired with years left, and sometimes a counteroffer when you're about to leave.",
       "The college world has about 670 programs in five levels, with made-up names. A season is fall camp, 12 games, conference title games, a weekly top 25, bowls and the 12-team College Football Playoff, and playoffs for the FCS, Division II and Division III.",
-      "College rules: 15-minute quarters, a two-minute timeout in each half, the clock stopping for a first down only in the last two minutes of a half, kickoffs from the 35 with touchbacks at the 25 (a fair catch inside the 25 counts as one), no kicking tees, a missed field goal coming back to the line of scrimmage, and tries from the 3 that the defense can return for two points.",
+      "College rules: 15-minute quarters, a two-minute timeout in each half, the clock stopping for a first down only in the last two minutes of a half, kickoffs from the 35 with touchbacks at the 25 (a fair catch inside the 25 counts as one), no kicking tees, a missed field goal coming back to the line of scrimmage, and tries from the 3 that the defense can return for two points. In a blowout (a lead of 28 or more in the second half), Shorten the game lets the coaches and the referee agree to 12, 10 or 8-minute quarters for the rest of the game.",
       "College overtime: each team gets the ball at the 25. In the second overtime you must go for two, and from the third on it's one two-point play each.",
       "Rosters go up to 105, and nobody plays both ways. Every player has five years: freshman, sophomore, junior, senior and fifth-year senior, with no redshirts. The best juniors and seniors may leave early for the pros. Spring practice is four weeks with your practice plan.",
       "Recruiting: your board holds up to 30 prospects, from your old state and from out of state, rated in stars. Give each one a priority (top, high or normal): your staff's recruiting time each week is shared out by priority. Invite up to three to each home game, and a win in front of them helps. Make NIL offers from the class's money. A prospect commits when one school leads him by enough, and can flip until signing day, after the regular season.",
@@ -424,7 +424,8 @@ function vHelp() {
       "A missed field goal is treated like a punt: into the end zone it's a touchback at the 20.",
       `Tries are from the ${100 - Rl.tryTwo}-yard line, so an extra point is a ${xpDistFor(Rl)}-yard kick. Plenty of small schools go for two.`,
       "Pass interference is 15 yards and doesn't give an automatic first down. Only roughing the passer or kicker does.",
-      `A lead of ${Rl.runClock.margin} or more in the second half starts a running clock that keeps going for the rest of the game.`
+      `A lead of ${Rl.runClock.margin} or more in the second half starts a running clock that keeps going for the rest of the game.`,
+      `In the second half, with a lead of ${Rl.shorten.margin} or more either way, Shorten the game at the bottom of the game screen lets the coaches and the referee agree to shorter quarters for the rest of the game. It works in college too, but not in the pros.`
     ]))}
     ${sec("Overtime", ul([
       "There's no clock. Each team gets a series starting first and goal at the 10, and the defense can't score: a turnover just ends the series.",
@@ -789,6 +790,8 @@ function act(a, ds) {
     case "nohuddle": if (inGame && nhAvailable()) { S.noHuddle = !S.noHuddle; if (S.noHuddle) { S.spikeNext = false; S.burnClock = false; } announce(S.noHuddle ? "Going no huddle." : "No huddle cancelled."); } break;
     case "burn": if (inGame && burnAvailable()) { S.burnClock = !S.burnClock; if (S.burnClock) { S.noHuddle = false; S.spikeNext = false; } announce(S.burnClock ? "Running the clock." : "No longer running the clock."); } break;
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
+    case "shorten": if (inGame && shortenOK()) shortenOpen = !shortenOpen; break;
+    case "shortento": if (inGame) { const msg = shortenGame(+ds.v); if (msg) { shortenOpen = false; S.banner = msg; focusNext = { a: "shorten" }; announce(msg); } } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
     default: if (!collegeAct(a, ds) && !proAct(a, ds) && !tradeAct(a, ds) && !draftAct(a, ds) && !faAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !namesAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;

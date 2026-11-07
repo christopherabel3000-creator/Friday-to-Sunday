@@ -41,6 +41,9 @@ const RULES = {
     untimed: "any",
     // A lead of 35 or more in the second half starts a running clock for the rest of the game
     runClock: { margin: 35 },
+    // NFHS 3-1-3: the coaches and the referee can agree to shorten any remaining period. Offered in
+    // the second half with a lead of 28 or more; the lengths a quarter can be cut to.
+    shorten: { margin: 28, lens: [600, 480, 360] },
     // Free kick after a safety, from the 20
     safetyKick: 20,
     // A fair catch can be followed by a free kick at the goal from the spot
@@ -88,6 +91,9 @@ const RULES = {
     onside: { declared: false, expected: .2, surprise: .4 },
     untimed: "def",
     runClock: null,
+    // NCAA 3-2-2-a: any time during the game, the head coaches and the referee can agree to shorten
+    // any remaining period. Offered in the second half with a lead of 28 or more.
+    shorten: { margin: 28, lens: [720, 600, 480] },
     safetyKick: 20,
     // A fair catch can be followed by a free kick at the goal from the spot (new in 2026)
     fck: true,

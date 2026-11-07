@@ -431,6 +431,25 @@ function checkRunClock(r) {
   if (!rc || S.runClock || S.cfg.title || S.quarter < 3 || S.quarter > 4) return;
   if (Math.abs(S.teams[0].score - S.teams[1].score) >= rc.margin) { S.runClock = true; if (r) r.runNote = true; }
 }
+// Shortening a blowout (NCAA 3-2-2-a, NFHS 3-1-3): by agreement of both head coaches and the
+// referee, the rest of the game is played with shorter quarters. Offered from halftime to the end of
+// regulation when one team leads by the level's margin (28) or more, to a coach calling one side; the
+// computer coach agrees. It can be shortened again, never lengthened. The quarter in progress is cut
+// to the new length if more than that is left. Not in the pros, whose rules don't allow it.
+const shortenLens = () => { const sh = R().shorten; return sh ? sh.lens.filter(l => l < S.cfg.qLen) : []; };
+function shortenOK() {
+  const sh = R().shorten;
+  return !!sh && !!S && !!S.teams && S.phase !== "final" && !S.gameOver && S.quarter >= 3 && S.quarter <= 4 &&
+    !(S.teams[0].cpu && S.teams[1].cpu) && Math.abs(S.teams[0].score - S.teams[1].score) >= sh.margin && shortenLens().length > 0;
+}
+// Returns the sentence that says what was agreed, or "" if it can't be done
+function shortenGame(len) {
+  if (!shortenOK() || !shortenLens().includes(len)) return "";
+  S.cfg.qLen = len; S.shortened = len;
+  const cut = S.clock > len; if (cut) S.clock = len;
+  const other = S.teams.find(t => t.cpu), mins = len / 60;
+  return `${other && other.coach && other.coach.last ? "Coach " + other.coach.last : "The other coach"} and the referee agree: the rest of the game is played with ${mins}-minute quarters.${cut ? ` The ${ord(S.quarter)} quarter now has ${fmtClock(S.clock)} left.` : ""}`;
+}
 // How the clock stands after a play. stopped: the play itself stopped it (an incompletion, a score,
 // a change of possession, a kick). r.oob: out of bounds. r.fd: a first down. r.penClock: an
 // accepted penalty, or a foul before the snap, by team r.penBy (r.penStop: the play would have

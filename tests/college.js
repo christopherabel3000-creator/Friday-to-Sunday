@@ -30,6 +30,41 @@ function plain(g, extra) {
   ok(g("APP.ex.level") === "hs" && g("APP.ex.schools[0].cls") === "1A", "and back to high school");
 }
 
+// ---- Shortening a blowout (NCAA 3-2-2-a) ----
+{
+  const { g } = game(false);
+  plain(g, { quarter: 2, clock: 300, phase: "call" });
+  g(`S.teams[0].score = 49; S.teams[1].score = 7;`);
+  ok(!g("shortenOK()") && !/data-a="shorten"/.test(g("vExtras()")), "no shortening in the first half");
+  plain(g, { quarter: 3, clock: 840, phase: "call" });
+  g(`S.teams[0].score = 30; S.teams[1].score = 7;`);
+  ok(!g("shortenOK()"), "not with a lead under 28");
+  g(`S.teams[0].score = 49; S.teams[1].score = 7;`);
+  ok(g("shortenOK()") && /data-a="shorten"/.test(g("vExtras()")), "offered with a lead of 28 or more in the second half");
+  g(`act("shorten", {})`);
+  ok(g("shortenOpen") && /data-a="shortento" data-v="600"/.test(g("vExtras()")) && /aria-expanded="true"/.test(g("vExtras()")), "opening it offers the shorter lengths");
+  g(`act("shortento", { v: "600" })`);
+  ok(g("S.cfg.qLen") === 600 && g("S.clock") === 600 && !g("shortenOpen") && /10-minute quarters/.test(g("S.banner")), "the rest of the game is 10-minute quarters, and the 3rd quarter is cut to 10:00");
+  ok(g("shortenLens()").join() === "480", "it can be shortened again, never lengthened");
+  g(`S.clock = 0; endPeriod();`);
+  ok(g("S.quarter") === 4 && g("S.clock") === 600, "the 4th quarter starts at the shorter length");
+  g(`S.clock = 300; act("shortento", { v: "480" })`);
+  ok(g("S.cfg.qLen") === 480 && g("S.clock") === 300, "a quarter with less left than the new length keeps its clock");
+  g(`S.teams[0].score = 7; S.teams[1].score = 49; S.cfg.qLen = 900;`);
+  ok(g("shortenOK()"), "the trailing coach can ask too");
+  plain(g, { quarter: 5, clock: 0, phase: "call" });
+  g(`S.teams[0].score = 49; S.teams[1].score = 7;`);
+  ok(!g("shortenOK()"), "not in overtime");
+}
+{
+  const { g } = game(true);
+  plain(g, { quarter: 3, clock: 840, phase: "call" });
+  g(`S.teams[0].score = 49; S.teams[1].score = 7;`);
+  ok(!g("shortenOK()"), "not when the computer coaches both teams");
+  g(`S.cfg.level = "pro"`);
+  ok(!g("R().shorten"), "and never in the pros");
+}
+
 // ---- Clock rules ----
 {
   const { g } = game(true);

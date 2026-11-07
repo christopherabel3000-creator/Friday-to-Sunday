@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone. Since then (November 2026): scoreboard abbreviations you choose, one Fundamentals setting in practice (every position group at once), and fixes for loading saves (see Saves). Next is Milestone 6, the coordinator path.
+Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone. Since then (November 2026): scoreboard abbreviations you choose, one Fundamentals setting in practice (every position group at once), and fixes for loading saves (see Saves), and shortening a blowout (see Rules by level). Next is Milestone 6, the coordinator path.
 
 ## The pitch
 
@@ -1008,6 +1008,8 @@ High school rules vary a little from state to state. Where they differ, the fict
 - Defensive pass interference is 15 yards, with no automatic first down. Offensive pass interference is 15 yards from the previous spot, with no loss of down. Only roughing the passer, kicker, snapper or holder gives an automatic first down.
 - Running clock: once a team leads by 35 or more in the second half, the clock keeps running, stopping only for scores, timeouts and injuries. It stays that way even if the lead shrinks, and it isn't used in state championship games. 35 points is the margin Indiana and Michigan use (Ohio uses 30).
 
+- Shortening the game (NFHS 3-1-3, added Nov 2026): the coaches and the referee can agree to shorten any remaining period. In the game, from halftime to the end of regulation, with a lead of 28 or more either way, Shorten the game (at the bottom of the game screen) offers 10, 8 or 6-minute quarters for the rest of the game, and the computer coach agrees. It can be shortened again but never lengthened, and the quarter in progress is cut to the new length if more than that is left.
+
 ### College (NCAA), for Milestone 4
 
 Checked against current sources in November 2026. Items marked "to confirm" get checked against the 2026 rulebook while step 1 is built.
@@ -1024,6 +1026,8 @@ Checked against current sources in November 2026. Items marked "to confirm" get 
 - Defensive pass interference: a spot foul of up to 15 yards from the previous spot, and an automatic first down. Offensive pass interference: 10 yards (down from 15 in 2026).
 - A missed field goal goes to the defense at the previous spot (the line of scrimmage), or the 20 if that was inside the 20 (to confirm).
 - To confirm: whether a team can call two timeouts in a row.
+- Shortening the game (NCAA Rule 3-2-2-a, added Nov 2026): any time during the game, the head coaches and the referee can agree to shorten any remaining period. It works as in high school, with 12, 10 or 8-minute quarters. The NFL has no such rule, so it isn't offered in the pros.
+
 
 ### Pros (NFL), for Milestone 5
 

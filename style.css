@@ -75,6 +75,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .tos i.on { background: var(--firstdown); }
 .clockbox { border: 1.5px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; background: var(--paper); }
 .clockbox .cstat { font-family: var(--mono); font-size: 13px; }
+.shortbox { margin-top: 12px; }
+.shortbox p { margin: 0 0 10px; }
 .clockbtns { display: flex; flex-wrap: wrap; gap: 8px; }
 .clockbtns .btn.ghost { width: auto; flex: 1 1 140px; font-size: 16px; padding: 9px 10px; }
 .clockbtns .btn.ghost[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
