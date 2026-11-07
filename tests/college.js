@@ -276,6 +276,8 @@ function plain(g, extra) {
   ok(g(`OTHER.review.why["${cid}"]`) === "taken" && g(`SEASON.review.open.includes(SEASON.myId)`), "it's off the college market, and your high school job opens");
   g(`act("nextyear")`);
   ok(g("SEASON.lvl") === "col" && g("SEASON.myId") === cid && g("SEASON.phase") === "preseason" && g("APP.screen") === "season", "the next season: you coach in college");
+  ok(g(`(() => { const u = upgradeSave(JSON.parse(JSON.stringify(currentSave()))); return Object.values(u.season.schools).every(x => !!COL_LEVELS[x.cls]) && Object.keys(u.season.schools).length === Object.keys(SEASON.schools).length; })()`), "loading a save made in college leaves the college world as it was (no high schools added)");
+  ok(g(`(() => { const sv = JSON.parse(JSON.stringify(currentSave())); Object.assign(sv.season.schools, JSON.parse(JSON.stringify(sv.other.schools))); sv.season.cls = "1A"; const u = upgradeSave(sv); return Object.values(u.season.schools).every(x => !!COL_LEVELS[x.cls]) && u.season.cls == null; })()`), "and a save that got high schools mixed into the college world is repaired");
   ok(g("OTHER.lvl") !== "col" && g("OTHER.myId") === null && g("OTHER.year") === g("SEASON.year") && g(`Object.values(OTHER.schools).every(s => !isFull(s))`), "and the high school state goes on, on paper");
   ok(g("CAREER.job.lvl") === "col" && g("CAREER.job.pay") >= 60000 && g("CAREER.job.yrs") >= 2 && g("CAREER.crep") >= 20, `a contract (${g("contractText(CAREER.job)")}), and a college reputation (${g("CAREER.crep")})`);
   ok(g(`SEASON.exp["${cid}"].w`) > 0, "and your program has its expectation");

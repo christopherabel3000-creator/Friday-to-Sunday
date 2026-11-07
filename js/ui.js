@@ -106,10 +106,20 @@ function upgradeSave(s) {
   // Version 12: college recruiting. Your coach gets Recruiting, as Program building came.
   if (co && co.rct == null) co.rct = co.bg ? COACH_START : COACH_LEVEL["1A"];
   if (se6 && se6.schools && !se6.summer) se6.summer = newSummer();
-  // Version 9: the whole state, 1A to 6A. A state from before then gets the other five classes.
-  if (se6 && se6.schools) { if (!se6.cls) se6.cls = "1A"; addClasses(se6); }
+  // Version 9: the whole state, 1A to 6A. A state from before then gets the other five classes. (Only
+  // a high school season: a college or pro season isn't the state.)
+  const hsSe = se6 && se6.schools && !se6.lvl ? se6 : null;
+  if (hsSe) { if (!hsSe.cls) hsSe.cls = "1A"; addClasses(hsSe); }
   // Version 10: money and college offers. Every school gets boosters and facilities.
-  if (se6 && se6.schools) moneyInit(se6);
+  if (hsSe) moneyInit(hsSe);
+  // A save made while coaching in college or the pros could get the state's high schools added to
+  // that world on loading (fixed November 2026): take them back out
+  [s.season, s.other, s.third].forEach(w => {
+    if (!w || !w.lvl || !w.schools) return;
+    const fits = w.lvl === "pro" ? (c => c === "PRO") : (c => !!COL_LEVELS[c]);
+    for (const id in w.schools) if (!fits(w.schools[id].cls)) delete w.schools[id];
+    if (w.cls === "1A") w.cls = null;
+  });
   // Version 11: the college world, built from the state's seed for the season's year
   if (se6 && se6.schools && se6.lvl !== "col" && !s.other) s.other = newColSeason(se6.world, se6.year);
   // Version 13: five years of eligibility for every college player, and no redshirts. A player who
