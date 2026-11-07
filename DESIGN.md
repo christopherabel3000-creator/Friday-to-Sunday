@@ -650,7 +650,7 @@ Not in this milestone: the coordinator path (Milestone 6), assistant coaches on 
 
 Build steps, each one playable and tested before the next:
 
-1. Pro rules checked against the 2026 rulebook, and an exhibition pro game between two generated teams, with the level of play checked.
+1. **Done:** pro rules checked against the 2026 rulebook, and an exhibition pro game between two generated teams, with the level of play checked. Pro starters average about 74. Over 200 computer games: about 26 points a team (the real NFL is nearer 23), 44 percent runs, 65 percent completions, 7.4 yards a pass, 86 percent of field goals and 92 percent of extra points good, overtime in about 4 percent of games and a tie now and then. The regular season's 10-minute overtime, with ties, is new; the playoffs keep Gridiron Duel's.
 2. The pro league and its season: teams, divisions, the 17-game schedule, standings and tiebreakers, the playoff, the quick sim refit for the pros, and the league on paper while you coach in high school or college, with speed and save size measured. (A test career can start in the pros.)
 3. Pro players and the cap: ages, growth and decline, retirement, contracts, cap space and dead money, the 90-man offseason roster, cutdown to 53, the practice squad, injured reserve and game-day actives.
 4. The pro job: the way in, the pro reputation, pro jobs in the market, coaching contracts, personnel control, owners, expectations and job security, computer GMs and your requests.

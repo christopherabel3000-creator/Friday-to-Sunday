@@ -2,9 +2,9 @@
 // show whether the level of play looks like small-school football (see DESIGN.md: more runs than
 // passes, completions around 50 percent, few field goals beyond 35 yards, and the better team
 // usually winning).
-// Usage: node tests/balance.js [games] [col]  (col: two power-conference college programs, college rules)
+// Usage: node tests/balance.js [games] [col|pro]  (col: two power-conference college programs, college rules; pro: two pro teams, pro rules)
 const { load } = require("./load.js");
-const N = +(process.argv[2] || 300), LEVEL = process.argv[3] === "col" ? "col" : "hs";
+const N = +(process.argv[2] || 300), LEVEL = ["col", "pro"].includes(process.argv[3]) ? process.argv[3] : "hs";
 const sb = load(), g = sb.__get, F = sb.__fts;
 const tot = {}, add = (k, v) => { tot[k] = (tot[k] || 0) + (v || 0); }, inc = k => add(k, 1);
 const fgBy = {}; let games = 0, ot = 0, runClock = 0, better = 0, betterN = 0, ties = 0, steps = 0, margin = [];

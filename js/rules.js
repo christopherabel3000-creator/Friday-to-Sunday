@@ -3,9 +3,8 @@
 // it from the profile of the level being played (see "Rules by level" in DESIGN.md).
 //
 // High school follows the national high school rules (NFHS). Where states differ, the fictional
-// state uses the most common choice. College (NCAA) arrives with Milestone 4 and gets checked
-// against the current rulebook then. The pros profile is Gridiron Duel's NFL rules, kept so the
-// engine stays general; it gets the rest of the NFL's rules with Milestone 5.
+// state uses the most common choice. College (NCAA) came with Milestone 4 and the pros (NFL) with
+// Milestone 5, each checked against that year's rulebook.
 "use strict";
 
 const RULES = {
@@ -122,12 +121,17 @@ const RULES = {
     kickoff: { spot: 35, tb: 35, oobAt: 40, dynamic: true },
     kickDeadInEndZone: false,
     puntTb: 20, fgAdd: 18, missedFg: "spot", tees: false,
-    tryXp: 85, tryTwo: 98, defTryScore: false,
-    onside: { declared: true, expected: 1 / 15, surprise: 1 / 15 },
+    // Tries: kicks snapped from the 15 and two-point tries from the 2. The defense can return a try
+    // for two points (since 2015).
+    tryXp: 85, tryTwo: 98, defTryScore: true,
+    // Onside kicks have to be declared, and any team can declare one at any time (since 2026)
+    onside: { declared: true, expected: 1 / 15, surprise: 1 / 15, anyTime: true },
     untimed: "def",
     runClock: null,
     safetyKick: 20,
-    ot: { kind: "nfl", tos: 3 },
+    // Overtime: the playoffs as Gridiron Duel plays them (15-minute periods until someone wins). In
+    // the regular season, one 10-minute period with two timeouts each, and a tie if nobody wins it.
+    ot: { kind: "nfl", tos: 3, regLen: 600, regTos: 2 },
     pen: {
       fs: { name: "False start", on: "off", yds: 5, pre: true },
       dg: { name: "Delay of game", on: "off", yds: 5, pre: true },

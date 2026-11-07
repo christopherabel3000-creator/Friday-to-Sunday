@@ -259,6 +259,8 @@ const noClock = () => S.quarter >= 5 && SERIES_OT.has(R().ot.kind);
 const ncaaOT = () => hsOT() && S.ot.kind === "ncaa";
 const mustGoForTwo = () => ncaaOT() && S.ot.n >= 2;
 const nflOT = () => R().ot.kind === "nfl";
+// Pro regular-season overtime: one 10-minute period, and it can end in a tie (playoff games use cfg.post)
+const proRegOT = () => nflOT() && !!R().ot.regLen && !(S && S.cfg && S.cfg.post);
 const kickDist = () => 100 - S.spot + (S.fcNow && R().fck && S.down === 1 && !S.twoPt ? 10 : R().fgAdd);
 // Field goals: on 4th down, on any down in the last 40 seconds of a half, in pro overtime on any down
 // once a field goal would win the game, and on any down at all in high school overtime. A coach can
@@ -290,6 +292,7 @@ function gameTeam(s, cpu, styles) {
 // title, neutral, fresh: [home, away] }. schools[0] is the home team. depth: a depth chart for this
 // game only (or null). fresh: energy at kickoff (100 unless practice wore a team down).
 // title: a state championship game (no running clock). neutral: played at a neutral site.
+// post: a pro playoff game (playoff overtime instead of the regular season's).
 function initGame(cfg, schools) {
   const Rl = RULES[cfg.level] || RULES.hs, qLen = cfg.qLen || Rl.qLen;
   const t0 = gameTeam(schools[0], cfg.cpu[0], cfg.styles && cfg.styles[0]), t1 = gameTeam(schools[1], cfg.cpu[1], cfg.styles && cfg.styles[1]);
@@ -299,7 +302,7 @@ function initGame(cfg, schools) {
     freshGame(t, cfg.rot && cfg.rot[i], cfg.fresh && cfg.fresh[i]);
   });
   const recv = rand() < .5 ? 0 : 1;
-  S = { v: 1, cfg: { level: Rl.id, qLen, aud: cfg.aud !== false, title: !!cfg.title }, neutral: !!cfg.neutral, teams: [t0, t1], ps: {},
+  S = { v: 1, cfg: { level: Rl.id, qLen, aud: cfg.aud !== false, title: !!cfg.title, post: !!cfg.post }, neutral: !!cfg.neutral, teams: [t0, t1], ps: {},
     quarter: 1, clock: qLen, poss: recv, spot: 35, down: 1, toGo: 10, firstRecv: recv,
     offCall: null, defCall: null, sel: null, side: "off", phase: "", banner: "", log: [], last: null,
     needPAT: false, patTeam: 0, periodOver: false, gameOver: false, runClock: false,
@@ -577,6 +580,12 @@ function otTail(r) {
 const otLen = () => R().qLen;
 function startOT(lead) {
   if (!nflOT()) { hsotStart(lead); return; }
+  if (proRegOT()) {
+    const L = R().ot;
+    S.quarter = 5; S.clock = L.regLen; S.tos = [L.regTos, L.regTos];
+    startToss(true, `${lead} One 10-minute period. Both teams get the ball unless the defense scores, then it's sudden death. If it's still tied when time runs out, the game ends in a tie.`);
+    return;
+  }
   S.quarter++; S.clock = otLen();
   const n = S.quarter - 4, step = (n - 1) % 4;
   if (step % 2 === 0) S.tos = [3, 3]; // 3 timeouts per two-period OT block (1OT-2OT, 3OT-4OT...)
@@ -962,6 +971,9 @@ function endPeriod() {
   const q = S.quarter, Rl = R();
   if (q === 1 || q === 3) { S.quarter++; S.clock = S.cfg.qLen; restAll("quarter"); S.banner = `End of the ${q === 1 ? "1st" : "3rd"} quarter.`; }
   else if (q === 2) { S.quarter = 3; S.clock = S.cfg.qLen; S.tos = [Rl.timeouts, Rl.timeouts]; restAll("half"); const r = 1 - S.firstRecv; S.banner = `Halftime. ${tname(r)} receive the second-half kickoff. ${kickoff(r, false)}`; S.halftimeShow = !(S.teams[0].cpu && S.teams[1].cpu); }
+  // Pro regular season: when the overtime period runs out, the team ahead wins, even in the middle of
+  // the second team's possession, and a tie stays a tie
+  else if (q >= 5 && proRegOT()) S.gameOver = true;
   else if (S.teams[0].score === S.teams[1].score) startOT(q === 4 ? "Tied after regulation. On to overtime." : "Still tied after overtime. On to another overtime period.");
   // NFL playoff rule: the clock running out doesn't take away the second team's guaranteed possession
   else if (q >= 5 && S.ot && S.ot.ph === 2) startOT(`${tname(1 - S.ot.a)} are guaranteed an overtime possession, so the game goes on.`);

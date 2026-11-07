@@ -19,18 +19,24 @@ const CLASS_INFO = {
   D2: { enroll: [2000, 9000], roster: 95, level: 43 },
   FCS: { enroll: [4000, 20000], roster: 100, level: 47 },
   G5: { enroll: [10000, 35000], roster: 105, level: 51 },
-  P4: { enroll: [20000, 55000], roster: 105, level: 57 }
+  P4: { enroll: [20000, 55000], roster: 105, level: 57 },
+  // The pros (Milestone 5): 53 players on the roster, and nobody plays both ways
+  PRO: { enroll: [0, 0], roster: 53, level: 59 }
 };
 const COL_CLASSES = ["D3", "D2", "FCS", "G5", "P4"];
 // The roster limit since the 2025 House settlement
 const COL_ROSTER_MAX = 105;
 const isCollege = cls => COL_CLASSES.includes(cls);
+const isPro = cls => cls === "PRO";
+// College and pro players are specialists: one side of the ball
+const specialists = cls => isCollege(cls) || isPro(cls);
+const PRO_ROSTER = 53;
 const CLASS_LEVEL = {};
-CLASSES.concat(COL_CLASSES).forEach(c => { CLASS_LEVEL[c] = CLASS_INFO[c].level; });
+CLASSES.concat(COL_CLASSES, ["PRO"]).forEach(c => { CLASS_LEVEL[c] = CLASS_INFO[c].level; });
 // How many times a 1A school's numbers a class's rosters and freshman classes are
 const classScale = cls => (CLASS_INFO[cls] || CLASS_INFO["1A"]).roster / 30;
 // (college levels rank above 6A: Division III is 3 and the power conferences 7, for styles and facilities)
-const classIndex = cls => CLASSES.includes(cls) ? CLASSES.indexOf(cls) : isCollege(cls) ? 3 + COL_CLASSES.indexOf(cls) : 0;
+const classIndex = cls => CLASSES.includes(cls) ? CLASSES.indexOf(cls) : isCollege(cls) ? 3 + COL_CLASSES.indexOf(cls) : isPro(cls) ? 8 : 0;
 function townName(g, taken) {
   for (let i = 0; i < 50; i++) {
     const t = g.f() < .55 ? g.pick(TOWN_FIRST) + g.pick(TOWN_LAST) : g.pick(TOWNS);
@@ -117,13 +123,13 @@ function depthSide(ps, side, d, pen, away) {
   side.forEach(pos => { if (d[pos].length < DEPTH_SIZE[pos]) { const o = new Map(ps.map(p => [p, ovr(p, pos) + 100 * mine(p)])); ps.filter(p => !d[pos].includes(p.id)).sort((a, b) => o.get(b) - o.get(a)).slice(0, DEPTH_SIZE[pos] - d[pos].length).forEach(p => d[pos].push(p.id)); } });
 }
 function autoDepth(team) {
-  const ps = team.players.filter(p => !p.inj), d = {}, none = () => 0, away = isCollege(team.cls) ? -15 : -2;
+  const ps = team.players.filter(p => !p.inj), d = {}, none = () => 0, away = specialists(team.cls) ? -15 : -2;
   depthSide(ps, OFF_POS, d, none, away); depthSide(ps, DEF_POS, d, none, away);
   const starts = side => { const out = new Set(); side.forEach(pos => d[pos].slice(0, STARTERS[pos]).forEach(id => out.add(id))); return out; };
   const so = starts(OFF_POS), sd = starts(DEF_POS), two = new Set([...so].filter(id => sd.has(id)));
   if (two.size) {
     // (college: nobody plays both ways)
-    const gap = isCollege(team.cls) ? 99 : TWO_WAY_GAP * classScale(team.cls || "1A");
+    const gap = specialists(team.cls) ? 99 : TWO_WAY_GAP * classScale(team.cls || "1A");
     depthSide(ps, OFF_POS, d, p => two.has(p.id) && posSide(p.pos) === "def" ? gap : 0, away);
     depthSide(ps, DEF_POS, d, p => two.has(p.id) && posSide(p.pos) !== "def" ? gap : 0, away);
   }
