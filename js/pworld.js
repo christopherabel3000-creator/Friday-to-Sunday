@@ -29,17 +29,25 @@ const PRO_ROUND_NAMES = { 1: "Wild-card round", 2: "Divisional round", 3: "Confe
 const proWeekName = n => n <= PRO_REG ? `Week ${n}` : PRO_ROUND_NAMES[n - PRO_REG];
 
 /* ---------- Pro players as short records ---------- */
-// "id|first|last|age|seasons|pos|pos2|arch|ratings|eth.sta.hlt.pot.potSeen.num|extra": the ratings in
+// "id|first|last|age|seasons|pos|pos2|arch|ratings|eth.sta.hlt.pot.potSeen.num|contract|extra": the ratings in
 // base 36, two characters each, and anything else the player carries (his contract, his college,
 // career stats) as JSON at the end
-const PACKED_KEYS = new Set(["id", "first", "last", "age", "exp", "pos", "pos2", "arch", "r", "eth", "sta", "hlt", "pot", "potSeen", "num", "yr"]);
+const PACKED_KEYS = new Set(["id", "first", "last", "age", "exp", "pos", "pos2", "arch", "r", "eth", "sta", "hlt", "pot", "potSeen", "num", "yr", "ct"]);
+// A contract in a few characters: each year's pay and the guarantee in units of $5,000, and r for a
+// rookie contract, o for a fifth-year option still to decide: "200,206/150/r"
+const packCt = ct => ct ? `${ct.y.map(v => Math.round(v / 5000)).join(",")}/${Math.round((ct.g || 0) / 5000)}/${ct.rk ? "r" : ""}${ct.o5 ? "o" : ""}` : "";
+function unpackCt(s) {
+  if (!s) return null;
+  const [y, g, f] = s.split("/");
+  return { y: y ? y.split(",").map(v => +v * 5000) : [], g: +g * 5000, rk: f.includes("r"), o5: f.includes("o") };
+}
 // (in-season state that doesn't need keeping on a team that isn't yours)
 const UNPACKED_SKIP = new Set(["inj", "o0", "fat", "elig"]);
 function packPlayer(p) {
   const extra = {};
   for (const k in p) if (!PACKED_KEYS.has(k) && !UNPACKED_SKIP.has(k) && p[k] != null) extra[k] = p[k];
   const rs = ATTRS.map(a => clamp(p.r[a] | 0, 0, 99).toString(36).padStart(2, "0")).join("");
-  return [p.id, p.first, p.last, p.age || 25, p.exp || 0, p.pos, p.pos2 || "", p.arch, rs, [p.eth, p.sta, p.hlt, p.pot, p.potSeen, p.num || 0].join("."),
+  return [p.id, p.first, p.last, p.age || 25, p.exp || 0, p.pos, p.pos2 || "", p.arch, rs, [p.eth, p.sta, p.hlt, p.pot, p.potSeen, p.num || 0].join("."), packCt(p.ct),
     Object.keys(extra).length ? JSON.stringify(extra) : ""].join("|");
 }
 function unpackPlayer(str) {
@@ -47,7 +55,9 @@ function unpackPlayer(str) {
   ATTRS.forEach((a, i) => { r[a] = parseInt(f[8].slice(2 * i, 2 * i + 2), 36); });
   const p = { id: f[0], first: f[1], last: f[2], age: +f[3], exp: +f[4], pos: f[5], pos2: f[6] || null, arch: f[7], r, yr: 13,
     eth: nums[0], sta: nums[1], hlt: nums[2], pot: nums[3], potSeen: nums[4], num: nums[5] };
-  if (f[10]) Object.assign(p, JSON.parse(f.slice(10).join("|")));
+  const ct = unpackCt(f[10]);
+  if (ct) p.ct = ct;
+  if (f[11]) Object.assign(p, JSON.parse(f.slice(11).join("|")));
   return p;
 }
 // A pro player's age when the league is made: most are 23 to 29, quarterbacks and kickers a
@@ -61,6 +71,10 @@ function proAgeRoll(g, p) {
 // A team: id ("p0" to "p31"), town (its city), mascot (its nickname), cls "PRO", conf (its division's
 // id), trad, seed, coach, off, def, rating, colors, and roster: its players as short records
 function genProLeague(seed, year) {
+  // (made with the year's cap in place, for the contracts: pcap.js)
+  return inWorld({ cap: capFor(year), world: seed, year }, () => genProTeams(seed, year));
+}
+function genProTeams(seed, year) {
   const g = dice(hashSeed(`${seed}:pros`)), cities = g.shuffle(PRO_CITIES), nicks = g.shuffle(PRO_NICKS), schools = {}, confs = [];
   let n = 0;
   PRO_CONF_IDS.forEach(cf => PRO_DIV_NAMES.forEach(dn => {
@@ -75,6 +89,7 @@ function genProLeague(seed, year) {
       s.players.forEach(p => { p.age = proAgeRoll(sg, p); p.exp = clamp(p.age - 22 + sg.i(-1, 1), 0, 16); });
       const sum = schoolSummary(s);
       Object.assign(sum, { seed: sseed, conf: d.id, trad0: trad, colorFam: color[2], roster: s.players.map(packPlayer), rating: schoolRating(s), year0: year });
+      proLeagueContracts(sum, sg, year);
       schools[id] = sum; d.ids.push(id); n++;
     }
   }));
@@ -86,9 +101,10 @@ const proDivName = id => proDiv(id).name;
 // A pro team with its players: its saved roster unpacked, and its playbook (rosterAt calls this)
 function proRoster(sum) {
   const s = {};
-  for (const k in sum) if (k !== "roster") s[k] = sum[k];
+  for (const k in sum) if (k !== "roster" && k !== "psr") s[k] = sum[k];
   s.coach = clone(sum.coach);
   s.players = (sum.roster || []).map(unpackPlayer);
+  s.ps = (sum.psr || []).map(unpackPlayer);
   s.mastery = sum.mastery ? clone(sum.mastery) : genMastery(dice(hashSeed(`${sum.seed}:${sum.coach.last}:plays`)), sum.off, sum.def);
   s.depth = autoDepth(s);
   return s;
@@ -97,6 +113,8 @@ function proRoster(sum) {
 function proToPaper(s) {
   const sum = schoolSummary(s);
   sum.roster = s.players.map(packPlayer);
+  sum.psr = (s.ps || []).map(packPlayer);
+  delete sum.ps;
   sum.mastery = clone(s.mastery);
   sum.rating = schoolRating(s);
   return sum;
@@ -377,6 +395,7 @@ function newProSeason(seed, year, prev) {
     rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {}, plan: prev ? prev.plan : newPlan(), practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {},
     history: prev ? prev.history : [], summer: newSummer(), halls: null, cls: null,
     district: 1, districts: [{ n: 1, ids: prev && prev.myId ? [prev.myId] : [] }] };
+  se.cap = prev ? capFor(year, prev.cap, g) : capFor(year);
   se.places = proPlacesFrom(se, prev);
   se.weeks = makeProSchedule(se, g, se.places);
   nameWorld(se);
@@ -516,17 +535,45 @@ function proNextSeason() {
     if (s.trad0 == null) s.trad0 = s.trad;
     s.trad = newTradition(s, r.w, r.l, r.pw, !!r.ch);
   }
+  // The draft order: the worst records first, then the playoff teams by how far they went
+  const pw = id => old.results[id].pw + (old.results[id].po ? 1 : 0) + (old.results[id].ch ? 2 : 0);
+  const order = Object.keys(old.schools).sort((a, b) => pw(a) - pw(b) || recPct(proRecord(a, PRO_REG)) - recPct(proRecord(b, PRO_REG)) || (hashSeed(old.seed + a) % 997) - (hashSeed(old.seed + b) % 997));
+  old.order = order;
+  // Every team's year (pcap.js), with the new year's cap in place
+  const cap = capFor(old.year + 1, old.cap, dice(hashSeed(`${old.world}:${old.year + 1}:cap`)));
+  let mine = null;
+  inWorld(Object.assign({}, old, { cap }), () => {
+    const rookies = proRookies(old.year + 1, order);
+    for (const id in old.schools) {
+      const sum = old.schools[id], full = isFull(sum), s = full ? sum : proRoster(sum), rng = seededRandom(hashSeed(`${old.world}:${old.year}:${id}:year`));
+      const rep = proTeamYear(s, old.year + 1, rng, full, rookies[id], old.cap || PRO_CAP0);
+      rep.freed = getUnderCap(s);
+      // Your team's offseason program: four weeks with your practice plan, like college spring practice
+      if (full) { s.depth = autoDepth(s); rep.spring = springPractice(s, old.plan, old.year + 1); mine = rep; s.depth = autoDepth(s); s.rating = schoolRating(s); continue; }
+      // A team on paper holds its cutdown right away
+      cutdown(s);
+      getUnderCap(s);
+      old.schools[id] = proToPaper(s);
+      old.schools[id].dead = s.dead; old.schools[id].carry = s.carry;
+    }
+  });
   const champ = old.post && old.post.champ;
   const history = (old.history || []).concat(champ ? [{ year: old.year, cls: "PRO", id: champ, name: nameOf(champ) }] : []);
   const se = newProSeason(old.world, old.year + 1, Object.assign({}, old, { history }));
   se.myId = me;
   if (me) { se.districts = [{ n: 1, ids: [me] }]; se.phase = "preseason"; se.camp = 1; se.plan = old.plan; se.rot = old.rot; }
   // Ratings for the new season, from the rosters
-  for (const id in se.schools) { const s = se.schools[id]; s.rating = isFull(s) ? schoolRating(s) : Object.assign(schoolRating(proRoster(s)), {}); }
+  for (const id in se.schools) { const s = se.schools[id]; if (isFull(s)) s.rating = schoolRating(s); }
   SEASON = se;
   REBUILT.clear();
   proSetExpectations();
-  if (me) se.yearReport = { pro: true, from: old.year, grads: [], left: [], fresh: [], joined: [], grew: [], went: 0, offers: [] };
+  if (me && mine) {
+    const who = p => ({ name: fullName(p), pos: p.pos, ovr: ovr(p, p.pos), age: p.age, stats: careerStatLine(p.cs) });
+    const best = list => list.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
+    se.yearReport = { pro: true, from: old.year, grads: best(mine.retired).map(who), left: best(mine.left.concat(mine.freed)).map(who), kept: best(mine.kept).map(p => Object.assign(who(p), { ct: proContractText(p) })),
+      fresh: mine.rookies.map(p => p.id), joined: [], grew: mine.grew.slice(0, 10), went: 0, offers: [],
+      spring: mine.spring ? { mastery: mine.spring.mastery.slice(0, 8), n: Object.keys(mine.spring.grew).length } : null };
+  }
   return se;
 }
 // The pro league moves on a year on paper while you coach elsewhere

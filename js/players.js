@@ -31,7 +31,10 @@ const POS_INFO = {
 };
 const YEAR_NAMES = { 9: "freshman", 10: "sophomore", 11: "junior", 12: "senior", 13: "fifth-year senior" };
 // College players have five years: freshman to senior, then a fifth-year senior
-const yearName = p => YEAR_NAMES[p.yr] || "senior";
+// "1st", "2nd", "11th", "23rd"
+const ordinal = n => { const t = n % 100, u = n % 10; return n + (t >= 11 && t <= 13 ? "th" : u === 1 ? "st" : u === 2 ? "nd" : u === 3 ? "rd" : "th"); };
+// (a pro player by his age and his season in the league: "age 27, 5th season", "age 22, rookie")
+const yearName = p => p.age != null ? `age ${p.age}, ${p.exp ? `${ordinal(p.exp + 1)} season` : "rookie"}` : YEAR_NAMES[p.yr] || "senior";
 // A player's overall rating at a position (the weights as arrays, made once, since this runs a lot)
 const POS_W = {};
 for (const pos in POS_INFO) POS_W[pos] = [Object.keys(POS_INFO[pos].w), Object.values(POS_INFO[pos].w)];

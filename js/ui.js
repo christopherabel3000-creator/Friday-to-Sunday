@@ -431,7 +431,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
-const SCREENS = { home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
+const SCREENS = { cap: vCap, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
   schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason, vPOffseason), newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal, names: vNames };
@@ -669,6 +669,8 @@ function act(a, ds) {
       runSeasonSim(inPros() ? (ds.v === "playoffs" ? PRO_REG + 1 : PRO_LAST + 1) : SEASON.lvl === "col" ? (ds.v === "playoffs" ? COL_TITLE_WEEK + 1 : COL_LAST + 1) : ds.v === "playoffs" ? REGULAR_WEEKS + 1 : LAST_WEEK + 1); scrollTop(); break;
     case "week": if (+ds.v >= 1 && +ds.v < SEASON.week) { APP.weekFrom = APP.screen; APP.weekView = +ds.v; APP.screen = "week"; scrollTop(); } break;
     case "standings": case "schedule": APP.screen = a; scrollTop(); break;
+    // (the cap screen's players open on your roster)
+    case "cap": if (inPros() && SEASON.myId) { const from = APP.screen; seasonRoster(SEASON.myId); APP.view.back = from === "roster" ? (APP.view.back || "season") : from; APP.screen = "cap"; scrollTop(); } break;
     case "bracket": if (SEASON && (SEASON.bracket || SEASON.post)) { APP.topDiv = null; APP.screen = a; scrollTop(); } break;
     case "boxscore": if (S && S.teams) { APP.screen = "game"; scrollTop(); } break;
     case "sroster": if (SEASON && SEASON.schools[ds.t]) { seasonRoster(ds.t); scrollTop(); } break;
@@ -765,6 +767,7 @@ function startScreen() {
   const sc = APP.screen, season = !!(SEASON && SEASON.myId);
   if (sc === "game") return S && S.teams ? sc : "home";
   if (sc === "roster" || sc === "player" || sc === "depth") return APP.view && (APP.view.ctx !== "season" || SEASON) && (APP.view.ctx !== "game" || (S && S.teams)) ? sc : "home";
+  if (sc === "cap") return season && inPros() ? sc : season ? "season" : "home";
   if (sc === "pick") return SEASON && SEASON.phase === "pick" && CAREER ? sc : "home";
   if (sc === "newcoach") return APP.coachDraft ? sc : "home";
   if (sc === "coach") return CAREER ? sc : "home";

@@ -85,6 +85,7 @@ function vNewYear() {
   const fresh = R.fresh.map(id => playerById(s, id)).filter(Boolean).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
   const grew = R.grew.map(([id, a, b]) => { const p = playerById(s, id); return p ? `${fullName(p)}, ${yearName(p)}: ${a} to ${b} at ${posName(p.pos)}.` : ""; }).filter(Boolean).slice(0, 8);
   const rank = talentRank(s.id);
+  if (R.pro) return proNewYear(R, s, fresh, grew, rank, list);
   return `
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${SEASON.year} preseason</p>
@@ -104,6 +105,24 @@ function vNewYear() {
     ${(R.joined || []).length ? `<section class="panel"><h3>${R.col ? "From your old high school state" : "From the hallways"}</h3>${list(R.joined.map(id => playerById(s, id)).filter(Boolean).map(p => playerLine(p, s.level)))}</section>` : ""}
     <section class="panel"><h3>Grew over the summer</h3>${R.went ? `<p>${plural(R.went, "player")} came to summer workouts.</p>` : ""}${grew.length ? list(grew) : "<p>Nobody's overall rating went up over the summer.</p>"}</section>
     <button class="btn" data-a="season">${inCamp() ? "On to preseason camp" : "Back to the season"}</button>`;
+}
+
+// A pro team's new year: who retired, who left, who was kept, the rookies, and who grew (pcap.js)
+function proNewYear(R, s, fresh, grew, rank, list) {
+  const who = x => `${x.name}, ${posName(x.pos)} ${x.ovr}, age ${x.age}${x.stats ? `: ${x.stats}` : ""}.`;
+  return `
+    <div class="masthead" style="--team:${s.color}">
+      <p class="eyebrow">${SEASON.year} preseason</p>
+      <h2 data-focus tabindex="-1">The ${SEASON.year} ${esc(s.mascot)}</h2>
+      <p class="muted">${talentText(s.rating)} ${rank === 1 ? "The best starters" : rank <= 4 ? `The ${ordWord(rank - 1)}-best starters` : `Starters ranked ${rank}th`} in the ${esc(proDivName(s.id))}. ${plural(onActive(s).length, "player")} in camp: cutdown day at the end of camp leaves ${PRO_ACTIVE}. ${esc(`Cap room: ${bigMoney(capRoom(s))}.`)}</p>
+    </div>
+    ${R.spring ? `<section class="panel"><h3>The offseason program</h3><p>${esc(`Four weeks with your practice plan: ${plural(R.spring.n, "player")} improved.${R.spring.mastery.length ? ` Plays learned: ${R.spring.mastery.map(([id, a, b]) => `${playName(id)} ${a} to ${b}`).join(", ")}.` : ""}`)}</p></section>` : ""}
+    <section class="panel"><h3>Retired</h3>${R.grads.length ? list(R.grads.map(who)) : "<p>Nobody retired.</p>"}</section>
+    ${R.left.length ? `<section class="panel"><h3>Let go</h3><p class="muted">Their contracts ran out and they weren't kept, or they were released to get under the cap.</p>${list(R.left.map(who))}</section>` : ""}
+    ${(R.kept || []).length ? `<section class="panel"><h3>Kept, with new contracts</h3>${list(R.kept.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.ct}`))}</section>` : ""}
+    <section class="panel"><h3>Rookies</h3>${fresh.length ? list(fresh.map(p => `${playerLine(p, s.level)}${p.pick ? ` Round ${p.pick.rd}, pick ${p.pick.n}.` : ""}`)) : "<p>No rookies this year.</p>"}</section>
+    <section class="panel"><h3>A year older</h3>${grew.length ? list(grew) : "<p>Nobody's overall rating went up this year.</p>"}</section>
+    <button class="btn" data-a="season">${inCamp() ? "On to training camp" : "Back to the season"}</button>`;
 }
 
 /* ---------- Hallway recruiting ---------- */

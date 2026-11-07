@@ -170,5 +170,79 @@ function plain(g, extra) {
   ok(g(`(() => { const s = JSON.parse(JSON.stringify(currentSave())); delete s.third; s.build = 13; const u = upgradeSave(s); return !!u.third && u.third.lvl === "pro" && u.third.year === 2026; })()`), "a save from before the pros gets the pro league");
 }
 
+// ---- Step 3: pro players and the cap ----
+{
+  const sb = load(), g = sb.__get;
+  g(`globalThis.L = newProSeason(5, 2026)`);
+  const c = g(`inWorld(L, () => { const out = []; for (const id in L.schools) { const s = proRoster(L.schools[id]); out.push({ used: capUsed(s), ps: s.ps.length, all: s.players.every(p => p.ct && p.ct.y.length >= 1 && p.ct.y.every(v => v >= proMin(p.exp))) && s.ps.every(p => capHit(p) === PS_PAY), n: s.players.length }); } return out; })`);
+  ok(g("L.cap") === 301200000, "the 2026 cap is the real $301.2 million");
+  ok(c.every(x => x.all), "every player has a contract, never under his minimum, and the practice squad is paid $13,750 a week");
+  ok(c.every(x => x.used > .8 * 301.2e6 && x.used <= 301.2e6), `payrolls of 80 to 100 percent of the cap (${Math.round(Math.min(...c.map(x => x.used)) / 1e6)} to ${Math.round(Math.max(...c.map(x => x.used)) / 1e6)} million)`);
+  ok(c.every(x => x.ps === 16 && x.n === 53), "53 on every roster and 16 on every practice squad");
+  ok(g(`inWorld(L, () => { const p = proRoster(L.schools.p0).players[0], q = unpackPlayer(packPlayer(p)); return JSON.stringify(q.ct) === JSON.stringify(p.ct); })`), "a contract survives packing");
+  ok(g(`inWorld(L, () => [proMin(0), proMin(1), proMin(4), proMin(9)].join())`) === "885000,1005000,1215000,1300000", "the 2026 minimum salaries, by seasons in the league");
+  const vals = g(`inWorld(L, () => { const mk = (pos, o, age) => { const p = { pos, age, exp: 5, r: {} }; ATTRS.forEach(a => { p.r[a] = o; }); return proValue(p); }; return { qb: mk("QB", 85, 27), rb: mk("RB", 85, 27), mid: mk("OL", 75, 27), low: mk("S", 50, 27), old: mk("WR", 80, 34), young: mk("WR", 80, 25) }; })`);
+  ok(vals.qb > 40e6 && vals.qb < 60.3e6 && vals.rb < vals.qb / 2, `a star quarterback is worth far more than a star running back (${Math.round(vals.qb / 1e6)} and ${Math.round(vals.rb / 1e6)} million)`);
+  ok(vals.mid > 7e6 && vals.mid < 13e6 && vals.low === 1215000, `about $10 million for a solid starter, the minimum for a backup (${Math.round(vals.mid / 1e6)} million)`);
+  ok(vals.old < vals.young * .6, "a player past his peak is worth less");
+  // Growth and decline
+  const ag = g(`(() => { const rng = seededRandom(7), mk = (age, pos) => { const p = { pos, age, exp: age - 22, r: {}, pot: 90 }; ATTRS.forEach(a => { p.r[a] = 70; }); return p; }; const t = (age, pos, mine) => { let d = 0; for (let i = 0; i < 300; i++) { const p = mk(age, pos), o = ovr(p, pos); proAgeYear(p, 50, rng, mine); d += ovr(p, pos) - o; } return d / 300; };
+    return { young: t(22, "WR"), peak: t(27, "WR"), old: t(32, "WR"), rb: t(29, "RB"), qb: t(32, "QB"), mineYoung: t(22, "WR", true) }; })()`);
+  ok(ag.young > 1.5 && Math.abs(ag.peak) < 1.2 && ag.old < -1.5, `young players grow, players at their peak hold, older ones decline (${ag.young.toFixed(1)}, ${ag.peak.toFixed(1)}, ${ag.old.toFixed(1)})`);
+  ok(ag.rb < -1 && ag.qb > ag.old, `running backs decline earlier, quarterbacks later (${ag.rb.toFixed(1)} at 29, ${ag.qb.toFixed(1)} at 32)`);
+  ok(Math.abs(ag.mineYoung) < .7, "your own players' growth comes from practice, so the year adds only the decline");
+  const rt = g(`(() => { const rng = seededRandom(9), mk = (age, pos, o) => { const p = { pos, age, r: {} }; ATTRS.forEach(a => { p.r[a] = o; }); return p; }, n = (age, pos, o) => { let k = 0; for (let i = 0; i < 1000; i++) if (retires(mk(age, pos, o), rng)) k++; return k / 1000; }; return [n(25, "WR", 75), n(33, "WR", 75), n(33, "QB", 75), n(29, "WR", 55)]; })()`);
+  ok(rt[0] < .03 && rt[1] > .1 && rt[2] < rt[1] && rt[3] > .2, `retirement: rare when young, likely when old (later for quarterbacks), and likely for a player nobody wants (${rt.map(x => x.toFixed(2)).join(", ")})`);
+  // Ten years of the league on paper
+  const yrs = [];
+  for (let y = 0; y < 10; y++) {
+    g(`inWorld(L, () => { proSeasonOnPaper(); proNextSeason(); globalThis.L = SEASON; })`);
+    yrs.push(g(`inWorld(L, () => { const ts = Object.values(L.schools).map(proRoster), ages = ts.flatMap(s => s.players.map(p => p.age)); return { r: ts.reduce((t, s) => t + (schoolRating(s).off + schoolRating(s).def) / 2, 0) / 32, used: ts.reduce((t, s) => t + capUsed(s), 0) / 32 / L.cap, age: ages.reduce((a, b) => a + b, 0) / ages.length, n: ts.every(s => s.players.length === 53 && s.ps.length <= 16), size: JSON.stringify(L).length }; })`));
+  }
+  const last = yrs[yrs.length - 1];
+  ok(yrs.every(y => y.r > 72 && y.r < 79), `the league's talent holds steady over ten years (starters ${yrs.map(y => y.r.toFixed(1)).join(", ")})`);
+  ok(yrs.every(y => y.used > .85 && y.used < 1.08), `payrolls stay near the cap (${yrs.map(y => Math.round(y.used * 100)).join(", ")} percent)`);
+  ok(yrs.every(y => y.age > 24 && y.age < 28) && yrs.every(y => y.n), `ages stay pro-like (${last.age.toFixed(1)}), with 53 and a practice squad on every team`);
+  ok(g("L.cap") > 450e6 && g("L.cap") < 600e6, `the cap grows about 6 percent a year (${g("bigMoney(L.cap)")} in ${g("L.year")})`);
+  ok(last.size < 400000, `the league stays small to save (${Math.round(last.size / 1000)} KB)`);
+}
+
+// ---- Step 3: your roster, cutdown day and injured reserve ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId); proSetExpectations(); APP.screen = "season"; })()`);
+  ok(g("mySchool().players.length") === 53 && g("mySchool().ps.length") === 16 && g("mySchool().ps.every(p => !!p.ct)"), "your team comes in full: 53 and its practice squad, with contracts");
+  ok(/The salary cap/.test(g("vPSeason()")) && g(`(() => { act("cap"); return APP.screen; })()`) === "cap" && /committed/.test(g("vCap()")) && /The biggest contracts/.test(g("vCap()")), "the cap screen: room, commitments and the biggest contracts");
+  const pl = g(`(() => { const p = mySchool().players[0]; APP.view = { ctx: "season", team: SEASON.myId, back: "season" }; APP.view.player = p.id; return vPlayer(); })()`);
+  ok(/Contract: \$/.test(pl) && /age \d+/.test(pl), "a player's screen: his age, his season and his contract");
+  const ros = g(`(() => { seasonRoster(SEASON.myId); return vRoster(); })()`);
+  ok(/Practice squad/.test(ros) && /Not on the depth chart/.test(ros), "the roster screen: the depth chart, everyone else, and the practice squad");
+  ok(g(`gameDay(mySchool()).players.filter(p => !p.inj).length`) === 48 && g("inactives(mySchool()).length") === 5, "48 dress on game day, and 5 sit");
+  // Cutdown day at the end of camp
+  g(`(() => { const s = mySchool(), gg = dice(4); for (let k = 0; k < 20; k++) s.players.push(streetPlayer(gg, "camp" + k, 55, "WR")); })()`);
+  g("simCamp()");
+  ok(g("mySchool().players.length") === 53 && g("mySchool().ps.length") <= 16 && g("SEASON.cutdown.cut.length") >= 15, `cutdown day: 53 kept, the practice squad, and the rest let go (${g("SEASON.cutdown.cut.length")})`);
+  ok(/Cutdown day/.test(g("vPSeason()")), "and the season screen says so");
+  // Injured reserve
+  const ir = g(`(() => { const s = mySchool(), p = s.players.find(x => x.pos === "WR"); p.inj = { w: 6, at: "game" }; const r = proIR(s, 3); return { on: r.on.length, act: onActive(s).length, ps: s.ps.length, id: p.id }; })()`);
+  ok(ir.on === 1 && ir.act === 53, "a player out six weeks goes on injured reserve, and a practice squad player takes his spot");
+  const back = g(`(() => { const s = mySchool(), p = playerById(s, "${ir.id}"); delete p.inj; const early = proIR(s, 5).back.length; const r = proIR(s, 7); return { early, back: r.back.length, act: onActive(s).length, ir: !!p.ir }; })()`);
+  ok(back.early === 0 && back.back === 1 && back.act === 53 && !back.ir, "he comes back after four games, and the player who took his spot goes back");
+  // The season, then a year on
+  g(`simSeason()`);
+  g(`act("offseason")`);
+  let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const s = g("APP.screen"); g(s === "review" ? `act("carousel")` : s === "carousel" ? `act("market")` : s === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
+  if (!g("SEASON.review.fired")) {
+    const ages = g("mySchool().players.map(p => p.id + ':' + p.age)");
+    g(`act("nextyear")`);
+    const R = g("SEASON.yearReport");
+    ok(R && R.pro && Array.isArray(R.grads) && R.fresh.length >= 5 && R.spring, `the new year: retirements (${R.grads.length}), rookies (${R.fresh.length}), and the offseason program`);
+    ok(/Retired/.test(g("vNewYear()")) && /Rookies/.test(g("vNewYear()")), "and its screen");
+    ok(g(`mySchool().players.length`) > 53, `camp opens with more than 53 (${g("mySchool().players.length")})`);
+    ok(g(`(() => { const before = Object.fromEntries(${JSON.stringify(ages)}.map(x => x.split(":"))); return mySchool().players.filter(p => before[p.id] != null).every(p => p.age === +before[p.id] + 1); })()`), "and everyone who stayed is a year older");
+  }
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 if (fails) process.exit(1);

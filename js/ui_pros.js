@@ -62,6 +62,7 @@ function vPSeason() {
       <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
       <p class="muted">${esc(proStatus())}</p>
     </div>
+    ${cutdownPanel()}
     ${main}
     ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>` : ""}
     ${lastPanel}
@@ -69,6 +70,7 @@ function vPSeason() {
     <section class="panel"><h3>The season</h3>
       <div class="choices"><button class="btn ghost" data-a="standings">Standings and the playoff picture</button>${SEASON.post ? `<button class="btn ghost" data-a="bracket">The playoff</button>` : ""}</div>
       <div class="choices"><button class="btn ghost" data-a="schedule">Schedule and stats</button>${gm && !played(gm) && !live && !camp ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`}<button class="btn ghost" data-a="coach">Your coach</button></div>
+      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button></div>
     </section>
     ${simBtn && !live ? `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>`
       : camp ? `<button class="btn ghost" data-a="campsim">${confirming === "campsim" ? "Tap again to sim the rest of camp" : "Sim the rest of camp"}</button>` : ""}`;
@@ -180,4 +182,30 @@ function vPOffseason() {
     ${gone ? "" : `<section class="panel"><h3>The offseason program</h3><p>${esc("Four weeks of practice with your plan. Opponent prep time goes into install.")}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;
+}
+
+/* ---------- The salary cap ---------- */
+// One line on the cap, then next year, the biggest contracts, the ones ending this year, and the dead money
+function vCap() {
+  const s = mySchool(), all = s.players.concat(teamPS(s)), used = capUsed(s), room = capRoom(s);
+  const line = p => `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}, ${yearName(p)}: ${proContractText(p)}`;
+  const big = all.filter(p => p.ct).sort((a, b) => capHit(b) - capHit(a)).slice(0, 12), ending = all.filter(p => ctYears(p) === 1 && !teamPS(s).includes(p)).sort((a, b) => capHit(b) - capHit(a));
+  const list = arr => `<ul class="hlist">${arr.map(p => `<li><button class="rowbtn" data-a="player" data-v="${p.id}">${esc(line(p))}</button></li>`).join("")}</ul>`;
+  return `
+    <div class="masthead" style="--team:${s.color}">
+      <p class="eyebrow">${esc(`${SEASON.year} · ${nameOf(s.id)}`)}</p>
+      <h2 data-focus tabindex="-1">The salary cap</h2>
+      <p class="muted">${esc(`The cap is ${bigMoney(capNow())} this year${s.carry ? `, plus ${bigMoney(s.carry)} carried over from last year` : ""}. ${bigMoney(used)} committed${s.dead ? `, ${bigMoney(s.dead)} of it dead money` : ""}. ${room >= 0 ? `${bigMoney(room)} of room` : `${bigMoney(-room)} over the cap`}.`)}</p>
+    </div>
+    <section class="panel"><h3>Next year</h3><p>${esc(`${bigMoney(capNext(s))} already committed for ${SEASON.year + 1}, against a cap of about ${bigMoney(capFor(SEASON.year + 1, capNow()))}.`)}</p></section>
+    <section class="panel"><h3>The biggest contracts</h3>${list(big)}</section>
+    ${ending.length ? `<section class="panel"><h3>Ending after this season</h3><p class="muted">Players with four or more seasons become free agents. The rest can be kept a year at their pay plus 10 percent.</p>${list(ending)}</section>` : ""}
+    <section class="panel"><h3>How it works</h3><p>${esc(`A player's pay this year is his cap hit. When a player is cut, whatever's left of his guarantee counts against this year's cap as dead money, all at once. Unused cap space carries over to next year. The minimum salary goes from ${bigMoney(proMin(0))} for a rookie to ${bigMoney(proMin(7))} for a player with seven seasons or more.`)}</p></section>
+    <button class="btn ghost" data-a="back">Back</button>`;
+}
+// Cutdown day, on the season screen until your first game
+function cutdownPanel() {
+  const C = SEASON.cutdown;
+  if (!C || SEASON.week > 1 || inCamp()) return "";
+  return `<section class="panel"><h3>Cutdown day</h3><p>${esc(`Your staff kept the best ${PRO_ACTIVE} and put ${C.ps} on the practice squad. ${C.cut.length ? `Let go: ${plural(C.cut.length, "player")}${C.dead ? `, with ${bigMoney(C.dead)} of dead money` : ""}.` : ""}${C.freed.length ? ` Released to get under the cap: ${andList(C.freed)}.` : ""}`)}</p>${C.cut.length ? `<details><summary>Who was let go</summary><ul class="hlist">${C.cut.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>` : ""}</section>`;
 }

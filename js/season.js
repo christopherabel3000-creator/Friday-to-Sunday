@@ -552,7 +552,11 @@ function campNext() {
   holdPractice();
   endOfCamp();
   SEASON.camp++;
-  if (SEASON.camp > SEASON.pre) { SEASON.phase = "regular"; SEASON.camp = 0; SEASON.expect = talentRank(SEASON.myId); }
+  if (SEASON.camp > SEASON.pre) {
+    // The pros: cutdown day, to 53 and the practice squad (pcap.js)
+    if (inPros()) { const me = mySchool(), cd = cutdown(me); cd.freed = getUnderCap(me); SEASON.cutdown = { cut: cd.cut.map(p => `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}`), ps: cd.ps.length, dead: cd.dead, freed: cd.freed.map(fullName) }; }
+    SEASON.phase = "regular"; SEASON.camp = 0; SEASON.expect = talentRank(SEASON.myId);
+  }
   return true;
 }
 // The rest of camp, every practice held with your plan. Returns the week's practice reports.
@@ -631,7 +635,7 @@ function simFullGame(gm) {
   const keep = S, kt = kickTD, ke = kickEnded;
   try {
     const hs = seasonSchool(gm.h), as = seasonSchool(gm.a);
-    initGame({ level: gameLevel(), cpu: [true, true], title: !!gm.title, neutral: !!gm.neutral, post: !!gm.post }, [hs, as]);
+    initGame({ level: gameLevel(), cpu: [true, true], title: !!gm.title, neutral: !!gm.neutral, post: !!gm.post }, [gameDay(hs), gameDay(as)]);
     for (let i = 0; i < 8000 && S.phase !== "final"; i++) autoStep();
     Object.assign(gm, { hs: S.teams[0].score, as: S.teams[1].score, ot: Math.max(0, S.quarter - 4) });
     // Injuries stay with the schools that keep their rosters
@@ -662,7 +666,8 @@ function startMyGame() {
   const gm = myGameIn(SEASON.week);
   if (!gm || played(gm) || inCamp()) return false;
   holdPractice();
-  initGame(myGameConfig(gm), [seasonSchool(gm.h), seasonSchool(gm.a)]);
+  // (a pro team dresses 48: pcap.js)
+  initGame(myGameConfig(gm), [gameDay(seasonSchool(gm.h)), gameDay(seasonSchool(gm.a))]);
   S.season = { seed: SEASON.seed, week: SEASON.week, my: SEASON.myId };
   const me = S.teams.findIndex(t => t.id === SEASON.myId), P = SEASON.practice;
   if (P && P.film && P.opp === S.teams[1 - me].id) {
@@ -692,6 +697,8 @@ function recordMyGame() {
   const me = S.teams.findIndex(t => t.id === SEASON.myId);
   injLog(SEASON.week).game = S.teams[me].players.filter(p => p.inj && !playerById(mySchool(), p.id).inj).map(p => p.id);
   S.teams.forEach(t => { const s = SEASON.schools[t.id]; if (isFull(s)) keepInjuries(t, s); });
+  // The pros: injured reserve, for players out four weeks or more (pcap.js)
+  if (inPros()) { const ir = proIR(mySchool(), SEASON.week); injLog(SEASON.week).ir = { on: ir.on.map(fullName), back: ir.back.map(fullName) }; }
   keepFilm(me);
   S.teams.find(t => t.id === SEASON.myId).players.forEach(p => {
     const st = S.ps[p.id];

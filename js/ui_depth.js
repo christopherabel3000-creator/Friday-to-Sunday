@@ -154,7 +154,22 @@ function vRoster() {
     <div class="choices"><button class="btn ghost" data-a="back">${back}</button>${other != null ? `<button class="btn ghost" data-a="rteam" data-t="${other}">${esc(teamMascot(depthTeam(other)))} roster</button>` : ""}</div>
     ${edit ? rosterControls(i) : ""}
     ${DEPTH_GROUPS.map(sec).join("")}
+    ${!game && isPro(tm.cls) ? proRosterExtras(tm) : ""}
     <button class="btn ghost" data-a="back">${back}</button>`;
+}
+// A pro team's roster beyond the depth chart: everyone else on the 53, who sits on game day, injured
+// reserve and the practice squad (pcap.js)
+function proRosterExtras(tm) {
+  const onDepth = new Set();
+  for (const pos in tm.depth) (tm.depth[pos] || []).forEach(id => onDepth.add(id));
+  const ps = teamPS(tm), ir = tm.players.filter(p => p.ir), act = onActive(tm), rest = act.filter(p => !onDepth.has(p.id)), out = SEASON && !inCamp() ? inactives(tm) : [];
+  const row = p => `<li><button class="rowbtn" data-a="player" data-v="${p.id}">${esc(`${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}, ${yearName(p)}.${p.ct ? ` ${bigMoney(capHit(p))}.` : ""}`)}</button></li>`;
+  const list = (h, arr, note) => arr.length ? `<section class="panel"><h3>${h}</h3>${note ? `<p class="muted">${esc(note)}</p>` : ""}<ol class="roster">${arr.sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)).map(row).join("")}</ol></section>` : "";
+  return `<section class="panel"><h3>The roster</h3><p>${esc(`${plural(act.length, "player")} ${inCamp() ? "in camp" : "on the roster"}${inCamp() ? ` (cutdown day at the end of camp leaves ${PRO_ACTIVE})` : ""}, ${ps.length} on the practice squad${ir.length ? `, ${ir.length} on injured reserve` : ""}.${tm.id === (SEASON && SEASON.myId) ? ` Cap room: ${bigMoney(capRoom(tm))}.` : ""}`)}</p>${tm.id === (SEASON && SEASON.myId) ? `<button class="btn ghost" data-a="cap">The salary cap</button>` : ""}</section>
+    ${list("Not on the depth chart", rest)}
+    ${list("Inactive on game day", out, `${PRO_DRESS} players dress for a game. These ${out.length} sit.`)}
+    ${list("Injured reserve", ir, "Out four weeks or more. Their roster spots are free, and they can come back after four games.")}
+    ${list("Practice squad", ps, "They practice with the team and can be called up when the team is short.")}`;
 }
 
 /* ---------- Changing one position ---------- */
@@ -217,6 +232,7 @@ function vPlayer() {
       <h3>Overall</h3>
       <ul class="hlist">${shown.map(pos => `<li>${capFirst(posName(pos))} ${ovr(p, pos)}</li>`).join("")}
         <li>Next best fits: ${others.map(([pos, v]) => `${posName(pos)} ${v}`).join(", ")}</li></ul>
+      ${p.ct && isPro(tm.cls) ? `<p>${esc(`${p.ir ? "On injured reserve. " : teamPS(tm).some(q => q.id === p.id) ? "On the practice squad. " : ""}Contract: ${proContractText(p)}${p.pick ? ` Drafted in round ${p.pick.rd} in ${p.pick.year}, pick ${p.pick.n}.` : ""}`)}</p>` : ""}
       ${mineInSeason && SEASON.lvl === "col" && REC_LV[SEASON.schools[SEASON.myId].cls] ? `<p>${esc(`Paid ${moneyText(p.pay || 0)} a year in revenue sharing and NIL. Fair pay here: about ${moneyText(fairPay(p, SEASON.schools[SEASON.myId]))}.`)}</p>` : ""}
       <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}, grades ${gradesOf(p)}.</p>
       ${p.o0 != null && mineInSeason && ovr(p, p.pos) > p.o0 ? `<p>Up from ${p.o0} at ${slotName(p.pos)} since the start of the season.</p>` : ""}

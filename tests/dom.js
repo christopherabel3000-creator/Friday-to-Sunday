@@ -782,6 +782,12 @@ function checkScreen(page, label) {
   tap(pp, "standings");
   ok(/Standings/.test(headp()) && dp.querySelectorAll("table").length === 8 && /if the season ended today/.test(dp.body.textContent), "standings: eight divisions and the playoff picture");
   checkScreen(pp, "pro standings");
+  tap(pp, "back"); tap(pp, "cap");
+  ok(/The salary cap/.test(headp()) && /committed/.test(dp.body.textContent), "the salary cap screen");
+  checkScreen(pp, "pro salary cap");
+  tap(pp, "back"); tap(pp, "sroster", ep("SEASON.myId"));
+  ok(/Practice squad/.test(dp.body.textContent) && /Inactive on game day/.test(dp.body.textContent), "the pro roster: the depth chart, game day and the practice squad");
+  checkScreen(pp, "pro roster");
   tap(pp, "back"); tap(pp, "schedule");
   ok(/Schedule and stats/.test(headp()) && /bye/.test(dp.body.textContent), "your schedule, with your bye");
   checkScreen(pp, "pro schedule");

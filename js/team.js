@@ -145,7 +145,8 @@ const ROSTER_MAPS = new WeakMap();
 function playerById(team, id) {
   let m = ROSTER_MAPS.get(team.players);
   if (!m || m.size !== team.players.length) { m = new Map(team.players.map(p => [p.id, p])); ROSTER_MAPS.set(team.players, m); }
-  return m.get(id);
+  // (a pro team's practice squad, for its roster screens)
+  return m.get(id) || (Array.isArray(team.ps) ? team.ps.find(p => p.id === id) : undefined);
 }
 // Where a player is on the depth chart: { starts: [slots], backs: [slots] }
 function depthRoles(team, p) {
