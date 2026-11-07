@@ -94,6 +94,7 @@ function vNewYear() {
     </div>
     ${R.col && R.spring ? `<section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan: ${plural(R.spring.n, "player")} improved.${R.spring.mastery.length ? ` Plays learned: ${R.spring.mastery.map(([id, a, b]) => `${playName(id)} ${a} to ${b}`).join(", ")}.` : ""}`)}</p></section>` : ""}
     ${R.col && R.pros.length ? `<section class="panel"><h3>Left early for the pros</h3>${list(R.pros.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.`))}</section>` : ""}
+    ${(R.drafted || []).length ? `<section class="panel"><h3>Your former players in the pro draft</h3>${list(R.drafted)}</section>` : ""}
     <section class="panel"><h3>${R.col ? "Out of eligibility" : "Graduated"}</h3>${R.grads.length ? list(R.grads.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.${x.col ? ` On to ${x.col}.` : ""}`)) : "<p>Nobody graduated.</p>"}</section>
     ${(R.offers || []).length ? `<section class="panel"><h3>Offers from team camp</h3>${list(R.offers)}</section>` : ""}
     ${R.left.length ? `<section class="panel"><h3>Left the team</h3>${list(R.left.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.why}.`))}</section>` : ""}
@@ -117,6 +118,7 @@ function proNewYear(R, s, fresh, grew, rank, list) {
       <p class="muted">${talentText(s.rating)} ${rank === 1 ? "The best starters" : rank <= 4 ? `The ${ordWord(rank - 1)}-best starters` : `Starters ranked ${rank}th`} in the ${esc(proDivName(s.id))}. ${plural(onActive(s).length, "player")} in camp: cutdown day at the end of camp leaves ${PRO_ACTIVE}. ${esc(`Cap room: ${bigMoney(capRoom(s))}.`)}</p>
     </div>
     ${R.spring ? `<section class="panel"><h3>The offseason program</h3><p>${esc(`Four weeks with your practice plan: ${plural(R.spring.n, "player")} improved.${R.spring.mastery.length ? ` Plays learned: ${R.spring.mastery.map(([id, a, b]) => `${playName(id)} ${a} to ${b}`).join(", ")}.` : ""}`)}</p></section>` : ""}
+    ${(R.drafted || []).length ? `<section class="panel"><h3>Your former players in the draft</h3>${list(R.drafted)}</section>` : ""}
     <section class="panel"><h3>Retired</h3>${R.grads.length ? list(R.grads.map(who)) : "<p>Nobody retired.</p>"}</section>
     ${R.left.length ? `<section class="panel"><h3>Let go</h3><p class="muted">Their contracts ran out and they weren't kept, or they were released to get under the cap.</p>${list(R.left.map(who))}</section>` : ""}
     ${(R.kept || []).length ? `<section class="panel"><h3>Kept, with new contracts</h3>${list(R.kept.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.ct}`))}</section>` : ""}

@@ -366,34 +366,11 @@ function getUnderCap(s) {
   return freed;
 }
 
-/* ---------- The draft, for now ---------- */
-// (Step 5 brings the real draft, from the college world.) Each year about 230 rookies come in, seven
-// rounds' worth, the worst teams picking first. Each gets a four-year rookie contract by where he was
-// picked: the 2026 scale, about $54.6 million over four years for the first pick, $16.1 million for
-// the last of the first round, and $4.4 million for the last pick of the draft.
+/* ---------- Rookie contracts ---------- */
+// Each drafted rookie gets a four-year contract by where he was picked: the 2026 scale, about $54.6
+// million over four years for the first pick, $16.1 million for the last of the first round, and
+// $4.4 million for the last pick of the draft (pdraft.js).
 function rookieScale(pick) {
   const total = pick <= 32 ? 54.6e6 - (54.6e6 - 16.1e6) * (pick - 1) / 31 : Math.max(4.4e6, 16.1e6 * Math.pow(pick / 32, -.75));
   return Math.round(total * capScale() / 4 / 5000) * 5000;
-}
-function proRookies(year, order) {
-  const g = dice(hashSeed(`${SEASON.world}:${year}:rookies`)), pool = [];
-  const archs = ["passer", "dual", "runner", "speed", "speed", "bigath", "lineman", "lineman", "lineman", "backer", "backer", "dback", "dback", "kicker"];
-  for (let k = 0; k < 340; k++) {
-    const p = genPlayer(g, { id: `r${year}n${k}`, arch: g.pick(archs), yr: 13, level: CLASS_LEVEL.PRO - 5, last: g.pick(LAST_NAMES) });
-    if (p.pos2 && posSide(p.pos2) !== posSide(p.pos)) p.pos2 = null;
-    p.age = g.i(21, 23); p.exp = 0;
-    proPotential(p, g);
-    pool.push(p);
-  }
-  pool.sort((a, b) => (b.pot + ovr(b, b.pos)) - (a.pot + ovr(a, a.pos)));
-  const picks = {}, n = order.length;
-  order.forEach(id => { picks[id] = []; });
-  for (let r = 0; r < 7; r++) order.forEach((id, i) => {
-    const p = pool.shift(); if (!p) return;
-    const pick = r * n + i + 1;
-    p.ct = makeContract(rookieScale(pick), 4, { rk: true, g: pick <= 32 ? 1 : pick <= 64 ? .5 : .1, o5: pick <= 32 });
-    p.pick = { year, n: pick, rd: r + 1 };
-    picks[id].push(p);
-  });
-  return picks;
 }

@@ -400,6 +400,9 @@ function newProSeason(seed, year, prev) {
   se.weeks = makeProSchedule(se, g, se.places);
   nameWorld(se);
   inWorld(se, proSetExpectations);
+  // Next spring's draft class, scouted all season (pdraft.js)
+  se.formers = prev ? prev.formers : [];
+  se.draft = inWorld(se, () => newProDraft(year + 1));
   return se;
 }
 
@@ -474,7 +477,9 @@ function proFinishWeek() {
   proAfterWeek(n);
   proPostXP(n);
   proNews(n);
-  if (SEASON.phase === "over") seasonEndXP(n);
+  // Your staff scouts the draft class (pdraft.js); the combine comes after the season
+  if (SEASON.draft) { scoutWeek(); if (CAREER && CAREER.job && CAREER.job.lvl === "pro" && (!CAREER.job.ctl || CAREER.job.staff.board)) staffBoard(SEASON.draft, myNeeds()); }
+  if (SEASON.phase === "over") { seasonEndXP(n); if (SEASON.draft) combine(SEASON.draft); }
   return n;
 }
 // XP when the regular season ends: a playoff spot, and the division title
@@ -521,6 +526,7 @@ function proTakeOver(id) {
   s.players.forEach(p => { p.o0 = ovr(p, p.pos); });
   s.depth = autoDepth(s); s.rating = schoolRating(s);
   Object.assign(SEASON, { myId: id, districts: [{ n: 1, ids: [id] }], district: 1, phase: "preseason", camp: 1 });
+  if (SEASON.draft && !SEASON.draft.board.length) staffBoard(SEASON.draft, teamNeeds(s));
   return s;
 }
 
@@ -535,15 +541,18 @@ function proNextSeason() {
     if (s.trad0 == null) s.trad0 = s.trad;
     s.trad = newTradition(s, r.w, r.l, r.pw, !!r.ch);
   }
-  // The draft order: the worst records first, then the playoff teams by how far they went
-  const pw = id => old.results[id].pw + (old.results[id].po ? 1 : 0) + (old.results[id].ch ? 2 : 0);
-  const order = Object.keys(old.schools).sort((a, b) => pw(a) - pw(b) || recPct(proRecord(a, PRO_REG)) - recPct(proRecord(b, PRO_REG)) || (hashSeed(old.seed + a) % 997) - (hashSeed(old.seed + b) % 997));
-  old.order = order;
+  // The draft (pdraft.js): whatever's left of it is made now, by the computer GMs, your staff or your GM
+  const D = old.draft || inWorld(old, () => newProDraft(old.year + 1));
+  inWorld(old, () => { draftAddFormers(D); combine(D); runDraft(old, D, false); });
+  const order = proDraftOrder(old);
+  old.drafted = inWorld(old, () => formersDrafted(D, old));
   // Every team's year (pcap.js), with the new year's cap in place
   const cap = capFor(old.year + 1, old.cap, dice(hashSeed(`${old.world}:${old.year + 1}:cap`)));
   let mine = null;
   inWorld(Object.assign({}, old, { cap }), () => {
-    const rookies = proRookies(old.year + 1, order);
+    // (rookie contracts at the new year's scale)
+    const drafted = draftedBy(D), udfa = undrafted(D, order.slice().reverse()), rookies = {};
+    order.forEach(id => { rookies[id] = (drafted[id] || []).concat(udfa[id] || []); });
     for (const id in old.schools) {
       const sum = old.schools[id], full = isFull(sum), s = full ? sum : proRoster(sum), rng = seededRandom(hashSeed(`${old.world}:${old.year}:${id}:year`));
       const J = full && CAREER && CAREER.job && CAREER.job.lvl === "pro" ? CAREER.job : null;
@@ -568,11 +577,12 @@ function proNextSeason() {
   SEASON = se;
   REBUILT.clear();
   proSetExpectations();
+  if (me && se.draft) inWorld(se, () => staffBoard(se.draft, teamNeeds(se.schools[me])));
   if (me && mine) {
     const who = p => ({ name: fullName(p), pos: p.pos, ovr: ovr(p, p.pos), age: p.age, stats: careerStatLine(p.cs) });
     const best = list => list.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
     se.yearReport = { pro: true, from: old.year, grads: best(mine.retired).map(who), left: best(mine.left.concat(mine.freed)).map(who), kept: best(mine.kept).map(p => Object.assign(who(p), { ct: proContractText(p) })),
-      fresh: mine.rookies.map(p => p.id), joined: [], grew: mine.grew.slice(0, 10), went: 0, offers: [],
+      fresh: mine.rookies.map(p => p.id), joined: [], grew: mine.grew.slice(0, 10), went: 0, offers: [], drafted: old.drafted || [],
       spring: mine.spring ? { mastery: mine.spring.mastery.slice(0, 8), n: Object.keys(mine.spring.grew).length } : null };
   }
   return se;
@@ -584,6 +594,8 @@ function proWorldNextYear() {
   const next = inWorld(W, () => { if (W.phase !== "over") proSeasonOnPaper(); proNextSeason(); return SEASON; });
   next.phase = "regular"; next.camp = 0; next.cpuWeek = 0;
   setWorld(W, next);
+  // Your former players in the draft go in your new year's report
+  if (W.drafted && W.drafted.length && SEASON.yearReport) SEASON.yearReport.drafted = W.drafted;
 }
 
 /* ---------- The pro job ---------- */
@@ -745,3 +757,6 @@ function gmReviewPanel() {
   if (!J.ctl) lines.push(`General manager ${gm.first} ${gm.last}. ${standingWord(J.gms)} (Your standing with him: ${Math.round(J.gms)}.)`);
   return lines.length ? `<section class="panel"><h3>The front office</h3>${lines.map(t => `<p>${esc(t)}</p>`).join("")}</section>` : "";
 }
+
+// Your needs for the draft and free agency: the ones you named for the GM, or the roster's own
+const myNeeds = () => { const R = CAREER && CAREER.job && CAREER.job.req; return R && R.needs.length ? R.needs : SEASON.myId ? teamNeeds(mySchool()) : []; };

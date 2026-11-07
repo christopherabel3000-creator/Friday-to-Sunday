@@ -173,7 +173,8 @@ function plain(g, extra) {
 // ---- Step 3: pro players and the cap ----
 {
   const sb = load(), g = sb.__get;
-  g(`globalThis.L = newProSeason(5, 2026)`);
+  // (a whole world, so the draft has the college world to come from)
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(5, 2026); globalThis.L = THIRD;`);
   const c = g(`inWorld(L, () => { const out = []; for (const id in L.schools) { const s = proRoster(L.schools[id]); out.push({ used: capUsed(s), ps: s.ps.length, all: s.players.every(p => p.ct && p.ct.y.length >= 1 && p.ct.y.every(v => v >= proMin(p.exp))) && s.ps.every(p => capHit(p) === PS_PAY), n: s.players.length }); } return out; })`);
   ok(g("L.cap") === 301200000, "the 2026 cap is the real $301.2 million");
   ok(c.every(x => x.all), "every player has a contract, never under his minimum, and the practice squad is paid $13,750 a week");
@@ -196,7 +197,7 @@ function plain(g, extra) {
   // Ten years of the league on paper
   const yrs = [];
   for (let y = 0; y < 10; y++) {
-    g(`inWorld(L, () => { proSeasonOnPaper(); proNextSeason(); globalThis.L = SEASON; })`);
+    g(`inWorld(L, () => { proSeasonOnPaper(); })`); g(`proWorldNextYear(); globalThis.L = THIRD;`);
     yrs.push(g(`inWorld(L, () => { const ts = Object.values(L.schools).map(proRoster), ages = ts.flatMap(s => s.players.map(p => p.age)); return { r: ts.reduce((t, s) => t + (schoolRating(s).off + schoolRating(s).def) / 2, 0) / 32, used: ts.reduce((t, s) => t + capUsed(s), 0) / 32 / L.cap, age: ages.reduce((a, b) => a + b, 0) / ages.length, n: ts.every(s => s.players.length === 53 && s.ps.length <= 16), size: JSON.stringify(L).length }; })`));
   }
   const last = yrs[yrs.length - 1];
@@ -204,7 +205,7 @@ function plain(g, extra) {
   ok(yrs.every(y => y.used > .85 && y.used < 1.08), `payrolls stay near the cap (${yrs.map(y => Math.round(y.used * 100)).join(", ")} percent)`);
   ok(yrs.every(y => y.age > 24 && y.age < 28) && yrs.every(y => y.n), `ages stay pro-like (${last.age.toFixed(1)}), with 53 and a practice squad on every team`);
   ok(g("L.cap") > 450e6 && g("L.cap") < 600e6, `the cap grows about 6 percent a year (${g("bigMoney(L.cap)")} in ${g("L.year")})`);
-  ok(last.size < 400000, `the league stays small to save (${Math.round(last.size / 1000)} KB)`);
+  ok(last.size < 520000, `the league, its next draft class included, stays small to save (${Math.round(last.size / 1000)} KB)`);
 }
 
 // ---- Step 3: your roster, cutdown day and injured reserve ----
@@ -350,6 +351,83 @@ function plain(g, extra) {
   g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
   const n = g(`(() => { Object.values(OTHER.schools).filter(s => s.cls === "P4").forEach(s => { coachCareer(s.coach, s); s.coach.rep = 90; }); let up = 0; inWorld(THIRD, () => { for (let i = 0; i < 20; i++) { SEASON.seed++; if (colCoachUp({ id: "p" + i })) up++; } }); return up; })()`);
   ok(n > 3, `pro teams hire the best power-conference coaches now and then (${n} of 20)`);
+}
+
+// ---- Step 5: the draft ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  const pool = g(`inWorld(THIRD, () => { const D = THIRD.draft, ps = Object.keys(D.byId).map(id => draftProspect(D, id)), o = ps.map(p => ovr(p, p.pos)).sort((a, b) => b - a), cols = ps.map(p => OTHER.schools[p.cid]).filter(Boolean);
+    return { n: ps.length, year: D.year, top: o[0], mid: o[223], p4: cols.filter(c => c.cls === "P4").length / cols.length, ages: ps.every(p => p.age >= 21 && p.age <= 23), cols: ps.every(p => !!p.col), ranges: ps.every(p => { const [lo, hi] = prospectRange(p); return hi - lo === 8; }) }; })`);
+  ok(pool.n >= 350 && pool.n <= 460 && pool.year === 2027, `next spring's class: about 400 prospects (${pool.n}) for the ${pool.year} draft`);
+  ok(pool.p4 > .5 && pool.cols, `from programs across the college world, most from the power conferences (${Math.round(pool.p4 * 100)} percent)`);
+  ok(pool.top >= 78 && pool.mid >= 55 && pool.mid <= 68 && pool.ages, `the best are ready to start, the late picks are projects (best ${pool.top}, the 224th ${pool.mid}), ages 21 to 23`);
+  ok(pool.ranges, "every prospect starts as a range 8 points wide");
+  // Scouting narrows it
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, true); proSetExpectations(); APP.screen = "season"; })()`);
+  ok(g("SEASON.draft.board.length") === 40, "your staff fills your board with 40");
+  const top = g("SEASON.draft.board[0]"), low = g("SEASON.draft.board[39]");
+  g(`act("dprospect", { v: "${top}" }); act("dpri", { v: 3 })`);
+  ok(g(`SEASON.draft.pri["${top}"]`) === 3, "a top scouting priority");
+  const w0 = g(`draftProspect(SEASON.draft, "${top}").sc.w`);
+  g("simCamp()");
+  for (let i = 0; i < 6; i++) g(`(() => { const gm = myGameIn(SEASON.week); if (gm && !played(gm)) simMyGame(); finishWeek(); })()`);
+  const wt = g(`draftProspect(SEASON.draft, "${top}").sc.w`), wl = g(`draftProspect(SEASON.draft, "${low}").sc.w`);
+  ok(wt < w0 && wt < wl, `scouting narrows the range, faster for a top priority (${w0} to ${wt.toFixed(1)}, against ${wl.toFixed(1)})`);
+  ok(g(`(() => { const p = draftProspect(SEASON.draft, "${top}"), [lo, hi] = prospectRange(p), o = ovr(p, p.pos); return Math.abs((lo + hi) / 2 - o) <= Math.abs(p.sc.b) + .5; })()`), "and moves the estimate toward the truth");
+  g(`act("dbmove", { v: "down" })`);
+  ok(g(`SEASON.draft.board[1]`) === top, "moving a prospect down your board");
+  g(`act("dbmove", { v: "top" })`);
+  ok(g(`SEASON.draft.board[0]`) === top, "and back to the top");
+  g("simSeason()");
+  ok(g("SEASON.draft.cmb") && /40-yard dash/.test(g(`combineText(draftProspect(SEASON.draft, "${top}"))`)), "the combine after the season: the 40, the bench and the vertical");
+  ok(g(`draftProspect(SEASON.draft, "${top}").sc.w`) < wt, "and the ranges narrow again");
+  g(`act("offseason")`);
+  let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const sc = g("APP.screen"); g(sc === "review" ? `act("carousel")` : sc === "carousel" ? `act("market")` : sc === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
+  if (!g("SEASON.review.fired")) {
+    g(`act("draftroom")`);
+    const P = g("SEASON.draft.picks");
+    ok(g("APP.screen") === "draftroom" && P.length === 224 && P.slice(0, 32).every((pk, i) => pk.rd === 1 && pk.n === i + 1), "the draft room: seven rounds of 32");
+    const ord = g(`proDraftOrder(SEASON)`), first = g(`(() => { const o = proDraftOrder(SEASON); return [recPct(proRecord(o[0], PRO_REG)), recPct(proRecord(o[13], PRO_REG)), o[31] === SEASON.post.champ, SEASON.post.A.seeds.concat(SEASON.post.P.seeds).includes(o[20])]; })()`);
+    ok(first[0] <= first[1] && first[2] && first[3], "the order: worst records first, then the playoff teams by how far they went, the champion last");
+    void ord;
+    g(`act("dsim")`);
+    const cur = g("SEASON.draft.picks[SEASON.draft.cur]");
+    ok(cur.team === g("SEASON.myId"), `simming to your pick (${cur.n})`);
+    ok(/You're on the clock/.test(g("vDraftRoom()")) && /Take /.test(g("vDraftRoom()")), "you're on the clock, with the best of your board to take");
+    const want = g(`SEASON.draft.board.find(id => !draftTaken(SEASON.draft).has(id))`);
+    g(`act("dtake", { v: "${want}" })`);
+    ok(g(`SEASON.draft.picks.find(pk => pk.n === ${cur.n}).pid`) === want, "taking him");
+    g(`act("dsimall"); act("dsimall")`);
+    ok(g("SEASON.draft.done") && g(`SEASON.draft.picks.every(pk => !!pk.pid)`) && g(`new Set(SEASON.draft.picks.map(pk => pk.pid)).size`) === 224, "the rest of the draft: every pick made, nobody picked twice");
+    const val = g(`(() => { const D = SEASON.draft, o = pk => { const p = draftProspect(D, pk.pid); return ovr(p, p.pos) + p.pot; }, a = D.picks.slice(0, 32).map(o), b = D.picks.slice(192).map(o); return [avg(a), avg(b)]; })()`);
+    ok(val[0] > val[1] + 10, `first-rounders are better than seventh-rounders (${val.map(x => x.toFixed(0)).join(" and ")})`);
+    g(`act("nextyear")`);
+    const rk = g(`mySchool().players.filter(p => p.pick && p.pick.year === 2027)`), udfa = g(`mySchool().players.filter(p => /u$/.test(p.id))`);
+    ok(rk.length >= 6 && rk.every(p => p.ct.rk && p.ct.y.length === 4), `your drafted rookies are in camp on four-year rookie contracts (${rk.length})`);
+    const r1 = rk.find(p => p.pick.rd === 1);
+    ok(!r1 || (r1.ct.g === r1.ct.y.reduce((a, b) => a + b, 0) && r1.ct.o5), "a first-rounder's contract is fully guaranteed, with a fifth-year option");
+    ok(udfa.length >= 3 && udfa.every(p => p.ct.y.length === 3 && p.ct.y[0] === g("proMin(0)")), `undrafted free agents on three-year minimum contracts (${udfa.length})`);
+    ok(g(`Object.values(SEASON.schools).filter(s => !isFull(s)).every(s => s.roster.some(x => /\|0\|/.test(x) && x.startsWith("d2027")))`), "every team has rookies from the draft");
+    ok(g("SEASON.draft.year") === 2028 && g("SEASON.draft.board.length") > 0, "and next year's class is on the board");
+  }
+}
+
+// ---- Step 5: the players you coached ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  // From your college program: the players who leave for good go to the next draft
+  const n = g(`(() => { const C = OTHER, s = rosterAt(Object.values(C.schools).find(x => x.cls === "P4"), 2026), best = s.players.sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)).slice(0, 3); noteFormers(best, s.town, 2026); return THIRD.formers.length; })()`);
+  ok(n === 3, "the players who leave your college program are noted for the draft");
+  g(`inWorld(THIRD, () => { proSeasonOnPaper(); })`);
+  g(`proWorldNextYear()`);
+  const dr = g("THIRD.drafted || []");
+  ok(g(`Object.values(THIRD.schools).some(s => s.roster.some(x => /"you"/.test(x)))`) || dr.length > 0, `and are drafted, or sign as undrafted free agents (${dr.length} drafted)`);
+  ok(dr.every(t => /round \d, pick \d+, by the /.test(t)), "the draft notes where they went");
+  // From your high school: a player who signed with a college comes up when his college career is over
+  const hs = g(`(() => { const C = OTHER, c = Object.values(C.schools).find(x => x.cls === "P4"), p = genPlayer(dice(5), { id: "hsstar", arch: "speed", yr: 12, level: 60, last: "Hill" }); sendToCollege(p, c.id, 2021, "Bellmont Greyhounds"); const q = c.joined.find(x => x.id === "hsstarc"); return { you: q.you, name: q.hsName }; })()`);
+  ok(hs.you && hs.name === "Bellmont Greyhounds", "a high school player you sent to college is marked as yours");
 }
 
 console.log(`${checks - fails}/${checks} checks passed`);

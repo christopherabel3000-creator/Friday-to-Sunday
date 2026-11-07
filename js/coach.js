@@ -113,9 +113,10 @@ const PERKS = {
   motv: { name: "Motivator", cost: 200, desc: "A bigger edge late in close games and comebacks." },
   inst: { name: "Install expert", cost: 200, desc: "Install time teaches plays 30 percent faster." },
   rec: { name: "Hallway recruiter", cost: 150, desc: "One more pitch each offseason, and athletes say yes more often." },
-  rcr: { name: "Recruiter", cost: 200, desc: "College recruiting: your staff's time with each prospect counts 20 percent more, and prospects start out more interested in you." }
+  rcr: { name: "Recruiter", cost: 200, desc: "College recruiting: your staff's time with each prospect counts 20 percent more, and prospects start out more interested in you." },
+  tev: { name: "Talent evaluator", cost: 200, desc: "The pro draft: your staff's scouting time goes 40 percent further, so what you know about each prospect narrows faster." }
 };
-const PERK_IDS = ["qbw", "linew", "skill", "dbs", "offg", "defm", "blitz", "film", "disg", "trick", "motv", "inst", "rec", "rcr"];
+const PERK_IDS = ["qbw", "linew", "skill", "dbs", "offg", "defm", "blitz", "film", "disg", "trick", "motv", "inst", "rec", "rcr", "tev"];
 const coachHas = (c, k) => !!(c && c.perks && c.perks.includes(k));
 // Growth for one practice unit: the background's (1.3 for a former quarterback's quarterbacks, say),
 // times 1.25 for a perk that covers it

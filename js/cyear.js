@@ -61,6 +61,8 @@ function colAdvanceMine(s, year, plan) {
     return !out;
   });
   rep.grew = s.players.map(p => [p.id, before[p.id], ovr(p, p.pos)]).filter(x => x[2] > x[1]).sort((a, b) => (b[2] - b[1]) - (a[2] - a[1]));
+  // The players who left for good go to the pro draft (pdraft.js)
+  noteFormers(rep.grads.concat(rep.pros), s.town, year);
   const used = new Set(s.players.map(p => p.num)), g = dice(hashSeed(`${s.seed}:${year + 1}:numbers`));
   // The class you recruited (crecruit.js), or for a season without a board, one rolled on paper
   const rec = SEASON.rec;
@@ -81,12 +83,14 @@ function colAdvanceMine(s, year, plan) {
 // The players you (and your district) sent to college on signing day are kept with their programs:
 // s.joined, as freshmen for the year they arrive. A program on paper adds them to its roster when
 // it's rebuilt (years.js: rosterAt); yours takes them in at the turn of the year.
-function sendToCollege(p, cid, year) {
+// you: one of your own players (the pro draft looks for him when his college career is over)
+function sendToCollege(p, cid, year, you) {
   const W = colWorld(), c = W && W.schools[cid];
   if (!c) return;
   const q = clone(p);
   Object.assign(q, { id: `${p.id}c`, yr: 9, from: year + 1, inj: null, off: undefined, offT: undefined, sign: undefined, tc: undefined, gr: p.gr, hsFrom: p.hsFrom || null });
   delete q.cs; delete q.en; delete q.rest; delete q.num;
+  if (you) { q.you = true; q.hsName = you; }
   (c.joined = c.joined || []).push(q);
   c.joined = c.joined.filter(x => x.from > year - 5);
 }

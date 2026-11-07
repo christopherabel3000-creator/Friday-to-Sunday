@@ -174,7 +174,7 @@ function signingDay() {
       if (!c) return;
       p.sign = c.i; n++;
       // He joins that program's roster next season (cyear.js)
-      if (typeof c.i === "string") sendToCollege(p, c.i, year);
+      if (typeof c.i === "string") sendToCollege(p, c.i, year, id === me ? schoolName(s) : null);
       s.bst = clamp(boostersOf(s) + SIGN_BOOST[c.tier], 0, 100);
       if (id === me) {
         out.mine.push({ id: p.id, name: fullName(p), pos: recruitOf(p).pos, c: c.i });

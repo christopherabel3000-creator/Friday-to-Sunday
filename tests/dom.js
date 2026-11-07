@@ -808,6 +808,34 @@ function checkScreen(page, label) {
   tap(pp, "back"); tap(pp, "offseason");
   ok(ep("APP.screen") === "review", "the review after a pro season");
   checkScreen(pp, "pro review");
+  if (!ep("SEASON.review.fired")) {
+    tap(pp, "carousel"); tap(pp, "market"); tap(pp, "stay");
+    ok(ep("APP.screen") === "offseason" && /draft room/.test(dp.body.textContent), "the pro offseason, with the draft");
+    checkScreen(pp, "pro offseason");
+    tap(pp, "dboard");
+    ok(/Your draft board/.test(headp()) && dp.querySelectorAll('[data-a="dprospect"]').length === 40, "the draft board: 40 prospects in order");
+    checkScreen(pp, "draft board");
+    tap(pp, "dprospect", ep("SEASON.draft.board[2]"));
+    ok(/What your scouts see/.test(dp.body.textContent) && /40-yard dash/.test(dp.body.textContent) && !!btn(dp, "dpri", 3), "a prospect: his range, the combine, and his priority");
+    checkScreen(pp, "draft prospect");
+    tap(pp, "dbmove", "top");
+    ok(ep("SEASON.draft.board[0]") === ep("APP.dpro"), "moving him to the top of the board");
+    tap(pp, "back"); tap(pp, "dfind");
+    ok(/Find prospects/.test(headp()) && dp.querySelectorAll('[data-a="dpos"]').length === 11, "finding prospects by position");
+    tap(pp, "dpos", "OL");
+    ok(dp.activeElement && dp.activeElement.id === "dfhead", "picking a position moves to its list");
+    checkScreen(pp, "find draft prospects");
+    tap(pp, "back"); tap(pp, "back");
+    tap(pp, "draftroom");
+    ok(/The draft room/.test(headp()) && /Your picks/.test(dp.body.textContent), "the draft room");
+    checkScreen(pp, "draft room");
+    const simmed = !!btn(dp, "dsim");
+    if (simmed) tap(pp, "dsim");
+    ok(/You're on the clock/.test(dp.body.textContent) && (!simmed || (dp.activeElement && dp.activeElement.id === "clock")), "on the clock, with focus there after simming to the pick");
+    checkScreen(pp, "draft room, on the clock");
+    tap(pp, "dstaff");
+    ok(ep("SEASON.draft.picks.filter(pk => pk.team === SEASON.myId && pk.pid).length") >= 1, "a pick made");
+  }
   ok(pp.errors.length === 0, "no script errors in the pros: " + pp.errors.slice(0, 2).join(" | "));
 
   console.log(`${checks - fails}/${checks} checks passed`);

@@ -71,7 +71,7 @@ function vPSeason() {
     <section class="panel"><h3>The season</h3>
       <div class="choices"><button class="btn ghost" data-a="standings">Standings and the playoff picture</button>${SEASON.post ? `<button class="btn ghost" data-a="bracket">The playoff</button>` : ""}</div>
       <div class="choices"><button class="btn ghost" data-a="schedule">Schedule and stats</button>${gm && !played(gm) && !live && !camp ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`}<button class="btn ghost" data-a="coach">Your coach</button></div>
-      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</button></div>
+      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</button>${SEASON.draft ? `<button class="btn ghost" data-a="dboard">The ${SEASON.draft.year} draft board</button>` : ""}</div>
     </section>
     ${simBtn && !live ? `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>`
       : camp ? `<button class="btn ghost" data-a="campsim">${confirming === "campsim" ? "Tap again to sim the rest of camp" : "Sim the rest of camp"}</button>` : ""}`;
@@ -181,6 +181,7 @@ function vPOffseason() {
     </div>
     ${gone ? newJobPanel() : ""}
     ${gone ? "" : `<section class="panel"><h3>${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</h3><p>${esc(gmLine())}</p><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "The front office" : "Requests for the GM"}</button></section>`}
+    ${gone || !SEASON.draft ? "" : `<section class="panel"><h3>The ${SEASON.draft.year} draft</h3><p>${esc(SEASON.draft.done ? "The draft is done. Your rookies and undrafted free agents join you for camp." : `The combine is in. ${CAREER.job && CAREER.job.ctl ? "Your picks are yours" : "Your GM makes the picks, with a push from you each round"}. Whatever's left of the draft when the new season starts is picked for you.`)}</p><div class="choices"><button class="btn" data-a="draftroom">The draft room</button><button class="btn ghost" data-a="dboard">Your board</button></div></section>`}
     ${gone ? "" : `<section class="panel"><h3>The offseason program</h3><p>${esc("Four weeks of practice with your plan. Opponent prep time goes into install.")}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;

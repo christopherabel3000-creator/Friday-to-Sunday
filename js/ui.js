@@ -437,7 +437,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
-const SCREENS = { cap: vCap, gm: vGM, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
+const SCREENS = { cap: vCap, gm: vGM, dboard: vDBoard, dprospect: vDProspect, dfind: vDFind, draftroom: vDraftRoom, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
   schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason, vPOffseason), newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal, names: vNames };
@@ -699,6 +699,10 @@ function act(a, ds) {
       else if (APP.screen === "prospect") APP.screen = APP.prospectBack === "rfind" ? "rfind" : "board";
       else if (APP.screen === "rfind") APP.screen = "board";
       else if (APP.screen === "portal") APP.screen = "offseason";
+      else if (APP.screen === "dprospect") APP.screen = ["dboard", "dfind", "draftroom"].includes(APP.dproBack) ? APP.dproBack : "dboard";
+      else if (APP.screen === "dfind") APP.screen = ["dboard", "draftroom"].includes(APP.dfindBack) ? APP.dfindBack : "dboard";
+      else if (APP.screen === "dboard") APP.screen = SCREENS[APP.dBack] && !["dboard", "dprospect", "dfind"].includes(APP.dBack) ? APP.dBack : seasonScreen();
+      else if (APP.screen === "draftroom") APP.screen = "offseason";
       else if (APP.screen === "gm") APP.screen = SCREENS[APP.gmBack] && APP.gmBack !== "gm" ? APP.gmBack : seasonScreen();
       else if (APP.screen === "names") APP.screen = SCREENS[APP.namesBack] && APP.namesBack !== "names" ? APP.namesBack : "home";
       else if (APP.screen === "board") APP.screen = ["season", "week"].includes(APP.boardBack) ? APP.boardBack : seasonScreen();
@@ -761,7 +765,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!collegeAct(a, ds) && !proAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !namesAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
+    default: if (!collegeAct(a, ds) && !proAct(a, ds) && !draftAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !namesAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
@@ -776,6 +780,7 @@ function startScreen() {
   if (sc === "game") return S && S.teams ? sc : "home";
   if (sc === "roster" || sc === "player" || sc === "depth") return APP.view && (APP.view.ctx !== "season" || SEASON) && (APP.view.ctx !== "game" || (S && S.teams)) ? sc : "home";
   if (sc === "cap" || sc === "gm") return season && inPros() ? sc : season ? "season" : "home";
+  if (["dboard", "dprospect", "dfind", "draftroom"].includes(sc)) return season && inPros() && SEASON.draft ? (sc === "draftroom" && SEASON.phase !== "offseason" ? "dboard" : sc) : season ? "season" : "home";
   if (sc === "pick") return SEASON && SEASON.phase === "pick" && CAREER ? sc : "home";
   if (sc === "newcoach") return APP.coachDraft ? sc : "home";
   if (sc === "coach") return CAREER ? sc : "home";
