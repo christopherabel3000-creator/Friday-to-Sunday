@@ -826,6 +826,9 @@ function start() {
   recordCareerSeason();
   checkStorage();
   render();
+  // The page started: later errors aren't a mix of old and new files (index.html), and the fresh-load
+  // mark comes off the address
+  if (typeof window !== "undefined" && window.FTS_BOOT) { window.FTS_BOOT.ok = true; try { if (/[?&]fresh=/.test(location.search)) history.replaceState(null, "", location.pathname + location.hash); } catch (e) { /* fine */ } }
 }
 
 if (typeof document !== "undefined") {

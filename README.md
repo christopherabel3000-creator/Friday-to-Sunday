@@ -87,7 +87,7 @@ The rules only accept well-formed saves, require every save to be exactly one ve
 
 ## Code
 
-The scripts in `js/` load in order from `index.html` and share their top-level names, so each name must be unique across files and must not match anything browsers already put on the window (`tests/lint.js` checks).
+The scripts in `js/` load in order from `index.html` and share their top-level names, so each name must be unique across files and must not match anything browsers already put on the window (`tests/lint.js` checks). Every script and the stylesheet in `index.html` carry the same `?v=` version, so browsers fetch an update's files together: change it (to the date) with every update. If a browser still mixes old and new files, the page loads itself once more, fresh, and then says so if it still can't start.
 
 - `util.js`: helpers and the seeded random numbers that rebuild a world from a seed
 - `data.js`: names, towns, mascots and colors

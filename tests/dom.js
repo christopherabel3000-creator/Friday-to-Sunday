@@ -63,6 +63,19 @@ function checkScreen(page, label) {
 }
 
 (async () => {
+  // ---- A mix of old and new files after an update ----
+  {
+    const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8"), vs = [...html.matchAll(/(?:src|href)="(?:js\/[^"]+|style\.css)\?v=([^"]+)"/g)].map(m => m[1]);
+    ok(vs.length >= 40 && new Set(vs).size === 1, `every script and the stylesheet carry the same version (${[...new Set(vs)].join(", ")})`);
+    // A page missing a file it needs, already loaded fresh once: it says so, with focus on the message
+    const broken = html.replace(/<script src="js\/ui_trade\.js[^"]*"><\/script>/, "");
+    const vc = new VirtualConsole(); vc.on("jsdomError", () => {});
+    const dom = new JSDOM(broken, { runScripts: "dangerously", resources: new LocalOnly(), pretendToBeVisual: true, virtualConsole: vc, url: HOST + "index.html?fresh=1", beforeParse(w) { w.scrollTo = () => {}; } });
+    await new Promise(r => dom.window.addEventListener("load", r)); await settle();
+    const dd = dom.window.document;
+    ok(/couldn't start/.test(dd.body.textContent) && /saves are safe/.test(dd.body.textContent) && dd.activeElement && dd.activeElement.id === "bootfail", "if the files don't fit together, the page says so and that your saves are safe");
+    dom.window.close();
+  }
   // ---- The main menu, the exhibition, rosters and a player ----
   let page = await openPage();
   let d = page.d;

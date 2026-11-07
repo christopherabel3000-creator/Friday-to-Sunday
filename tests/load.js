@@ -4,7 +4,7 @@ const fs = require("fs"), path = require("path"), vm = require("vm");
 const ROOT = path.join(__dirname, "..");
 function scripts() {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  return [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);
+  return [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1].split("?")[0]);
 }
 function load(opts) {
   opts = opts || {};
