@@ -327,7 +327,7 @@ function vHelp() {
       "Fundraisers: the first is free, and each one after it takes a week of the summer program. A golf tournament needs boosters who are behind the team, and a booster banquet fires them up.",
       "Five facilities, each poor, basic, good, great or elite: the weight room (strength and summer attendance), the film room (opponent prep), the practice field (practice injuries), equipment (game injuries) and the locker room and stadium (booster money and hallway pitches).",
       "One-season purchases: team camp at a college, a summer strength coach, and a tutor for the season.",
-      "Your own career earnings pay for coaching clinics, for XP, and you can give some to the program fund."
+      "Your own career earnings pay for coaching clinics, for XP, and you can give some to the program fund. In college and the pros, the offseason screen has bigger clinics and consultants, and in college you can give to the NIL collective: it goes to the transfer portal first, then to the next recruiting class."
     ]))}
     ${sec("College recruiting", ul([
       "Colleges look at your juniors and seniors: their overall, how far they could grow, and speed at the skill spots or strength on the lines. Bigger schools get seen more, and team camp and playoff games help.",

@@ -206,6 +206,7 @@ function vCOffseason() {
     ${portalPanel()}
     ${!gone && SEASON.rec && SEASON.rec.done ? `<section class="panel"><h3>Your new class</h3><p>${esc(recSummary(SEASON.rec))}</p><button class="btn ghost" data-a="board">The class</button></section>` : ""}
     ${gone ? "" : `<section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan. Opponent prep time goes into install.`)}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
+    ${ownMoneyPanel()}
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;
 }

@@ -65,6 +65,22 @@ function vFund() {
     <button class="btn ghost" data-a="back">Back to the offseason</button>`;
 }
 
+/* ---------- Your own money, in college and the pros ---------- */
+// On the college and pro offseason screens: clinics for XP, and in college the gift to the collective
+function ownMoneyPanel() {
+  if (!clinicsOpen() || !CAREER) return "";
+  const done = SEASON.clinics || [], s = mySchool();
+  const row = c => `<li class="xprow"><span>${esc(`${c.name}: ${moneyText(c.cost)} for ${c.xp} XP.`)}</span>
+      <button class="btn ghost slim" data-a="clinic" data-v="${c.id}" aria-pressed="${done.includes(c.id)}">${esc(c.name)}</button></li>`;
+  const gift = nilGiftOpen() ? `<h4>The NIL collective</h4>
+      <p>${esc(`Give to the booster collective, for next season's players. It's added to your transfer portal money now, and whatever the portal doesn't use goes to the next recruiting class's NIL budget. It stays with the program if you leave.${nilGift(s) ? ` ${moneyText(nilGift(s))} given so far.` : ""}`)}</p>
+      <div class="choices">${NIL_GIFTS.map(n => `<button class="btn ghost slim" data-a="nilgift" data-v="${n}">${esc(`Give ${moneyText(n)}`)}</button>`).join("")}</div>` : "";
+  return `<section class="panel"><h3>Your own money: ${esc(moneyText(myCash()))}</h3>
+      <p>${esc(`Your career earnings, to spend on your coach${gift ? " or your players" : ""}. Up to ${CLINIC_MAX} clinics and consultants each offseason, for XP.`)}</p>
+      <ul class="hlist xplist">${clinicsHere().map(row).join("")}</ul>
+      ${gift}</section>`;
+}
+
 /* ---------- Signing day ---------- */
 function vSigning() {
   const sg = SEASON.signing || signingDay(), R = SEASON.review || {}, s = mySchool(), list = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
@@ -124,6 +140,7 @@ function moneyAct(a, ds) {
     case "buy": announce(toggleBuy(ds.v)); return true;
     case "clinic": announce(attendClinic(ds.v)); return true;
     case "gift": announce(giveToFund(+ds.v)); return true;
+    case "nilgift": announce(giveToCollective(+ds.v)); return true;
     case "recruits": if (SEASON && SEASON.myId) { APP.recruitBack = APP.screen; APP.screen = "recruits"; scrollTop(); } return true;
     case "adreview": { const M = SEASON && SEASON.market; if (M && M.stage === "signing") M.stage = "review"; if (SEASON && SEASON.phase === "offseason") { APP.screen = offseasonScreen(); scrollTop(); } return true; }
   }

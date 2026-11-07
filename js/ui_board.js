@@ -189,7 +189,7 @@ function vPortal() {
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${esc(`${nameOf(s.id)} · ${SEASON.year} offseason`)}</p>
       <h2 data-focus tabindex="-1">The transfer portal</h2>
-      <p class="muted" id="ptmoney">${esc(`${money ? `${moneyText(Math.max(0, left))} left for next season's players, of ${moneyText(payBudget(s))}. ` : "Division III can't pay players. "}${plural(Math.max(0, spots), "roster spot")} open. The window closes when the next season starts: then the players you're after decide.`)}</p>
+      <p class="muted" id="ptmoney">${esc(`${money ? `${moneyText(Math.max(0, left))} left for next season's players, of ${moneyText(payBudget(s) + nilGift(s))}${nilGift(s) ? `, with your ${moneyText(nilGift(s))} gift` : ""}. ` : "Division III can't pay players. "}${plural(Math.max(0, spots), "roster spot")} open. The window closes when the next season starts: then the players you're after decide.`)}</p>
     </div>
     <section class="panel"><h3>Your players in the portal</h3>${P.out.length ? `<ul class="hlist">${mineRows}</ul>` : "<p>None of your players entered.</p>"}
       ${P.out.some(x => x.why !== "pay") ? `<p class="muted">Asking a player to stay works about half the time.</p>` : ""}</section>

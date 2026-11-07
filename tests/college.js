@@ -420,6 +420,14 @@ function plain(g, extra) {
   ok(g(`SEASON.rec.cls.filter(p => !p.walkOn).every(p => p.pay === (recById(SEASON.rec, p.id) || recById(SEASON.rec, "r" + p.id.replace(/c$/, "")) || { nil: p.pay }).nil)`), "recruits bring their NIL offers as their pay");
   g(`simSeason(); act("offseason"); SEASON.review.fired = false; act("carousel"); act("market"); act("stay")`);
   ok(g("APP.screen") === "offseason" && /The transfer portal/.test(g("vCOffseason()")), "the offseason opens the transfer portal");
+  // Your own money: clinics and consultants for XP, and the gift to the collective
+  g(`CAREER.earned = 3000000; CAREER.spent = 0; CAREER.xp = 0; SEASON.clinics = [];`);
+  const off = g("vCOffseason()");
+  ok(/Your own money: \$3,000,000/.test(off) && /data-a="clinic" data-v="cretreat"/.test(off) && /data-a="nilgift" data-v="500000"/.test(off), "the college offseason has your own money: clinics and the NIL collective");
+  ok(/40 XP/.test(g(`attendClinic("cretreat")`)) && /70 XP/.test(g(`attendClinic("cvisit")`)) && /most/.test(g(`attendClinic("canalytics")`)) && g("CAREER.xp") === 110 && g("myCash()") === 2945000 && !g(`attendClinic("state")`), "college clinics: up to two an offseason, for XP, and no high school clinics");
+  const pm0 = g("portalMoney(colPortal())");
+  ok(/gave/.test(g("giveToCollective(500000)")) && g("portalMoney(colPortal())") === pm0 + 500000 && g("myCash()") === 2445000 && g("nilGift(mySchool())") === 500000, "a gift to the collective goes to the portal money");
+  ok(g("(() => { const sp = CAREER.spent; CAREER.spent = CAREER.earned - 10000; const r = giveToCollective(25000); CAREER.spent = sp; return r; })()").startsWith("You have") && g("nilGift(mySchool())") === 500000, "only with the money for it");
   const P = g(`(() => { const P = colPortal(); return { out: P.out.length, why: P.out.every(x => ["pay", "time", "own"].includes(x.why)), pool: P.pool.length, ask: P.pool.every(q => q.ask >= 0 && q.yr >= 10 && q.yr <= 13) }; })()`);
   ok(P.out >= 1 && P.why && P.pool === 60 && P.ask, `${P.out} of your players entered (for pay, playing time or their own reasons), and 60 from other programs are in it`);
   g(`act("portal")`);
@@ -437,8 +445,11 @@ function plain(g, extra) {
   }
   ok(g(`(() => { const P = colPortal(), x = P.out.find(y => y.why === "pay"); if (!x) return true; const keep = x.keep; const left = portalMoney(P); portalKeep(P, x.id, false); const r = portalMoney(P) >= left; portalKeep(P, x.id, keep); return r; })()`), "letting a player go frees his raise");
   const out = g(`colPortal().out.filter(x => !x.keep).map(x => x.id)`), after = g(`colPortal().pool.filter(q => q.offer != null).map(q => q.id)`);
+  const giftLeft = g("Math.min(nilGift(mySchool()), Math.max(0, portalMoney(colPortal())))");
   g(`act("back"); act("nextyear")`);
   const R = g("SEASON.yearReport");
+  g("recBoard()");
+  ok(g("CAREER.nil") == null && (g("SEASON.rec.gift") || 0) === giftLeft, `what the portal didn't use of the gift goes to the next class's NIL budget (${giftLeft})`);
   ok(out.every(x => !g(`mySchool().players.some(p => p.id === "${x}")`)) && R.xout.length >= out.length, `when the window closes your players who weren't kept leave (${out.length})`);
   ok(R.xin.length + R.xmissed.length === after.length && R.xin.every(x => g(`mySchool().players.some(p => p.id === "${x}" && p.xfer && p.yr >= 10)`)), `and the portal players you went after decide (${R.xin.length} came, ${R.xmissed.length} went elsewhere)`);
   ok(!out.length || g(`Object.values(SEASON.schools).some(s => (s.joined || []).some(q => q.id === "${out[0]}t"))`), "a player who leaves lands at another program");

@@ -185,6 +185,7 @@ function vPOffseason() {
     ${gone ? "" : offseasonFAPanels()}
     ${gone || !SEASON.draft || (SEASON.off && SEASON.off.stage !== "draft") ? "" : `<section class="panel"><h3>The ${SEASON.draft.year} draft</h3><p>${esc(SEASON.draft.done ? "The draft is done. Your rookies and undrafted free agents join you for camp." : `The combine is in. ${CAREER.job && CAREER.job.ctl ? "Your picks are yours" : "Your GM makes the picks, with a push from you each round"}. Whatever's left of the draft when the new season starts is picked for you.`)}</p><div class="choices"><button class="btn" data-a="draftroom">The draft room</button><button class="btn ghost" data-a="dboard">Your board</button></div></section>`}
     ${gone ? "" : `<section class="panel"><h3>The offseason program</h3><p>${esc("Four weeks of practice with your plan. Opponent prep time goes into install.")}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
+    ${ownMoneyPanel()}
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;
 }

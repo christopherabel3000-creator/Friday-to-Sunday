@@ -33,6 +33,23 @@ function payInit(s) {
 }
 const payroll = list => list.reduce((n, p) => n + (p.pay || 0), 0);
 
+/* ---------- Your gift to the collective ---------- */
+// Your own money, given to the booster collective in the offseason (Nov 2026): CAREER.nil = { id, amt }.
+// It goes to next season's players: first the transfer portal (keeping your players and going after
+// others), then whatever the portal didn't use goes to the next recruiting class's NIL budget. It
+// belongs to the program, so it's lost if you leave. Not in Division III, which can't pay players.
+const NIL_GIFTS = [25000, 100000, 500000, 2000000];
+const nilGift = s => CAREER && CAREER.nil && s && CAREER.nil.id === s.id ? CAREER.nil.amt || 0 : 0;
+const nilGiftOpen = () => !!(SEASON && SEASON.lvl === "col" && SEASON.phase === "offseason" && SEASON.myId && REC_LV[mySchool().cls] && !leavingSchool() && (!SEASON.market || SEASON.market.done) && !(SEASON.portal && SEASON.portal.closed));
+function giveToCollective(amt) {
+  if (!NIL_GIFTS.includes(amt) || !nilGiftOpen()) return "";
+  if (myCash() < amt) return `You have ${moneyText(myCash())} of your own money.`;
+  const s = mySchool();
+  if (!CAREER.nil || CAREER.nil.id !== s.id) CAREER.nil = { id: s.id, amt: 0 };
+  CAREER.spent = (CAREER.spent || 0) + amt; CAREER.nil.amt += amt; CAREER.nilAll = (CAREER.nilAll || 0) + amt;
+  return `You gave ${moneyText(amt)} to the collective, ${moneyText(CAREER.nil.amt)} in all for next season's players. ${moneyText(myCash())} of your own money left.`;
+}
+
 /* ---------- The portal ---------- */
 // SEASON.portal: { year, out: [{ id, why, ask, keep }] (your players who entered), pool [portal
 // players], spent }. A portal player: id, first, last, pos, yr (next season's), o, st (stars), from
@@ -84,7 +101,7 @@ function portalMoney(P) {
   const raises = P.out.filter(x => x.keep).reduce((n, x) => n + Math.max(0, x.ask - payOf(x.id)), 0);
   const rec = SEASON.rec && SEASON.rec.cls ? payroll(SEASON.rec.cls) : 0;
   const offers = P.pool.reduce((n, q) => n + (q.offer || 0), 0);
-  return payBudget(s) - payroll(stay) - raises - rec - offers;
+  return payBudget(s) + nilGift(s) - payroll(stay) - raises - rec - offers;
 }
 // Roster spots for next season: 105 less the players staying and the class you signed (walk-ons
 // make room), and no more than 15 from the portal
@@ -172,6 +189,9 @@ function portalOffer(P, id, amt) {
 function portalClose(s) {
   const P = SEASON.portal, rep = { out: [], kept: [], in: [], missed: [] };
   if (!P || P.year !== SEASON.year || P.closed) return rep;
+  // What's left of your gift once the portal has its share goes to the next recruiting class
+  const gift = nilGift(s);
+  if (gift) CAREER.nil.amt = Math.min(gift, Math.max(0, portalMoney(P)));
   P.closed = true;
   P.out.forEach(x => {
     const p = s.players.find(q => q.id === x.id);

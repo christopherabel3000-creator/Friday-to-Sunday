@@ -227,19 +227,29 @@ const tutorOn = s => !!(s && SEASON && s.tutor === SEASON.year);
 // Your career earnings (CAREER.earned, less CAREER.spent) pay for up to two clinics an offseason
 // (SEASON.clinics), and you can give some to the program fund
 const CLINICS = [["state", "State clinic", 600, 30], ["national", "National clinic", 2000, 70]];
-const CLINIC = Object.fromEntries(CLINICS.map(([id, name, cost, xp]) => [id, { id, name, cost, xp }]));
+// College and the pros (Nov 2026): bigger salaries buy bigger lessons, still up to two an offseason
+const COL_CLINICS = [["cretreat", "Coaching retreat", 15000, 40], ["cvisit", "Visit a top program's staff", 40000, 70], ["canalytics", "Analytics consultant", 120000, 100]];
+const PRO_CLINICS = [["pretreat", "Coaching retreat", 50000, 50], ["pvisit", "Study another team's staff", 150000, 80], ["panalytics", "Analytics consultant", 400000, 110]];
+const CLINIC = Object.fromEntries(CLINICS.concat(COL_CLINICS, PRO_CLINICS).map(([id, name, cost, xp]) => [id, { id, name, cost, xp }]));
+const CLINIC_MAX = 2;
+// The clinics for the level you coach at
+const clinicsHere = () => (SEASON && SEASON.lvl === "pro" ? PRO_CLINICS : SEASON && SEASON.lvl === "col" ? COL_CLINICS : CLINICS).map(([id]) => CLINIC[id]);
+// High school clinics are on the program fund screen; college and pro ones on the offseason screen,
+// once the job market is done
+const clinicsOpen = () => !!(SEASON && SEASON.phase === "offseason" && SEASON.myId && (SEASON.lvl === "col" || SEASON.lvl === "pro" ? !SEASON.market || SEASON.market.done : booksOpen()));
 const myCash = () => CAREER ? Math.max(0, (CAREER.earned || 0) - (CAREER.spent || 0)) : 0;
 const GIFTS = [500, 1000, 5000];
 Object.assign(XP_WHY, { clinic: "coaching clinics", offer: "college offers for your players", signed: "players signing with colleges" });
 function attendClinic(id) {
   const c = CLINIC[id];
-  if (!c || !booksOpen()) return "";
+  if (!c || !clinicsOpen() || !clinicsHere().includes(c)) return "";
   const done = SEASON.clinics || (SEASON.clinics = []);
-  if (done.includes(id)) return `You've already been to the ${c.name.toLowerCase()} this offseason.`;
+  if (done.includes(id)) return `You've already done the ${c.name.toLowerCase()} this offseason.`;
+  if (done.length >= CLINIC_MAX) return `That's ${CLINIC_MAX} this offseason, the most there's time for.`;
   if (myCash() < c.cost) return `The ${c.name.toLowerCase()} costs ${moneyText(c.cost)}, and you have ${moneyText(myCash())}.`;
   CAREER.spent = (CAREER.spent || 0) + c.cost; done.push(id);
   giveXP(c.xp, "clinic", 0);
-  return `You went to the ${c.name.toLowerCase()}: ${c.xp} XP. ${moneyText(myCash())} of your own money left.`;
+  return `${c.name}: ${c.xp} XP. ${moneyText(myCash())} of your own money left.`;
 }
 function giveToFund(amt) {
   if (!GIFTS.includes(amt) || !booksOpen()) return "";

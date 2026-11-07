@@ -153,6 +153,9 @@ function plain(g, extra) {
   let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const s = g("APP.screen"); g(s === "review" ? `act("carousel")` : s === "carousel" ? `act("market")` : s === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
   if (!g("SEASON.review.fired")) {
     ok(g("APP.screen") === "offseason" && g("vPOffseason().length") > 300, "the pro offseason");
+    g(`CAREER.earned = 1000000; CAREER.spent = 0; SEASON.clinics = []; CAREER.xp = 0;`);
+    ok(/Your own money: \$1,000,000/.test(g("vPOffseason()")) && /data-v="panalytics"/.test(g("vPOffseason()")) && !/nilgift/.test(g("vPOffseason()")), "the pro offseason: clinics and consultants from your own money, and no NIL collective");
+    ok(/110 XP/.test(g(`attendClinic("panalytics")`)) && g("myCash()") === 600000 && !g(`attendClinic("cretreat")`) && !g("giveToCollective(25000)"), "a pro analytics consultant: $400,000 for 110 XP");
     const yr = g("SEASON.year");
     g(`act("nextyear")`);
     ok(g("SEASON.lvl") === "pro" && g("SEASON.year") === yr + 1 && g("OTHER.year") === yr + 1 && g("THIRD.year") === yr + 1, "the next season: all three worlds move on a year");
