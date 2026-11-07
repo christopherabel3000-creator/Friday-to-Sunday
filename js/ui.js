@@ -184,7 +184,7 @@ function vHome() {
     <section class="panel">
       <span class="eyebrow">Names</span>
       <p class="muted">Rename any school, conference or bowl.</p>
-      <button class="btn ghost" data-a="names">Rename schools</button>
+      <button class="btn ghost" data-a="names">Rename schools and teams</button>
     </section>`;
 }
 
@@ -333,7 +333,18 @@ function vHelp() {
       "Your staff can fill the board, handle visits and make NIL offers up to a share of the money you set. A new coach rating, Recruiting, and the Recruiter perk make your staff's time count for more.",
       "Money for players: revenue sharing plus the booster collective, from about $12 million to $16 million a year at a power program down to nothing in Division III, which can't pay players. Every player has a fair pay at your program from his ratings and position.",
       "The transfer portal opens once a year, after the postseason. Underpaid starters and players stuck behind others may enter. Keep yours by matching what they want, or ask them to stay. Go after other programs' players with NIL offers; they decide when the window closes.",
-      "Any school, conference or bowl can be renamed from the main menu."
+      "Any school, conference, bowl or pro team, and the pro league itself, can be renamed from the main menu."
+    ]))}
+    ${sec("The pros", ul([
+      "Win big at a power-conference program and pro teams call: 32 teams in the Sunday League, in two conferences of four divisions. A season is camp and three preseason weeks of practice (no games to play), cutdown day, 17 games over 18 weeks with a bye, and a 14-team playoff to the Sunday Bowl. All of it can be renamed.",
+      "Pro rules: the NFL's, as of 2026, with the dynamic kickoff, extra points from the 15 and two-point tries the defense can return. A regular-season game tied after four quarters gets one 10-minute overtime, with two timeouts each, and can end in a tie. Playoff games go until someone wins.",
+      "Players have ages instead of class years: they grow to a peak, then decline, earlier at running back and later at quarterback and kicker, and retire. Rosters are 90 in camp, 53 after cutdown day, with a practice squad of 16 and 48 dressed on game day. A player on injured reserve misses at least four games.",
+      "The salary cap is real money: about $301 million in 2026, growing each year. A contract has a cap hit each year and guaranteed money, which becomes dead money if you cut him. Rookies are paid by where they were drafted.",
+      "At first a general manager runs the roster: the draft, free agency, re-signing, trades and cuts. You call the plays, run practice and set the depth chart, and you can ask him for things: your needs, players to keep or let go, a free agent, a trade at one position. He goes along more often as your standing with him grows.",
+      "Some contracts come with control of the roster, more often the bigger your pro reputation and the worse the team. With control, every move is yours, and your staff can handle cutdown day, the draft board, the late picks, undrafted free agents and trade offers.",
+      "The draft: about 400 prospects from the college world, including players you coached. Each one is a range of ratings that narrows as your staff scouts him and again at the combine. Set priorities for who gets scouted most, order your board, and make your picks in the draft room, or trade down.",
+      "The offseason runs in the NFL's order: re-signing, the franchise tag and fifth-year options; the new league year; five days of free agency; compensatory picks; the draft; and camp.",
+      "Trades: players and picks for the next three drafts, from the offseason through the deadline, the Tuesday after week 9. Pick a team, add players and picks from both sides, and their answer reads out as you go: not close, they'd want more, a bit more, or they'd take that. Teams call with offers now and then, and trade with each other."
     ]))}
     ${sec("The offseason", ul([
       "After the job market comes the offseason. Your seniors graduate, and the offseason screen shows who's leaving and who's coming back.",

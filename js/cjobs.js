@@ -286,7 +286,7 @@ function colFinishText(id) {
 // Where a job is: "Class 4A, District 3", or "Division II, Heartland Conference"
 function jobPlace(id) {
   const s = jobSchool(id), W = jobWorld(id) || SEASON, c = (W.confs || []).find(x => x.id === s.conf);
-  if (isPro(s.cls)) return `The Sunday League, ${c ? c.name : ""}`;
+  if (isPro(s.cls)) return `${capFirst(PRO_LEAGUE)}, ${c ? c.name : ""}`;
   if (!isCollege(s.cls)) return `Class ${s.cls}, District ${s.district}`;
   return `${levelName(s.cls)}, ${c ? c.name : "Independent"}`;
 }

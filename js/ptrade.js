@@ -168,7 +168,7 @@ function tradeWeek(W, n) {
     }
   }
   // Two computer teams make a deal now and then
-  if (rng() < .3) { const t = cpuCpuTrade(W, rng); if (t) news.push(`Trade: ${t}`); }
+  if (rng() < .45) { const t = cpuCpuTrade(W, rng); if (t) news.push(`Trade: ${t}`); }
   // The move you asked your GM for, in the week before the deadline
   if (J && !J.ctl && J.req && J.req.move && n === TRADE_DEADLINE) {
     const pos = J.req.move, yes = gmFollows(`move:${W.year}:${pos}`), done = yes ? gmMove(W, pos) : null;

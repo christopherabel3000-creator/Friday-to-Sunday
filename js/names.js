@@ -5,20 +5,23 @@
 "use strict";
 
 /* ---------- The names ---------- */
-// NAMES: { s: { id: { t: name, m: mascot } }, c: { id: name }, b: { bowl's own name: name } }.
+// NAMES: { s: { id: { t: name, m: mascot } }, c: { id: name }, b: { bowl's own name: name },
+// l: { league, bowl, A, P } } (the pro league's name, its championship game and its two conferences).
 // School and conference ids follow the shape of the state and the college world (c0 is always the
 // first program in the first power conference, d1s1 the first 1A school in District 1), so a list
 // works in any career.
 const NAMES_KEY = "friday-to-sunday-names", NAME_LEN = 40;
-let NAMES = { s: {}, c: {}, b: {} };
+let NAMES = { s: {}, c: {}, b: {}, l: {} };
+const LEAGUE_PARTS = { league: "Sunday League", bowl: "Sunday Bowl", A: "Atlantic", P: "Pacific" };
 const cleanNameText = v => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().slice(0, NAME_LEN);
-const namesEmpty = n => !n || (!Object.keys(n.s || {}).length && !Object.keys(n.c || {}).length && !Object.keys(n.b || {}).length);
+const namesEmpty = n => !n || ["s", "c", "b", "l"].every(k => !Object.keys(n[k] || {}).length);
 function normNames(n) {
-  const out = { s: {}, c: {}, b: {} };
+  const out = { s: {}, c: {}, b: {}, l: {} };
   if (!n || typeof n !== "object") return out;
   for (const id in n.s || {}) { const x = n.s[id] || {}, t = cleanNameText(x.t), m = cleanNameText(x.m); if (t || m) out.s[id] = Object.assign(t ? { t } : {}, m ? { m } : {}); }
   for (const id in n.c || {}) { const t = cleanNameText(n.c[id]); if (t) out.c[id] = t; }
   for (const id in n.b || {}) { const t = cleanNameText(n.b[id]); if (t) out.b[id] = t; }
+  for (const k in n.l || {}) { const t = cleanNameText(n.l[k]); if (t && k in LEAGUE_PARTS) out.l[k] = t; }
   return out;
 }
 function loadNames() { try { const n = JSON.parse(localStorage.getItem(NAMES_KEY) || "null"); if (n) NAMES = normNames(n); } catch (e) { /* no names yet */ } }
@@ -39,6 +42,8 @@ function nameSchool(s) {
 function nameConf(c) {
   if (!c) return;
   const x = NAMES.c[c.id];
+  // A pro division goes by its conference's name ("Atlantic North") unless you've named it
+  if (c.cls === "PRO" && c.cf) { const own = c.name0 != null ? c.name0 : c.name; c.name0 = own; c.name = x || `${PRO_CONF_SHORT[c.cf]} ${own.split(" ").pop()}`; return; }
   if (c.name0 == null && x) c.name0 = c.name;
   if (c.name0 != null) c.name = x || c.name0;
 }
@@ -50,7 +55,16 @@ function nameWorld(se) {
   (se.confs || []).forEach(nameConf);
   (se.weeks || []).forEach(wk => wk.games.forEach(gm => { if (gm.bowl) { if (!gm.b0) gm.b0 = gm.bowl; gm.bowl = bowlAs(gm.b0); } }));
 }
+// The pro league's own names, and the conference and round names that come from them (pworld.js)
+const leagueName = k => NAMES.l[k] || LEAGUE_PARTS[k];
+function nameLeague() {
+  PRO_LEAGUE = `the ${leagueName("league")}`;
+  PRO_BOWL = leagueName("bowl");
+  PRO_ROUND_NAMES[4] = PRO_BOWL;
+  PRO_CONF_IDS.forEach(cf => { PRO_CONF_SHORT[cf] = leagueName(cf); PRO_CONF_NAMES[cf] = `${leagueName(cf)} Conference`; });
+}
 function nameAll() {
+  nameLeague();
   [SEASON, OTHER, THIRD].forEach(nameWorld);
   if (typeof COLLEGE_CACHE !== "undefined") COLLEGE_CACHE = null;
 }
@@ -69,8 +83,11 @@ function renameSchool(id, part, v) {
   storeNames();
   return true;
 }
+// A college conference or a pro division
 function renameConf(id, v) {
-  const W = colWorld(), c = W && W.confs.find(x => x.id === id), t = cleanNameText(v);
+  const t = cleanNameText(v);
+  let c = null;
+  [SEASON, OTHER, THIRD].forEach(W => { if (W && !c) c = (W.confs || []).find(x => x.id === id); });
   if (!c) return false;
   if (!t || t === (c.name0 != null ? c.name0 : c.name)) delete NAMES.c[id]; else NAMES.c[id] = t;
   nameConf(c);
@@ -86,9 +103,18 @@ function renameBowl(b, v) {
   storeNames();
   return true;
 }
+// The league's name, its championship game, a conference
+function renameLeague(k, v) {
+  const t = cleanNameText(v);
+  if (!(k in LEAGUE_PARTS)) return false;
+  if (!t || t === LEAGUE_PARTS[k]) delete NAMES.l[k]; else NAMES.l[k] = t;
+  nameAll();
+  storeNames();
+  return true;
+}
 const allBowls = () => CFP_SITES.concat(BOWLS.map(b => `${b} Bowl`).filter(b => !CFP_SITES.includes(b)));
 function resetNames() {
-  NAMES = { s: {}, c: {}, b: {} };
+  NAMES = { s: {}, c: {}, b: {}, l: {} };
   storeNames();
   nameAll();
 }
@@ -98,26 +124,30 @@ function resetNames() {
 //   school c12: Lakeshore State / Panthers
 //   conference k3: Heartland Conference
 //   bowl Lone Pine Bowl: Granite Bowl
+//   league bowl: Championship Sunday
 function namesText() {
   const out = [];
   for (const id in NAMES.s) { const x = NAMES.s[id]; out.push(`school ${id}: ${x.t || ""} / ${x.m || ""}`); }
   for (const id in NAMES.c) out.push(`conference ${id}: ${NAMES.c[id]}`);
   for (const b in NAMES.b) out.push(`bowl ${b}: ${NAMES.b[b]}`);
+  for (const k in NAMES.l) out.push(`league ${k}: ${NAMES.l[k]}`);
   return out.join("\n");
 }
 // Loads a list (adding to the names you have). Returns how many names it read.
 function loadNamesText(text) {
-  const n = { s: Object.assign({}, NAMES.s), c: Object.assign({}, NAMES.c), b: Object.assign({}, NAMES.b) };
+  const n = { s: Object.assign({}, NAMES.s), c: Object.assign({}, NAMES.c), b: Object.assign({}, NAMES.b), l: Object.assign({}, NAMES.l) };
   let k = 0;
   String(text || "").split(/\r?\n/).forEach(line => {
     let m = line.match(/^\s*school\s+([A-Za-z0-9]+)\s*:\s*(.*?)\s*\/\s*(.*?)\s*$/i);
     if (m) { const t = cleanNameText(m[2]), ms = cleanNameText(m[3]); if (t || ms) { n.s[m[1]] = Object.assign({}, n.s[m[1]], t ? { t } : {}, ms ? { m: ms } : {}); k++; } return; }
     m = line.match(/^\s*conference\s+([A-Za-z0-9]+)\s*:\s*(.+?)\s*$/i);
     if (m) { const t = cleanNameText(m[2]); if (t) { n.c[m[1]] = t; k++; } return; }
+    m = line.match(/^\s*league\s+(league|bowl|A|P)\s*:\s*(.+?)\s*$/);
+    if (m) { const t = cleanNameText(m[2]); if (t) { n.l[m[1]] = t; k++; } return; }
     m = line.match(/^\s*bowl\s+(.+?)\s*:\s*(.+?)\s*$/i);
     if (m && allBowls().includes(m[1])) { const t = cleanNameText(m[2]); if (t) { n.b[m[1]] = t; k++; } }
   });
   if (k) { NAMES = normNames(n); storeNames(); nameAll(); }
   return k;
 }
-const namesCount = () => Object.keys(NAMES.s).length + Object.keys(NAMES.c).length + Object.keys(NAMES.b).length;
+const namesCount = () => ["s", "c", "b", "l"].reduce((t, k) => t + Object.keys(NAMES[k]).length, 0);

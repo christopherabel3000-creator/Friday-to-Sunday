@@ -590,5 +590,26 @@ function plain(g, extra) {
   ok(g(`(CAREER.job.log || []).some(x => /Make a move at receiver/.test(x.t))`) && g("myReq().move") === null, `he answers by the deadline (${(g("CAREER.job.log") || []).map(x => x.t).filter(t => /move/.test(t)).join("")})`);
 }
 
+// ---- Step 8: renaming the pros ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(93, 2026);`);
+  g(`act("names"); act("nmtab", { v: "pro" })`);
+  const v = g("vNames()");
+  ok(/League name/.test(v) && /Championship game/.test(v) && /Atlantic North, 4 teams/.test(v), "the names screen's Pros section: the league, its championship, conferences and divisions");
+  g(`act("nmpdiv", { v: "pd0" })`);
+  ok(/Division name/.test(g("vNames()")) && /Nickname/.test(g("vNames()")) && /City/.test(g("vNames()")), "a division: its name, and each team's city and nickname");
+  const id = g(`proWorld().confs[0].ids[0]`);
+  g(`typed("nm|s|t|${id}", "Lakeshore"); typed("nm|s|m|${id}", "Herons"); typed("nm|l|league|", "Big Show League"); typed("nm|l|bowl|", "Big Show"); typed("nm|l|A|", "Eastern"); typed("nm|c||pd1", "Iron Division")`);
+  ok(g(`schoolName(proWorld().schools["${id}"])`) === "Lakeshore Herons", "renaming a team");
+  ok(g("PRO_LEAGUE") === "the Big Show League" && g("levelName('PRO')") === "The Big Show League" && g("PRO_BOWL") === "Big Show" && g("PRO_ROUND_NAMES[4]") === "Big Show", "the league and its championship game");
+  ok(g("PRO_CONF_NAMES.A") === "Eastern Conference" && g("proWorld().confs[0].name") === "Eastern North" && g("proWorld().confs[1].name") === "Iron Division", "a conference, with its divisions going along unless you've named them");
+  const list = g("namesText()");
+  ok(/league league: Big Show League/.test(list) && /league bowl: Big Show/.test(list) && /league A: Eastern/.test(list) && /conference pd1: Iron Division/.test(list), "the pro names in the list to copy out");
+  g(`resetNames()`);
+  ok(g("PRO_LEAGUE") === "the Sunday League" && g("PRO_CONF_NAMES.A") === "Atlantic Conference" && g("proWorld().confs[0].name") === "Atlantic North" && g("proWorld().confs[1].name") === "Atlantic South", "going back to the game's names");
+  ok(g(`loadNamesText("league bowl: Big Show\\nleague P: Western")`) === 2 && g("PRO_BOWL") === "Big Show" && g("proWorld().confs[4].name") === "Western North", "loading a list");
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 if (fails) process.exit(1);

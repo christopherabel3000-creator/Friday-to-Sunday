@@ -98,7 +98,7 @@ function colRating(s, year) {
 }
 const confOf = id => (SEASON.confs || []).find(c => c.id === SEASON.schools[id].conf) || null;
 const confName = id => { const c = confOf(id); return c ? c.name : "Independent"; };
-const levelName = cls => cls === "PRO" ? "The Sunday League" : (COL_LEVELS[cls] || {}).name || cls;
+const levelName = cls => cls === "PRO" ? capFirst(PRO_LEAGUE) : (COL_LEVELS[cls] || {}).name || cls;
 
 /* ---------- The schedule ---------- */
 // 12 weeks. Conference play fills the last weeks: 9 games where a conference is big enough, every

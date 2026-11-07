@@ -4,7 +4,7 @@ A single-player football coaching career. Start as the head coach of a tiny high
 
 ## Status
 
-Milestones 1 to 4 are built (see [DESIGN.md](DESIGN.md)): create your coach, take over a made-up 1A school, and coach season after season, climbing through a state of six classes, 1A to 6A, through the job market, with boosters, a program fund to spend on facilities, and college offers for your best players. Reach a reputation of 80 and small colleges call: then the climb starts again through about 670 made-up college programs, from Division III to the power conferences, with college rules, a weekly top 25, bowls and playoffs, contracts in real dollars, a recruiting board, NIL money and the transfer portal. Each season opens with preseason camp, then a full schedule, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, a depth chart you can change, and a season summary at the end. Saves move between devices with a save code, or with a cloud save once the database rules are published (see Cloud saves below). Any school, conference or bowl can be renamed. An exhibition game is on the main menu too.
+Milestones 1 to 5 are built (see [DESIGN.md](DESIGN.md)): create your coach, take over a made-up 1A school, and coach season after season, climbing through a state of six classes, 1A to 6A, through the job market, with boosters, a program fund to spend on facilities, and college offers for your best players. Reach a reputation of 80 and small colleges call: then the climb starts again through about 670 made-up college programs, from Division III to the power conferences, with college rules, a weekly top 25, bowls and playoffs, contracts in real dollars, a recruiting board, NIL money and the transfer portal. Win big in a power conference and the pros call: a 32-team league with the NFL's rules and shape, a salary cap, a general manager who runs the roster until you earn control, the draft, free agency and trades. Each season opens with preseason camp, then a full schedule, with weekly practice, a playbook your team has to learn, scouting reports, players who grow, tire and get hurt, a depth chart you can change, and a season summary at the end. Saves move between devices with a save code, or with a cloud save once the database rules are published (see Cloud saves below). Any school, conference, bowl or pro team can be renamed. An exhibition game is on the main menu too.
 
 ## What's in it so far
 
@@ -15,7 +15,14 @@ Milestones 1 to 4 are built (see [DESIGN.md](DESIGN.md)): create your coach, tak
 - Recruiting: a board of up to 30 prospects from your old state (including kids you coached and coached against) and from out of state, rated in stars, with priorities, visits at home games, NIL offers, commitments and flips, a weekly report with only what changed, and signing day. Your staff can fill the board, handle visits and make NIL offers. A new coach rating, Recruiting, and a Recruiter perk.
 - Money for players: revenue sharing plus the booster collective, about $12 million to $16 million a year at a power program and nothing in Division III. Every player has a fair pay, and recruits are paid what you offered.
 - The transfer portal, once a year after the postseason: underpaid starters and players stuck on the bench may enter, you can keep them with a better offer, and you can go after players from other programs.
-- Names: rename any school, conference or bowl from the main menu, with a search, and copy the list out or load one in.
+- The pros: the Sunday League's 32 made-up teams in two conferences of four divisions, 17 games over 18 weeks, a 14-team playoff and the Sunday Bowl, with NFL rules as of 2026 (the dynamic kickoff, tries the defense can return, and a 10-minute regular-season overtime that can end tied). Camp and three preseason weeks are practice only. The league moves on with you while you coach high school or college.
+- Pro players: ages, growth to a peak and decline by position, retirement, a 90-man camp, cutdown to 53, the practice squad, injured reserve and 48 dressed on game day.
+- The salary cap in real dollars: cap hits by year, guarantees and dead money, the rookie scale, the franchise tag and the fifth-year option.
+- The pro job: offers for power-conference coaches with a big college reputation, a pro reputation, owners, coaching contracts, and control of the roster written into some of them. Without it, a general manager runs the roster and weighs your requests; with it, your staff can run any part.
+- The draft: about 400 prospects from the college world, including your former players, rated as ranges that narrow with scouting and the combine; your board, the draft order, the draft room, rookie contracts and undrafted free agents.
+- Free agency in the NFL's order: re-signing, the tag, the new league year, five days of the market, compensatory picks.
+- Trades: players and picks for three drafts ahead, valued on a pick chart, with the other team's answer in words, offers from computer teams, trades between them, the deadline after week 9, and trading down on draft day.
+- Names: rename any school, conference, bowl, pro team or division, and the pro league, its conferences and its championship game, from the main menu, with a search, and copy the list out or load one in.
 - Key moments: a third way to play a game. The computer calls it until it's close late (the fourth quarter or overtime, within 8 points), then you take over with a summary of where things stand and the scoring so far.
 - Boosters at every school: their enthusiasm follows results, and keen boosters make a bad season cost more job security.
 - The program fund: each offseason the school's money, booster giving and your fundraisers come in, and upkeep goes out. Five fundraisers (each past the first takes a summer week), five facilities from poor to elite (weight room, film room, practice field, equipment, locker room and stadium), each improving something already in the game, and one-season purchases: team camp, a summer strength coach and a tutor. Your own earnings pay for coaching clinics, for XP.
@@ -84,7 +91,7 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 
 - `util.js`: helpers and the seeded random numbers that rebuild a world from a seed
 - `data.js`: names, towns, mascots and colors
-- `rules.js`: the rules for each level (high school now, college and the pros later)
+- `rules.js`: the rules for each level: high school, college and the pros
 - `players.js`: ratings, positions, overall ratings, player generation, and how a player reads aloud
 - `team.js`: schools, depth charts, who's on the field for each package, unit ratings
 - `coach.js`: coach ratings, how they turn into the computer's play calling, and the backgrounds for your coach
@@ -106,9 +113,14 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `cjobs.js`: the college job: the college reputation, contracts, buyouts, counteroffers, and moving between high school and college
 - `crecruit.js`: recruiting for your college program: prospects, stars, the board, your staff, visits, NIL offers, commitments and signing day
 - `cportal.js`: money for players, what each player is worth, your players' pay, and the transfer portal
+- `pworld.js`: the pro league: teams, divisions, the schedule, standings and tiebreakers, the playoff, the league on paper, the pro job, owners and GMs, and your requests
+- `pcap.js`: the salary cap and contracts, player values, aging and retirement, cutdown day, the practice squad, injured reserve and game day
+- `pdraft.js`: the draft: the class, scouting and the combine, the order, picks, rookie contracts and undrafted free agents
+- `pfa.js`: the pro offseason: re-signing, the tag and option, the new league year, free agency and compensatory picks
+- `ptrade.js`: trades: pick and player values, answers, offers, trades between computer teams, the deadline and draft-day trades
 - `cloud.js`: save codes, cloud saves and backups
 - `sound.js`: crowd and horn, synthesized in the browser
-- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js`, `ui_offseason.js`, `ui_jobs.js`, `ui_money.js`, `ui_college.js`, `ui_board.js`, `ui_names.js` and `ui.js`: the screens (the game and key moments; rosters and the depth chart; practice and scouting reports; the season and camp; creating your coach, your coach's page, the season summary and saves; the offseason, hallway recruiting and how the team changed; the athletic director's review, the coaching changes and the job market; the program fund, signing day and college recruiting; the college season, standings, top 25, postseason and offseason; the recruiting board and the transfer portal; the names screen; the main menu, the exhibition, help and screen reader support)
+- `ui_game.js`, `ui_depth.js`, `ui_practice.js`, `ui_season.js`, `ui_career.js`, `ui_offseason.js`, `ui_jobs.js`, `ui_money.js`, `ui_college.js`, `ui_board.js`, `ui_pros.js`, `ui_draft.js`, `ui_fa.js`, `ui_trade.js`, `ui_names.js` and `ui.js`: the screens (the game and key moments; rosters and the depth chart; practice and scouting reports; the season and camp; creating your coach, your coach's page, the season summary and saves; the offseason, hallway recruiting and how the team changed; the athletic director's review, the coaching changes and the job market; the program fund, signing day and college recruiting; the college season, standings, top 25, postseason and offseason; the recruiting board and the transfer portal; the pro season, standings, playoff, cap and GM; the draft board and draft room; free agency; trades; the names screen; the main menu, the exhibition, help and screen reader support)
 
 ## Tests
 
@@ -125,5 +137,6 @@ The scripts in `js/` load in order from `index.html` and share their top-level n
 - `node tests/years.js`: preseason camp, schools on paper rebuilt for any year, graduation, freshmen, career stats, tradition, a state that stays at the same level for five years, and saves from before more seasons
 - `node tests/money.js`: boosters, the fund, fundraisers, facilities and their effects, purchases, clinics, moving schools, the colleges, offers and signing day, key moments, and saves from before money
 - `node tests/college.js`: college rules and overtime, the college world and its season, college players and the year, the college job and both worlds, recruiting, money for players and the portal, and names
-- `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a career from creating your coach through camp and a season to the summary, the offseason and the next season's camp, with practice, installs and scouting reports, focus checks, reloads, save codes and cloud saves on two devices
+- `node tests/pros.js`: pro rules and overtime, the league and its season, players and the cap, the pro job and the GM, the draft, free agency, trades and renaming the pros
+- `node tests/dom.js`: the page in a simulated browser, played by tapping: an exhibition game, depth chart changes and substitutions, and a career from creating your coach through camp and a season to the summary, the offseason and the next season's camp, with practice, installs and scouting reports, focus checks, reloads, save codes and cloud saves on two devices, and the pros' screens
 - `node tests/balance.js 300`: plays 300 computer games and prints the numbers to tune against

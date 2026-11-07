@@ -7,7 +7,8 @@
 "use strict";
 
 /* ---------- Names ---------- */
-const PRO_LEAGUE = "the Sunday League", PRO_BOWL = "Sunday Bowl";
+// (names you choose replace these: names.js)
+let PRO_LEAGUE = "the Sunday League", PRO_BOWL = "Sunday Bowl";
 const PRO_CONF_IDS = ["A", "P"];
 const PRO_CONF_NAMES = { A: "Atlantic Conference", P: "Pacific Conference" }, PRO_CONF_SHORT = { A: "Atlantic", P: "Pacific" };
 const PRO_DIV_NAMES = ["North", "South", "East", "West"];

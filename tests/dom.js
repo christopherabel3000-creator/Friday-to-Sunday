@@ -760,6 +760,11 @@ function checkScreen(page, label) {
   checkScreen(p9, "names in a conference");
   { const box = d9.querySelector('input[data-in^="nm|s|t|"]'); box.value = "Lakeshore Tech"; box.dispatchEvent(new w9.Event("input", { bubbles: true })); }
   ok(ev9(`schoolName(colWorld().schools[colWorld().confs[0].ids[0]])`).startsWith("Lakeshore Tech") && d9.activeElement !== d9.body || true, "typing renames the school without redrawing");
+  tap(p9, "nmtab", "pro");
+  ok(/League name/.test(d9.body.textContent) && !!btn(d9, "nmpdiv", "pd0"), "the Pros names: the league and its divisions");
+  tap(p9, "nmpdiv", "pd0");
+  ok(d9.activeElement && d9.activeElement.id === "nmconfhead", "a division's teams, with focus on its heading");
+  checkScreen(p9, "pro names");
   tap(p9, "nmtab", "share");
   ok(/Lakeshore Tech/.test(d9.getElementById("nmout").value || d9.getElementById("nmout").textContent), "the list to copy out");
   checkScreen(p9, "share names");
