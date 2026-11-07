@@ -690,6 +690,16 @@ function checkScreen(page, label) {
   tap(p6, "cloudforce");
   await wait(() => /Saved to the cloud/.test(msg6()));
   ok(cloudData["fridayToSundaySaves/" + key].ver === 3 && !btn(d6, "cloudforce"), "replace it when you say so");
+  // A save code loaded on a device that has a cloud save: saving to the cloud afterwards updates that one
+  const code7 = await w7.eval("encodeSave(portableSave())");
+  const ib = d6.getElementById("importbox"); ib.value = code7; ib.dispatchEvent(new w6.Event("input", { bubbles: true }));
+  tap(p6, "loadcode");
+  await wait(() => !!btn(d6, "loadyes"));
+  tap(p6, "loadyes");
+  ok(ev6("APP.cloud && APP.cloud.key") === key && msg6().includes("Save to the cloud now to put it in your cloud save, " + ev6("keyText(APP.cloud.key)")), "a save code keeps the device's cloud save, and says how to update it");
+  tap(p6, "cloudsave");
+  await wait(() => /Saved to the cloud/.test(msg6()));
+  ok(cloudData["fridayToSundaySaves/" + key].ver === 4 && ev6("APP.cloud.key") === key, "saving to the cloud then updates the same cloud save");
   ok(p6.errors.length === 0 && p7.errors.length === 0, "no script errors with saves: " + p6.errors.concat(p7.errors).slice(0, 2).join(" | "));
 
   // ---- Key moments ----

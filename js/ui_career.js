@@ -301,11 +301,14 @@ function openSaveFile(file) {
   file.text().then(t => checkCode(t, "This save file holds"), () => showSaveMsg("That file couldn't be read."));
 }
 // Loads a save in place of the game on this device, keeping that game as the backup
+// A save code keeps this device's link to its cloud save, so saving to the cloud afterwards updates that
+// cloud save instead of starting a new one
 function adoptSave(d, cloud) {
+  const link = APP && APP.cloud && APP.cloud.key ? APP.cloud : null;
   keepBackup();
   APP = d.app; S = d.game && d.game.teams ? d.game : null; SEASON = d.season || null; CAREER = d.career || null; OTHER = d.other || null; THIRD = d.third || null; adoptNames(d.names); nameAll();
   if (!APP.ex) newExhibition();
-  if (cloud) APP.cloud = cloud;
+  if (cloud) APP.cloud = cloud; else if (link) APP.cloud = link;
   relinkCareer();
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
   recordCareerSeason();
@@ -339,7 +342,7 @@ function savesAct(a) {
       const L = pendingLoad; pendingLoad = null; cloudConflict = false;
       adoptSave(L.save, L.cloud);
       exportText = ""; importText = "";
-      setSaveMsg(`Loaded: ${saveSummary(currentSave())}. The game you had before is kept as a backup on this screen.`);
+      setSaveMsg(`Loaded: ${saveSummary(currentSave())}. The game you had before is kept as a backup on this screen.${!L.cloud && APP.cloud && APP.cloud.key ? ` Save to the cloud now to put it in your cloud save, ${keyText(APP.cloud.key)}.` : ""}`);
       return true;
     }
     case "loadno": pendingLoad = null; setSaveMsg("You kept the game on this device."); return true;
