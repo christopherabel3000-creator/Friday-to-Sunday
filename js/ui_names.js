@@ -8,8 +8,8 @@ const NM_TABS = [["col", "College"], ["hs", "High school"], ["pro", "Pros"], ["b
 // A school's two fields, in a group named for the school
 function nameFields(s, tl, ml) {
   const id = s.id, own = `${s.town0 != null ? s.town0 : s.town} ${s.mascot0 != null ? s.mascot0 : s.mascot}`;
-  const field = (part, label, val) => `<div class="form"><label for="nm-${id}-${part}">${label}</label><input type="text" id="nm-${id}-${part}" data-in="nm|s|${part}|${id}" value="${esc(val)}" maxlength="${NAME_LEN}" autocomplete="off" autocapitalize="words" spellcheck="false"></div>`;
-  return `<div role="group" aria-label="${esc(own)}" class="nmgroup"><p class="sechead" aria-hidden="true">${esc(own)}${s.town0 != null && (s.town !== s.town0 || s.mascot !== s.mascot0) ? ` · now ${esc(schoolName(s))}` : ""}</p>${field("t", tl || "Name", s.town)}${field("m", ml || "Mascot", s.mascot)}</div>`;
+  const field = (part, label, val) => `<div class="form"><label for="nm-${id}-${part}">${label}</label><input type="text" id="nm-${id}-${part}" data-in="nm|s|${part}|${id}" value="${esc(val)}" maxlength="${part === "a" ? ABBR_LEN : NAME_LEN}" autocomplete="off" autocapitalize="${part === "a" ? "characters" : "words"}" spellcheck="false"></div>`;
+  return `<div role="group" aria-label="${esc(own)}" class="nmgroup"><p class="sechead" aria-hidden="true">${esc(own)}${s.town0 != null && (s.town !== s.town0 || s.mascot !== s.mascot0) ? ` · now ${esc(schoolName(s))}` : ""}</p>${field("t", tl || "Name", s.town)}${field("m", ml || "Mascot", s.mascot)}${field("a", "Scoreboard abbreviation", s.abbr)}</div>`;
 }
 const confField = c => `<div class="form"><label for="nm-${c.id}">${c.cls === "PRO" ? "Division name" : "Conference name"}</label><input type="text" id="nm-${c.id}" data-in="nm|c||${c.id}" value="${esc(c.name)}" maxlength="${NAME_LEN}" autocomplete="off" autocapitalize="words" spellcheck="false"></div>`;
 const nmSeg = (a, opts, cur, label) => `<div style="display:grid;gap:6px" role="group" aria-label="${label}"><span class="eyebrow" aria-hidden="true">${label}</span><div class="seg">${opts.map(([v, nm]) => `<button data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${nm}</button>`).join("")}</div></div>`;
@@ -110,7 +110,7 @@ function namesAct(a, ds) {
       else { nmMsg = "Select the text in the Your names box and copy it."; focusNext = { id: "nmmsg" }; }
       return true;
     }
-    case "nmload": { const k = loadNamesText(nmImport); nmMsg = k ? `Loaded ${plural(k, "name")}.` : "No names found. Each line looks like: school c12: Lakeshore State / Panthers"; if (k) { nmImport = ""; save(); } focusNext = { id: "nmmsg" }; return true; }
+    case "nmload": { const k = loadNamesText(nmImport); nmMsg = k ? `Loaded ${plural(k, "name")}.` : "No names found. Each line looks like: school c12: Lakeshore State / Panthers / LSU"; if (k) { nmImport = ""; save(); } focusNext = { id: "nmmsg" }; return true; }
     case "nmreset": if (!confirmed("nmreset")) return true; resetNames(); save(); nmMsg = "Back to the game's own names."; focusNext = { id: "nmmsg" }; return true;
   }
   return false;

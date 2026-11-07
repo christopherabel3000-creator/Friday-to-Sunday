@@ -343,7 +343,7 @@ function vHelp() {
       "Your staff can fill the board, handle visits and make NIL offers up to a share of the money you set. A new coach rating, Recruiting, and the Recruiter perk make your staff's time count for more.",
       "Money for players: revenue sharing plus the booster collective, from about $12 million to $16 million a year at a power program down to nothing in Division III, which can't pay players. Every player has a fair pay at your program from his ratings and position.",
       "The transfer portal opens once a year, after the postseason. Underpaid starters and players stuck behind others may enter. Keep yours by matching what they want, or ask them to stay. Go after other programs' players with NIL offers; they decide when the window closes.",
-      "Any school, conference, bowl or pro team, and the pro league itself, can be renamed from the main menu."
+      "Any school, conference, bowl or pro team, and the pro league itself, can be renamed from the main menu, along with each team's scoreboard abbreviation."
     ]))}
     ${sec("The pros", ul([
       "Win big at a power-conference program and pro teams call: 32 teams in the Sunday League, in two conferences of four divisions. A season is camp and three preseason weeks of practice (no games to play), cutdown day, 17 games over 18 weeks with a bye, and a 14-team playoff to the Sunday Bowl. All of it can be renamed.",

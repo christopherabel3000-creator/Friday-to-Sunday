@@ -5,7 +5,7 @@
 "use strict";
 
 /* ---------- The names ---------- */
-// NAMES: { s: { id: { t: name, m: mascot } }, c: { id: name }, b: { bowl's own name: name },
+// NAMES: { s: { id: { t: name, m: mascot, a: abbreviation } }, c: { id: name }, b: { bowl's own name: name },
 // l: { league, bowl, A, P } } (the pro league's name, its championship game and its two conferences).
 // School and conference ids follow the shape of the state and the college world (c0 is always the
 // first program in the first power conference, d1s1 the first 1A school in District 1), so a list
@@ -13,12 +13,15 @@
 const NAMES_KEY = "friday-to-sunday-names", NAME_LEN = 40;
 let NAMES = { s: {}, c: {}, b: {}, l: {} };
 const LEAGUE_PARTS = { league: "Sunday League", bowl: "Sunday Bowl", A: "Atlantic", P: "Pacific" };
+// A scoreboard abbreviation: letters, numbers and &, up to five, in capitals
+const ABBR_LEN = 5;
+const cleanAbbr = v => String(v == null ? "" : v).toUpperCase().replace(/[^A-Z0-9&]/g, "").slice(0, ABBR_LEN);
 const cleanNameText = v => String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().slice(0, NAME_LEN);
 const namesEmpty = n => !n || ["s", "c", "b", "l"].every(k => !Object.keys(n[k] || {}).length);
 function normNames(n) {
   const out = { s: {}, c: {}, b: {}, l: {} };
   if (!n || typeof n !== "object") return out;
-  for (const id in n.s || {}) { const x = n.s[id] || {}, t = cleanNameText(x.t), m = cleanNameText(x.m); if (t || m) out.s[id] = Object.assign(t ? { t } : {}, m ? { m } : {}); }
+  for (const id in n.s || {}) { const x = n.s[id] || {}, t = cleanNameText(x.t), m = cleanNameText(x.m), a = cleanAbbr(x.a); if (t || m || a) out.s[id] = Object.assign(t ? { t } : {}, m ? { m } : {}, a ? { a } : {}); }
   for (const id in n.c || {}) { const t = cleanNameText(n.c[id]); if (t) out.c[id] = t; }
   for (const id in n.b || {}) { const t = cleanNameText(n.b[id]); if (t) out.b[id] = t; }
   for (const k in n.l || {}) { const t = cleanNameText(n.l[k]); if (t && k in LEAGUE_PARTS) out.l[k] = t; }
@@ -26,8 +29,17 @@ function normNames(n) {
 }
 function loadNames() { try { const n = JSON.parse(localStorage.getItem(NAMES_KEY) || "null"); if (n) NAMES = normNames(n); } catch (e) { /* no names yet */ } }
 function storeNames() { try { localStorage.setItem(NAMES_KEY, JSON.stringify(NAMES)); } catch (e) { /* best-effort */ } }
-// A save brings its names to a device that has none of its own
-function adoptNames(n) { if (namesEmpty(NAMES) && !namesEmpty(n)) { NAMES = normNames(n); storeNames(); } }
+// A save brings its names to the device: all of them to a device with none of its own, and otherwise
+// whatever the device doesn't have yet (a name you've typed on the device stays)
+function adoptNames(n) {
+  if (namesEmpty(n)) return;
+  if (namesEmpty(NAMES)) { NAMES = normNames(n); storeNames(); return; }
+  const x = normNames(n);
+  let added = 0;
+  for (const id in x.s) { const own = NAMES.s[id] || {}; for (const k in x.s[id]) if (!own[k]) { own[k] = x.s[id][k]; added++; } NAMES.s[id] = own; }
+  ["c", "b", "l"].forEach(k => { for (const id in x[k]) if (!NAMES[k][id]) { NAMES[k][id] = x[k][id]; added++; } });
+  if (added) storeNames();
+}
 
 /* ---------- Applying them ---------- */
 // Each school and conference keeps its own name (town0, mascot0, name0) the first time it's renamed,
@@ -37,7 +49,10 @@ function nameSchool(s) {
   const x = NAMES.s[s.id];
   if (s.town0 == null && x) { s.town0 = s.town; s.mascot0 = s.mascot; }
   if (s.town0 == null) return;
+  if (s.abbr0 == null) s.abbr0 = s.abbr;
   s.town = (x && x.t) || s.town0; s.mascot = (x && x.m) || s.mascot0;
+  // The abbreviation you gave it, or one made from its new name, or its own
+  s.abbr = (x && x.a) || (x && x.t ? schoolAbbr(x.t) : s.abbr0);
 }
 function nameConf(c) {
   if (!c) return;
@@ -73,10 +88,10 @@ function nameAll() {
 // An empty name (or the school's own) goes back to the school's own name
 function renameSchool(id, part, v) {
   const t = cleanNameText(v), s = (SEASON && SEASON.schools[id]) || (OTHER && OTHER.schools[id]) || (THIRD && THIRD.schools[id]);
-  if (!s || (part !== "t" && part !== "m")) return false;
-  const own = part === "t" ? (s.town0 != null ? s.town0 : s.town) : (s.mascot0 != null ? s.mascot0 : s.mascot);
-  const x = Object.assign({}, NAMES.s[id]);
-  if (!t || t === own) delete x[part]; else x[part] = t;
+  if (!s || !["t", "m", "a"].includes(part)) return false;
+  const own = part === "t" ? (s.town0 != null ? s.town0 : s.town) : part === "m" ? (s.mascot0 != null ? s.mascot0 : s.mascot) : (s.abbr0 != null ? s.abbr0 : s.abbr);
+  const x = Object.assign({}, NAMES.s[id]), val = part === "a" ? cleanAbbr(v) : t;
+  if (!val || val === own) delete x[part]; else x[part] = val;
   if (Object.keys(x).length) NAMES.s[id] = x; else delete NAMES.s[id];
   nameSchool(s);
   if (typeof COLLEGE_CACHE !== "undefined") COLLEGE_CACHE = null;
@@ -121,13 +136,13 @@ function resetNames() {
 
 /* ---------- The list ---------- */
 // One name to a line:
-//   school c12: Lakeshore State / Panthers
+//   school c12: Lakeshore State / Panthers / LSU   (the abbreviation is optional)
 //   conference k3: Heartland Conference
 //   bowl Lone Pine Bowl: Granite Bowl
 //   league bowl: Championship Sunday
 function namesText() {
   const out = [];
-  for (const id in NAMES.s) { const x = NAMES.s[id]; out.push(`school ${id}: ${x.t || ""} / ${x.m || ""}`); }
+  for (const id in NAMES.s) { const x = NAMES.s[id]; out.push(`school ${id}: ${x.t || ""} / ${x.m || ""}${x.a ? ` / ${x.a}` : ""}`); }
   for (const id in NAMES.c) out.push(`conference ${id}: ${NAMES.c[id]}`);
   for (const b in NAMES.b) out.push(`bowl ${b}: ${NAMES.b[b]}`);
   for (const k in NAMES.l) out.push(`league ${k}: ${NAMES.l[k]}`);
@@ -138,8 +153,8 @@ function loadNamesText(text) {
   const n = { s: Object.assign({}, NAMES.s), c: Object.assign({}, NAMES.c), b: Object.assign({}, NAMES.b), l: Object.assign({}, NAMES.l) };
   let k = 0;
   String(text || "").split(/\r?\n/).forEach(line => {
-    let m = line.match(/^\s*school\s+([A-Za-z0-9]+)\s*:\s*(.*?)\s*\/\s*(.*?)\s*$/i);
-    if (m) { const t = cleanNameText(m[2]), ms = cleanNameText(m[3]); if (t || ms) { n.s[m[1]] = Object.assign({}, n.s[m[1]], t ? { t } : {}, ms ? { m: ms } : {}); k++; } return; }
+    let m = line.match(/^\s*school\s+([A-Za-z0-9]+)\s*:\s*(.*?)\s*\/\s*(.*?)\s*(?:\/\s*([^/]*?)\s*)?$/i);
+    if (m) { const t = cleanNameText(m[2]), ms = cleanNameText(m[3]), a = cleanAbbr(m[4]); if (t || ms || a) { n.s[m[1]] = Object.assign({}, n.s[m[1]], t ? { t } : {}, ms ? { m: ms } : {}, a ? { a } : {}); k++; } return; }
     m = line.match(/^\s*conference\s+([A-Za-z0-9]+)\s*:\s*(.+?)\s*$/i);
     if (m) { const t = cleanNameText(m[2]); if (t) { n.c[m[1]] = t; k++; } return; }
     m = line.match(/^\s*league\s+(league|bowl|A|P)\s*:\s*(.+?)\s*$/);

@@ -443,7 +443,7 @@ function plain(g, extra) {
   let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const sc = g("APP.screen"); g(sc === "review" ? `act("carousel")` : sc === "carousel" ? `act("market")` : sc === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
   if (!g("SEASON.review.fired")) {
     ok(g("SEASON.off.stage") === "resign" && /Re-signing and the franchise tag/.test(g("vPOffseason()")), "the offseason opens with re-signing and the tag");
-    const ex = g(`expiringOf(mySchool()).filter(p => (p.exp || 0) >= 4).sort((a, b) => proValue(b) - proValue(a)).map(p => ({ id: p.id, pay: capHit(p), pos: p.pos }))`);
+    const ex = g(`expiringOf(mySchool()).filter(p => (p.exp || 0) >= 4).sort((a, b) => proValue(b) - proValue(a)).map(p => ({ id: p.id, pay: capHit(p), pos: p.pos, name: fullName(p) }))`);
     const tp = g(`tagPrice(SEASON, playerById(mySchool(), "${ex[0].id}"))`), top5 = g(`(() => { const h = []; Object.values(SEASON.schools).forEach(s => (isFull(s) ? s.players : s.roster.map(unpackPlayer)).forEach(q => { if (q.pos === "${ex[0].pos}") h.push(capHit(q)); })); h.sort((a, b) => b - a); return avg(h.slice(0, 5)); })()`);
     ok(Math.abs(tp - Math.max(top5, ex[0].pay * 1.2)) < 10000, `the tag's price: the top five at his position, or 120 percent of his pay (${g(`bigMoney(${tp})`)})`);
     g(`act("rsset", { t: "tag", v: "${ex[0].id}" }); act("rsset", { t: "ext", v: "${ex[1].id}" }); act("rsset", { t: "go", v: "${ex[2].id}" })`);
@@ -453,7 +453,8 @@ function plain(g, extra) {
     const t = g(`(() => { const p = playerById(mySchool(), "${ex[0].id}"); return p && { y: p.ct.y, g: p.ct.g, tag: p.tag }; })()`);
     ok(t && t.y.length === 1 && t.y[0] === tp && t.g === tp && t.tag === 2027, "the tagged player: one more year at the tag price, fully guaranteed");
     const e = g(`(() => { const p = playerById(mySchool(), "${ex[1].id}"); return p && ctYears(p); })()`);
-    ok(e >= 1, `the extended player is signed on (${e} years)`);
+    const retiredX = e == null && g(`SEASON.off.mine.retired.some(x => x.name === ${JSON.stringify(ex[1].name)})`);
+    ok(e >= 1 || retiredX, `the extended player is signed on (${retiredX ? "he retired at the new league year instead" : e + " years"})`);
     ok(!g(`playerById(mySchool(), "${ex[2].id}")`) && g(`faPlayers(SEASON).some(p => p.id === "${ex[2].id}" && p.from === SEASON.myId) || Object.values(SEASON.schools).some(s => !isFull(s) && s.roster.some(x => x.startsWith("${ex[2].id}|"))) || SEASON.off.mine.retired.length > 0`), "the one you let go is a free agent (or already signed elsewhere)");
     const fa = g(`(() => { const F = faPlayers(SEASON); return { n: F.length, noCt: F.every(p => !p.ct), from: F.every(p => !!SEASON.schools[p.from]) }; })()`);
     ok(fa.n > 150 && fa.noCt && fa.from, `the market: ${fa.n} free agents, each from his old team`);

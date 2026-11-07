@@ -422,7 +422,12 @@ function plain(g, extra) {
   ok(JSON.parse(g("localStorage.getItem(NAMES_KEY)")).s.c0.t === "Lakeshore Tech" && g("currentSave().names.s.c0.m") === "Herons", "names stay on the device and in the save");
   const list = g("namesText()");
   ok(/school c0: Lakeshore Tech \/ Herons/.test(list) && /conference k0: Northern League/.test(list) && /bowl Lone Pine Bowl: Granite Bowl/.test(list), "the names as a list to copy out");
-  g(`typed("nm|s|t|c0", "")`);
+  ok(g("OTHER.schools.c0.abbr") === "LTE" && /Scoreboard abbreviation/.test(g(`(() => { APP.nm.tab = "col"; APP.nm.conf = "k0"; return vNames(); })()`)), "a renamed school gets an abbreviation from its new name, and a box to change it");
+  g(`typed("nm|s|a|c0", "lt-u!")`);
+  ok(g("OTHER.schools.c0.abbr") === "LTU" && g("NAMES.s.c0.a") === "LTU" && /school c0: Lakeshore Tech \/ Herons \/ LTU/.test(g("namesText()")), "your own abbreviation, in capitals, up to five letters, and in the list");
+  ok(g(`(() => { const k = loadNamesText("school c1: Ridge State / Owls / RSU\\nschool c2: Bay Tech / Gulls"); return [k, OTHER.schools.c1.abbr, OTHER.schools.c2.abbr, OTHER.schools.c2.mascot].join(); })()`) === "2,RSU,BTE,Gulls", "a list with and without abbreviations loads");
+  ok(g(`(() => { const keep = JSON.stringify(NAMES); adoptNames({ s: { c0: { t: "Other Name", a: "ZZZ" }, c3: { t: "Glen College" } }, c: {}, b: {}, l: {} }); const r = [NAMES.s.c0.t, NAMES.s.c0.a, NAMES.s.c3 && NAMES.s.c3.t].join(); NAMES = JSON.parse(keep); nameAll(); return r; })()`) === "Lakeshore Tech,LTU,Glen College", "a loaded save adds the names a device doesn't have, and keeps the ones it does");
+  g(`typed("nm|s|a|c0", ""); typed("nm|s|t|c0", "")`);
   ok(g("OTHER.schools.c0.town") === own && g("NAMES.s.c0.m") === "Herons" && !g("NAMES.s.c0.t"), "clearing a box goes back to the game's name");
   // A new career on another device: the list loads, and a new world takes the names
   const sb2 = load(), g2 = sb2.__get;
