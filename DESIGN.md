@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone.
+Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone. Since then (November 2026): scoreboard abbreviations you choose, one Fundamentals setting in practice (every position group at once), and fixes for loading saves (see Saves). Next is Milestone 6, the coordinator path.
 
 ## The pitch
 
@@ -12,7 +12,7 @@ You're a first-time head coach at a tiny high school with a losing tradition. Yo
 - **A career you build.** Players grow and graduate, your coach gets better, and your reputation follows you from job to job.
 - **Management without busywork.** Plans stay in place until you change them, and reports only say what changed.
 - **Screen reader first.** Everything works with VoiceOver on iPhone and with a screen reader on a computer.
-- **A made-up world.** Fictional schools, conferences and pro league. Real NFL and college names and logos are trademarks. Players can rename schools themselves (Milestone 4).
+- **A made-up world.** Fictional schools, conferences and pro league. Real NFL and college names and logos are trademarks. Players can rename schools, pro teams, the pro league and each team's scoreboard abbreviation themselves (Milestones 4 and 5).
 
 ## The career at a glance
 
@@ -541,7 +541,7 @@ Checked against current sources in November 2026, and to be checked against the 
 - Class years: every player has five years of eligibility, no more and no less: freshman, sophomore, junior, senior and fifth-year senior. No redshirts and no exceptions. (Decided Nov 2026, to keep it simple.) Programs on paper bring in classes of about a fifth of a roster, and their ratings come from their last five classes.
 - Rosters of up to 105 at every level that opted into the 2025 House settlement, which replaced the old 85-scholarship limit with a 105-player roster limit. Smaller levels carry smaller rosters (about 90 to 100 in Division II and III). Nobody plays both ways, so fatigue matters less and depth matters more.
 - Leaving: seniors run out of eligibility, players transfer, and the best juniors and seniors may leave early for the pros, more likely the higher they're rated.
-- Practice works as in high school, with the same plan and units. Spring practice is four weeks of practice in the offseason, so a new coach can install his schemes before fall camp.
+- Practice works as in high school, with the same plan. Spring practice is four weeks of practice in the offseason, so a new coach can install his schemes before fall camp.
 - Your former players: the players you sent to college in Milestone 3b are kept with their programs, so they're on the roster when you take over there, or play against you.
 
 ### The college reputation and the job
@@ -591,11 +591,12 @@ Checked against current sources in November 2026, and to be checked against the 
 
 ### Renaming schools
 
-- Any school (high school or college), conference or bowl can be renamed, from a names screen with a text field for each, grouped by level and conference, with a search.
+- Any school (high school or college), conference or bowl can be renamed, from a names screen with a text field for each, grouped by level and conference, with a search. Each school also has a scoreboard abbreviation box (up to five capital letters, numbers or &); a school renamed without one gets an abbreviation made from its new name.
 - The names can be copied out as a list and loaded back in, to share or to move to another device.
 - Names you type are yours and stay on your device and in your saves. The game itself ships only made-up names.
-- The list is one name to a line: "school c12: Lakeshore State / Panthers", "conference k3: Heartland Conference", "bowl Lone Pine Bowl: Granite Bowl". School and conference ids follow the shape of the state and the college world, the same in every career, so a list works in any career. Loading a list adds to the names you have, and clearing a box goes back to the game's own name.
-- The names screen is on the main menu: College (by level, then conference), High school (by class, then district), Bowls, Search and Share. Typing renames as you go.
+- The list is one name to a line: "school c12: Lakeshore State / Panthers" (or "school c12: Lakeshore State / Panthers / LSU" with an abbreviation), "conference k3: Heartland Conference", "bowl Lone Pine Bowl: Granite Bowl". School and conference ids follow the shape of the state and the college world, the same in every career, so a list works in any career. Loading a list adds to the names you have, and clearing a box goes back to the game's own name.
+- The names screen is on the main menu: College (by level, then conference), High school (by class, then district), Pros (Milestone 5), Bowls, Search and Share. Typing renames as you go.
+- A save carries the names you've chosen. Loading one brings them all to a device with none of its own, and otherwise adds whatever names the device doesn't have yet; a name typed on the device stays.
 
 ### Screens
 
@@ -937,9 +938,9 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 
 How it's built (step 4):
 
-- The blocks are shared out by weight: none 0, light 1, normal 2, heavy 3. Giving one area more takes time from the rest, and every plan is valid. A plan with nothing in it is a week of rest. The balanced preset gives each of the six fundamentals units 0.8 blocks, install and opponent prep 1.7 each, and conditioning and recovery 0.8 each.
+- The blocks are shared out by weight: none 0, light 1, normal 2, heavy 3. Giving one area more takes time from the rest, and every plan is valid. A plan with nothing in it is a week of rest. Fundamentals count three times their weight, since every unit works at once. The balanced preset (fundamentals normal) gives fundamentals 5 blocks, install and opponent prep 1.7 each, and conditioning and recovery 0.8 each.
 - The fundamentals units: quarterbacks (accuracy, arm, awareness), running backs and receivers (elusiveness, ball security, hands, route running, blocking for tight ends, a little speed), the offensive line (run and pass blocking, strength, awareness), the defensive front (pass rush, run stopping and strength for linemen; tackling, coverage and awareness for linebackers), the secondary (coverage, tackling) and kickers (leg, accuracy). A player trains at his own two positions and wherever the depth chart has him starting or first off the bench. Injured players sit out.
-- Each week a rating gains 0.3 times the unit's blocks to the 0.75 power (more time helps, with diminishing returns), times the rating's weight in that unit, work ethic (0.6 to 1.4), year (freshmen 1.15 down to seniors 0.9), your Development rating (1 at 42), contact, and a random factor from 0.5 to 1.5. Progress builds up between practices, and a rating goes up a point at a time. Growth slows over the last four points before a player's potential and stops there.
+- Each week a rating gains 0.3 times the unit's blocks (a sixth of the fundamentals blocks, the same 0.8 a unit had in a balanced week when each unit had its own setting) to the 0.75 power (more time helps, with diminishing returns), times the rating's weight in that unit, work ethic (0.6 to 1.4), year (freshmen 1.15 down to seniors 0.9), your Development rating (1 at 42), contact, and a random factor from 0.5 to 1.5. Progress builds up between practices, and a rating goes up a point at a time. Growth slows over the last four points before a player's potential and stops there.
 - Over a balanced season a player gains about 3 points at his position as a freshman, 3 as a sophomore, 2.4 as a junior and 1.6 as a senior, and a team's starters about 2.5 points on each side of the ball. Conditioning adds about 4 points of stamina a season.
 - Contact: shorts grow players at 0.85 of the usual rate with 0.3 of the usual practice injuries, shells are the usual, and full pads grow at 1.12 with 2.1 times the injuries. A team starts the game at 100 percent energy, minus 0.25, 0.55 or 0.9 for each block on the field (fundamentals and conditioning) in shorts, shells or pads, plus 3 for each block of recovery, kept between 86 and 100.
 - Practice injuries: about two a season in shells on a balanced week. Most cost one game. Recovery cuts the risk by up to a quarter, and heals players faster.
@@ -1104,9 +1105,11 @@ How it's built (step 5):
 
 - A save code is FTS1Z. and the save gzipped, in base64: about 75 KB for a whole season (the save itself is about 260 KB). A browser that can't compress writes FTS1. and plain base64. Spaces and line breaks are ignored when pasting. The same code can be saved as a text file and opened later.
 - A cloud save lives at fridayToSundaySaves/KEY as { ver, state, t, by, act }, where state is the save code. The first cloud save makes a 12-character key (no 0, O, 1 or I). Each save goes in a transaction that only writes when the cloud copy is the version this device last saved or loaded; otherwise the game asks whether to replace it or load it. The database rules require each save to be exactly one version newer and never allow deleting one, and nobody can list the keys.
-- Neither a save code nor the cloud copy carries this device's cloud key, so sharing a save code never shares the cloud save. Loading a cloud save brings its key along.
+- Neither a save code nor the cloud copy carries this device's cloud key, so sharing a save code never shares the cloud save. Loading a cloud save brings its key along. Loading a save code keeps the device's own cloud key (November 2026), so saving to the cloud afterwards updates that cloud save instead of starting a new one, and the message after loading says so.
 - Loading a save, or starting a new career, keeps the game it replaces as a backup that can be switched back to.
 - A save from a newer version of the game asks for a reload instead of loading.
+- Upgrading a save only touches the world each step is for: the six-class upgrade runs on a high school season only (November 2026: it used to run on any season, which put the state's high schools into a college world and stopped a college save from loading), and a save with high schools mixed into a college or pro world is repaired when it loads.
+- Updates: every script and the stylesheet in index.html carry the same ?v= version, changed with each update, so a browser fetches an update's files together. If one of the game's own scripts still fails as the page starts (a mix of old and new files), the page loads itself once more, fresh, and if that fails too it says the game couldn't start, that saves are safe, and which error, by name and file, to send along. Errors from anything else, such as a browser extension, are left alone, and none of this steps in once the game has started.
 
 ## Accessibility
 
