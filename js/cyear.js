@@ -142,14 +142,17 @@ function colNextSeason() {
 }
 // The college world while you coach high school: its season is played on paper when yours ends, and
 // it moves on when your next season starts (both on OTHER)
+// (or while you coach in the pros)
+const paperCol = () => [OTHER, THIRD].find(w => w && w.lvl === "col") || null;
 function colWorldSeasonDone() {
-  const W = OTHER && OTHER.lvl === "col" ? OTHER : null;
+  const W = paperCol();
   if (W && W.phase !== "over") inWorld(W, colSeasonOnPaper);
 }
 function colWorldNextYear() {
-  if (!(OTHER && OTHER.lvl === "col")) return;
+  const W = paperCol();
+  if (!W) return;
   colWorldSeasonDone();
-  OTHER = inWorld(OTHER, () => { colNextSeason(); return SEASON; });
+  setWorld(W, inWorld(W, () => { colNextSeason(); return SEASON; }));
 }
 // What happened to your team over the year, for the new season's report (as years.js does for high school)
 function colYearReport(rep, year) {

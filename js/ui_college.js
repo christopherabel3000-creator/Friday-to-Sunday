@@ -211,7 +211,8 @@ function vCOffseason() {
 
 /* ---------- Screens by level ---------- */
 // The season's screens, for whichever level the season is
-const byLevel = (hs, col) => function () { return (SEASON && SEASON.lvl === "col" ? col : hs).apply(this, arguments); };
+// (and the pros: ui_pros.js)
+const byLevel = (hs, col, pro) => function () { return (SEASON && SEASON.lvl === "pro" && pro ? pro : SEASON && SEASON.lvl === "col" ? col : hs).apply(this, arguments); };
 function collegeAct(a, ds) {
   if (!SEASON || SEASON.lvl !== "col") return false;
   switch (a) {

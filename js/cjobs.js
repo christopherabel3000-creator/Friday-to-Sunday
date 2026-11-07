@@ -81,8 +81,10 @@ const contractText = J => `${moneyText(J.pay)} a year, ${plural(J.yrs, "year")} 
 
 /* ---------- Jobs in both worlds ---------- */
 // A school from either world, by id (high school ids look like d3s5 or 4Ad3s5, college ids like c123)
-const jobSchool = id => (SEASON.schools[id]) || (OTHER && OTHER.schools[id]) || null;
-const otherWorldJob = id => !SEASON.schools[id] && !!(OTHER && OTHER.schools[id]);
+const jobSchool = id => (SEASON.schools[id]) || (OTHER && OTHER.schools[id]) || (THIRD && THIRD.schools[id]) || null;
+// The world a job is in, when it isn't yours: OTHER or THIRD
+const jobWorld = id => SEASON.schools[id] ? SEASON : OTHER && OTHER.schools[id] ? OTHER : THIRD && THIRD.schools[id] ? THIRD : null;
+const otherWorldJob = id => !SEASON.schools[id] && !!jobWorld(id);
 // The reputation a school looks at, and its bar: a high school looks at your high school
 // reputation, a college at your college one (or, from high school, your high school one against 80)
 function jobRepFor(s) {
@@ -106,13 +108,16 @@ function otherJobs() {
   });
 }
 // The other world's year-end review and coaching changes happen with yours
+// (both other worlds: the one next to yours and the third one; never from inside another world)
 function otherWorldReview() {
-  if (!OTHER || OTHER.review) return;
-  if (OTHER.lvl === "col") { if (OTHER.phase !== "over") inWorld(OTHER, colSeasonOnPaper); }
-  else if (OTHER.phase !== "over") inWorld(OTHER, hsSeasonOnPaper);
-  inWorld(OTHER, () => { const keep = OTHER; OTHER = null; try { yearEndReview(); } finally { OTHER = keep; } });
+  if (WORLD_FROM) return;
+  [OTHER, THIRD].forEach(W => {
+    if (!W || W.review) return;
+    if (W.phase !== "over") inWorld(W, W.lvl === "col" ? colSeasonOnPaper : W.lvl === "pro" ? proSeasonOnPaper : hsSeasonOnPaper);
+    inWorld(W, () => { const k1 = OTHER, k2 = THIRD; OTHER = null; THIRD = null; try { yearEndReview(); } finally { OTHER = k1; THIRD = k2; } });
+  });
 }
-function otherWorldFill() { if (OTHER && OTHER.review) inWorld(OTHER, fillJobs); }
+function otherWorldFill() { [OTHER, THIRD].forEach(W => { if (W && W.review) inWorld(W, fillJobs); }); }
 
 /* ---------- Moving between worlds ---------- */
 // Taking a job in the other world: it starts with next season. Your old job opens at once, and the
@@ -122,8 +127,9 @@ function takeJobAcross(id) {
   if (!R.why[old]) { R.open.push(old); R.why[old] = "left"; }
   SEASON.schools[old].coach = outsideCoach(SEASON.schools[old]);
   if (SEASON.schools[old].rating) SEASON.schools[old].rating.c = Math.round((SEASON.schools[old].coach.off + SEASON.schools[old].coach.def) / 2);
-  OTHER.review.why[id] = "taken";
-  CAREER.next = { lvl: isCollege(OTHER.schools[id].cls) ? "col" : "hs", id };
+  const W = jobWorld(id), cls = W.schools[id].cls;
+  W.review.why[id] = "taken";
+  CAREER.next = { lvl: isPro(cls) ? "pro" : isCollege(cls) ? "col" : "hs", id };
   Object.assign(M, { took: id, from: old, offer: null, done: true, stage: "done", transfers: [] });
   fillJobs(); otherWorldFill();
 }
@@ -133,19 +139,32 @@ function switchWorlds() {
   const nx = CAREER.next;
   if (!nx) return;
   CAREER.next = null;
-  const leaving = SEASON, arriving = OTHER;
-  // Your old district or program goes back to paper
-  leaving.districts.forEach(d => d.ids.forEach(x => { const o = leaving.schools[x]; if (isFull(o)) { const sum = schoolSummary(o); sum.rating = o.lvl === "col" ? colRating(o, leaving.year) : schoolRating(o); leaving.schools[x] = sum; } }));
+  const leaving = SEASON, arriving = [OTHER, THIRD].find(w => w && w.schools[nx.id]);
+  // Your old district or program goes back to paper (a pro team as short records)
+  leaving.districts.forEach(d => d.ids.forEach(x => { const o = leaving.schools[x]; if (isFull(o)) { const sum = isPro(o.cls) ? proToPaper(o) : schoolSummary(o); if (!isPro(o.cls)) sum.rating = o.lvl === "col" ? colRating(o, leaving.year) : schoolRating(o); leaving.schools[x] = sum; } }));
   leaving.myId = null;
-  if (leaving.lvl === "col") leaving.districts = [{ n: 1, ids: [] }];
-  SEASON = arriving; OTHER = leaving;
-  if (nx.lvl === "col") {
+  if (leaving.lvl === "col" || leaving.lvl === "pro") leaving.districts = [{ n: 1, ids: [] }];
+  SEASON = arriving;
+  arrangeWorlds([leaving, OTHER, THIRD].filter(w => w && w !== arriving));
+  if (nx.lvl === "pro") {
+    if (CAREER.prep == null) CAREER.prep = startPrep(CAREER.crep);
+    proTakeOver(nx.id);
+    startProJob(nx.id);
+    proSetExpectations();
+  } else if (nx.lvl === "col") {
     if (CAREER.crep == null) CAREER.crep = startCrep(CAREER.rep);
     colTakeOver(nx.id);
     startColJob(nx.id);
     colSetExpectations();
   } else hsTakeOver(nx.id);
   SEASON.yearReport = null;
+}
+// With SEASON set, the other two worlds go where they belong: OTHER is the one whose jobs sit next to
+// yours (college from high school or the pros, high school from college), THIRD the one left
+function arrangeWorlds(rest) {
+  const lv = w => w.lvl === "col" ? "col" : w.lvl === "pro" ? "pro" : "hs", want = lv(SEASON) === "col" ? "hs" : "col";
+  OTHER = rest.find(w => lv(w) === want) || null;
+  THIRD = rest.find(w => w !== OTHER) || null;
 }
 // Taking over a high school from college: its district comes in full, with your coach and schemes
 function hsTakeOver(id) {
@@ -184,8 +203,8 @@ function hsSeasonOnPaper() {
 function hsNextOnPaper() {
   const old = SEASON;
   hsSeasonOnPaper();
-  const keep = OTHER; OTHER = null;
-  try { yearEndReview(); fillJobs(); } finally { OTHER = keep; }
+  const keep = OTHER, k3 = THIRD; OTHER = null; THIRD = null;
+  try { yearEndReview(); fillJobs(); } finally { OTHER = keep; THIRD = k3; }
   const champs = old.champs || {};
   const history = (old.history || []).concat(CLASSES.filter(c => champs[c]).map(c => ({ year: old.year, cls: c, id: champs[c], name: nameOf(champs[c]) })));
   advanceState();
@@ -199,8 +218,9 @@ function hsNextOnPaper() {
   return SEASON;
 }
 function hsWorldNextYear() {
-  if (!(OTHER && OTHER.lvl !== "col")) return;
-  OTHER = inWorld(OTHER, hsNextOnPaper);
+  const W = [OTHER, THIRD].find(w => w && w.schools && w.lvl !== "col" && w.lvl !== "pro");
+  if (!W) return;
+  setWorld(W, inWorld(W, hsNextOnPaper));
 }
 
 /* ---------- Counteroffers ---------- */

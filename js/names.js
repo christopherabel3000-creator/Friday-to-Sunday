@@ -51,14 +51,14 @@ function nameWorld(se) {
   (se.weeks || []).forEach(wk => wk.games.forEach(gm => { if (gm.bowl) { if (!gm.b0) gm.b0 = gm.bowl; gm.bowl = bowlAs(gm.b0); } }));
 }
 function nameAll() {
-  [SEASON, OTHER].forEach(nameWorld);
+  [SEASON, OTHER, THIRD].forEach(nameWorld);
   if (typeof COLLEGE_CACHE !== "undefined") COLLEGE_CACHE = null;
 }
 
 /* ---------- Renaming ---------- */
 // An empty name (or the school's own) goes back to the school's own name
 function renameSchool(id, part, v) {
-  const t = cleanNameText(v), s = (SEASON && SEASON.schools[id]) || (OTHER && OTHER.schools[id]);
+  const t = cleanNameText(v), s = (SEASON && SEASON.schools[id]) || (OTHER && OTHER.schools[id]) || (THIRD && THIRD.schools[id]);
   if (!s || (part !== "t" && part !== "m")) return false;
   const own = part === "t" ? (s.town0 != null ? s.town0 : s.town) : (s.mascot0 != null ? s.mascot0 : s.mascot);
   const x = Object.assign({}, NAMES.s[id]);

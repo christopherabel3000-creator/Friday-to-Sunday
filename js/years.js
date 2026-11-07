@@ -115,6 +115,8 @@ function playerYear(s, p, year, onPaper) {
 // the state's first year, or the classes that have come out since, each player taken through his
 // years on paper. Only the last four classes matter (five in college), so this takes the same time in any year.
 function rosterAt(sum, year) {
+  // A pro team keeps its real players (pworld.js)
+  if (isPro(sum.cls)) return proRoster(sum);
   const Y0 = SEASON.year0 || SEASON.year || year, span = finalYear(sum) - 8;
   // The first roster comes from the seed, with the tradition the school started with. Four years on,
   // everyone on it has graduated, and the school is all classes that came out since.

@@ -767,6 +767,34 @@ function checkScreen(page, label) {
   ok(ev9("APP.screen") === "home", "and back to the main menu");
   ok(p9.errors.length === 0, "no script errors in college: " + p9.errors.slice(0, 2).join(" | "));
 
+  // ---- The pros (Milestone 5) ----
+  const pp = await openPage(), dp = pp.d, ep = x => pp.w.eval(x), headp = () => (dp.querySelector("[data-focus]") || {}).textContent || "";
+  ep(`newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); (() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId); proSetExpectations(); })(); APP.screen = "season"; render();`);
+  ok(/Atlantic North/.test(dp.body.textContent) && /Camp and three preseason weeks/.test(dp.body.textContent), "the pro season screen, in camp");
+  checkScreen(pp, "pro season in camp");
+  ep(`simCamp(); APP.screen = "season"; render();`);
+  ok(!!btn(dp, "playgame") && /Week 1/.test(dp.body.textContent), "week 1 ahead: play, key moments or sim");
+  checkScreen(pp, "pro week ahead");
+  tap(pp, "simgame");
+  ok(ep("APP.screen") === "week" && /Week 1 results/.test(dp.body.textContent), "the week's results");
+  checkScreen(pp, "pro week results");
+  ep(`for (let i = 0; i < 6; i++) { const gm = myGameIn(SEASON.week); if (gm && !played(gm)) simMyGame(); finishWeek(); } APP.screen = "season"; render();`);
+  tap(pp, "standings");
+  ok(/Standings/.test(headp()) && dp.querySelectorAll("table").length === 8 && /if the season ended today/.test(dp.body.textContent), "standings: eight divisions and the playoff picture");
+  checkScreen(pp, "pro standings");
+  tap(pp, "back"); tap(pp, "schedule");
+  ok(/Schedule and stats/.test(headp()) && /bye/.test(dp.body.textContent), "your schedule, with your bye");
+  checkScreen(pp, "pro schedule");
+  tap(pp, "back");
+  ep(`simSeason(); APP.screen = "season"; render();`);
+  tap(pp, "bracket");
+  ok(/The playoff/.test(headp()) && /Wild-card round/.test(dp.body.textContent) && /Sunday Bowl/.test(dp.body.textContent), "the playoff, round by round to the Sunday Bowl");
+  checkScreen(pp, "pro playoff");
+  tap(pp, "back"); tap(pp, "offseason");
+  ok(ep("APP.screen") === "review", "the review after a pro season");
+  checkScreen(pp, "pro review");
+  ok(pp.errors.length === 0, "no script errors in the pros: " + pp.errors.slice(0, 2).join(" | "));
+
   console.log(`${checks - fails}/${checks} checks passed`);
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.log("FAIL: " + (e.stack || e)); process.exit(1); });

@@ -34,7 +34,7 @@ function coreKnown(s, off, def) {
 function talentRank(id) {
   const str = x => SEASON.schools[x].rating.off + SEASON.schools[x].rating.def;
   // (in college: in its conference, or 1 for an independent)
-  const ids = SEASON.lvl === "col" ? ((SEASON.confs.find(c => c.id === SEASON.schools[id].conf) || { ids: [id] }).ids) : SEASON.districts[districtOf(id) - 1].ids;
+  const ids = worldy() ? ((SEASON.confs.find(c => c.id === SEASON.schools[id].conf) || { ids: [id] }).ids) : SEASON.districts[districtOf(id) - 1].ids;
   return 1 + ids.filter(x => x !== id && str(x) > str(id)).length;
 }
 
@@ -42,7 +42,7 @@ function talentRank(id) {
 // Your games this season, in order: { n, gm, opp, us, them, win }
 function myGames() {
   const out = [], me = SEASON.myId;
-  for (let n = 1; n <= (SEASON.lvl === "col" ? COL_LAST : LAST_WEEK); n++) {
+  for (let n = 1; n <= (inPros() ? PRO_LAST : SEASON.lvl === "col" ? COL_LAST : LAST_WEEK); n++) {
     const gm = myGameIn(n);
     if (!gm || !played(gm)) continue;
     const us = gm.h === me ? gm.hs : gm.as, them = gm.h === me ? gm.as : gm.hs;
@@ -52,6 +52,7 @@ function myGames() {
 }
 // How the season ended: "State champions", "Lost in the semifinals", "Missed the playoffs"
 function finishText(id) {
+  if (inPros()) return proFinishText(id);
   if (SEASON.lvl === "col") return colFinishText(id);
   if (SEASON.champion === id) return "State champions";
   const out = eliminatedIn(id);
@@ -79,8 +80,8 @@ function seasonSummary() {
     .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([p, d]) => ({ p, from: p.o0, to: ovr(p, p.pos), d }));
   return {
     all, reg, games, pf, pa, best, big, close, improved,
-    place: SEASON.lvl === "col" ? placeOf(me, COL_REG) : SEASON.week > REGULAR_WEEKS ? placeOf(me, REGULAR_WEEKS) : null, expect: SEASON.expect || null,
-    finish: finishText(me), champ: SEASON.lvl === "col" ? !!(SEASON.post && SEASON.post[divOf(s)].champ === me) : SEASON.champion === me,
+    place: inPros() ? placeOf(me, PRO_REG) : SEASON.lvl === "col" ? placeOf(me, COL_REG) : SEASON.week > REGULAR_WEEKS ? placeOf(me, REGULAR_WEEKS) : null, expect: SEASON.expect || null,
+    finish: finishText(me), champ: inPros() ? SEASON.champion === me : SEASON.lvl === "col" ? !!(SEASON.post && SEASON.post[divOf(s)].champ === me) : SEASON.champion === me,
     leaders: { pass: statLeader("py"), rush: statLeader("ry"), rec: statLeader("rcy"), tk: statLeader("tk"), sck: statLeader("sck"), int: statLeader("int") }
   };
 }
@@ -89,13 +90,13 @@ function recordCareerSeason() {
   if (!CAREER || !SEASON || SEASON.phase !== "over" || !SEASON.myId) return false;
   if (CAREER.seasons.some(x => x.seed === SEASON.seed)) return false;
   const me = SEASON.myId, r = fullRecord(me), s = mySchool();
-  const col = SEASON.lvl === "col";
-  CAREER.seasons.push(gradeMySeason({ seed: SEASON.seed, year: SEASON.year, school: schoolName(s), color: s.color, w: r.w, l: r.l, place: placeOf(me, col ? COL_REG : REGULAR_WEEKS), finish: finishText(me),
+  const col = SEASON.lvl === "col", pro = inPros();
+  CAREER.seasons.push(gradeMySeason({ seed: SEASON.seed, year: SEASON.year, school: schoolName(s), color: s.color, w: r.w, l: r.l, t: r.t || 0, place: placeOf(me, pro ? PRO_REG : col ? COL_REG : REGULAR_WEEKS), finish: finishText(me),
     champ: col ? !!(SEASON.post && SEASON.post[divOf(s)].champ === me) : SEASON.champion === me }));
   return true;
 }
 // "Season 1: Pine Hollow Pirates, 9-3, first in the district. Lost in the semifinals."
-const careerLine = (x, i) => `${x.year || `Season ${i + 1}`}: ${x.school}${x.cls ? ` (${x.lvl === "col" ? levelName(x.cls) : x.cls})` : ""}, ${x.w}-${x.l}, ${x.place <= 8 ? ordWord(x.place - 1) : `${x.place}th`} in the ${x.lvl === "col" ? "conference" : "district"}. ${x.finish}.${x.g != null ? ` Graded ${signed(x.g)}.` : ""}`;
+const careerLine = (x, i) => `${x.year || `Season ${i + 1}`}: ${x.school}${x.cls ? ` (${x.lvl === "pro" ? "Pros" : x.lvl === "col" ? levelName(x.cls) : x.cls})` : ""}, ${x.w}-${x.l}${x.t ? `-${x.t}` : ""}, ${x.place <= 8 ? ordWord(x.place - 1) : `${x.place}th`} in the ${x.lvl === "pro" ? "division" : x.lvl === "col" ? "conference" : "district"}. ${x.finish}.${x.g != null ? ` Graded ${signed(x.g)}.` : ""}`;
 
 /* ---------- XP ---------- */
 // Your coach earns XP for winning games, upsets, the snaps your calls win, the playoffs and titles,

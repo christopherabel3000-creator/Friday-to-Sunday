@@ -89,7 +89,7 @@ function vNewYear() {
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${SEASON.year} preseason</p>
       <h2 data-focus tabindex="-1">The ${SEASON.year} ${esc(s.mascot)}</h2>
-      <p class="muted">${talentText(s.rating)} ${rank === 1 ? "The best starters" : rank <= 8 ? `The ${ordWord(rank - 1)}-best starters` : `Starters ranked ${rank}th`} in ${SEASON.lvl === "col" ? esc(s.conf ? `the ${confName(s.id)}` : "your schedule") : `District ${SEASON.district}`}. ${plural(s.players.length, "player")} on the roster.</p>
+      <p class="muted">${talentText(s.rating)} ${rank === 1 ? "The best starters" : rank <= 8 ? `The ${ordWord(rank - 1)}-best starters` : `Starters ranked ${rank}th`} in ${worldy() ? esc(s.conf ? `the ${confName(s.id)}` : "your schedule") : `District ${SEASON.district}`}. ${plural(s.players.length, "player")} on the roster.</p>
     </div>
     ${R.col && R.spring ? `<section class="panel"><h3>Spring practice</h3><p>${esc(`Four weeks with your practice plan: ${plural(R.spring.n, "player")} improved.${R.spring.mastery.length ? ` Plays learned: ${R.spring.mastery.map(([id, a, b]) => `${playName(id)} ${a} to ${b}`).join(", ")}.` : ""}`)}</p></section>` : ""}
     ${R.col && R.pros.length ? `<section class="panel"><h3>Left early for the pros</h3>${list(R.pros.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}${x.stats ? `: ${x.stats}` : ""}.`))}</section>` : ""}

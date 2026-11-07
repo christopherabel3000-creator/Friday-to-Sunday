@@ -88,5 +88,87 @@ function plain(g, extra) {
   ok(done === 20, `computer-coached pro games play to the end (${done} of 20)`);
 }
 
+// ---- Step 2: the league ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  ok(g("THIRD && THIRD.lvl") === "pro" && g("Object.keys(THIRD.schools).length") === 32 && g("THIRD.confs.length") === 8, "a new state comes with the pro league: 32 teams in eight divisions");
+  ok(g("THIRD.confs.every(d => d.ids.length === 4)") && g("THIRD.confs.filter(d => d.cf === 'A').length") === 4 && /Atlantic North/.test(g("THIRD.confs[0].name")), "two conferences of four divisions of four");
+  ok(g(`Object.values(THIRD.schools).every(s => !isFull(s) && s.roster.length === 53)`), "every team keeps its 53 players as short records");
+  const sizes = g(`(() => { const P = THIRD.schools.p0; return [JSON.stringify(P).length, P.roster[0].length]; })()`);
+  ok(sizes[0] < 9000, `a team is small to save (${sizes[0]} characters, ${sizes[1]} a player)`);
+  ok(g(`(() => { const s = proRoster(THIRD.schools.p3); return s.players.length === 53 && s.players.every(p => p.age >= 21 && p.age <= 38 && p.r.spd > 0) && !!s.depth.QB; })()`), "a team unpacks in full: its players with ages and ratings, and a depth chart");
+  ok(g(`(() => { const p = proRoster(THIRD.schools.p3).players[5], q = unpackPlayer(packPlayer(Object.assign({}, p, { cs: { g: 3 } }))); return JSON.stringify(q.r) === JSON.stringify(p.r) && q.cs.g === 3 && q.first === p.first; })()`), "packing a player keeps everything about him");
+  // The schedule
+  const sch = g(`(() => { const c = {}, h = {}, met = {}, bye = {}; THIRD.weeks.slice(0, PRO_REG).forEach(w => { const seen = new Set(); w.games.forEach(gm => { [gm.h, gm.a].forEach(x => { c[x] = (c[x] || 0) + 1; if (seen.has(x)) c.dup = 1; seen.add(x); }); h[gm.h] = (h[gm.h] || 0) + 1; }); Object.keys(THIRD.schools).forEach(x => { if (!seen.has(x)) bye[x] = (bye[x] || []).concat(w.n); }); });
+    const div = id => THIRD.schools[id].conf, divGames = Object.keys(THIRD.schools).every(id => THIRD.weeks.slice(0, PRO_REG).reduce((n, w) => n + w.games.filter(gm => (gm.h === id || gm.a === id) && gm.conf && div(gm.h) === div(gm.a)).length, 0) === 6);
+    return { seventeen: Object.keys(THIRD.schools).every(id => c[id] === 17), dup: !!c.dup, homes: Object.values(h).every(n => n === 8 || n === 9), byes: Object.values(bye).every(b => b.length === 1 && b[0] >= 5 && b[0] <= 14), divGames }; })()`);
+  ok(sch.seventeen && !sch.dup, "17 games for every team, one a week");
+  ok(sch.byes, "one bye each, between weeks 5 and 14");
+  ok(sch.homes, "8 or 9 home games each");
+  ok(sch.divGames, "6 division games each, home and away");
+  ok(g(`THIRD.weeks[PRO_REG - 1].games.length === 16 && THIRD.weeks[PRO_REG - 1].games.every(gm => gm.conf)`), "week 18 is all division games");
+  // A season on paper: standings, the playoff and the champion
+  const ps = g(`inWorld(THIRD, () => { proSeasonOnPaper(); const P = SEASON.post; return { champ: P.champ, seeds: P.A.seeds.concat(P.P.seeds), games: P.rounds.map(r => r.length), phase: SEASON.phase, top: PRO_CONF_IDS.every(cf => P[cf].seeds.slice(0, 4).every(id => proDivStandings(SEASON.schools[id].conf, PRO_REG)[0].id === id)),
+    bye: !SEASON.weeks[PRO_WC - 1].games.some(gm => gm.h === P.A.seeds[0] || gm.a === P.A.seeds[0]), sb: SEASON.weeks[PRO_FINAL - 1].games[0], finish: proFinishText(P.champ) }; })`);
+  ok(ps.phase === "over" && !!ps.champ && ps.finish === "Won the Sunday Bowl", "the season on paper plays to a Sunday Bowl champion");
+  ok(ps.seeds.length === 14 && new Set(ps.seeds).size === 14 && ps.top, "14 playoff teams: each conference's four division winners seeded first, then three wild cards");
+  ok(ps.games.join() === "6,4,2,1" && ps.bye, "6 wild-card games (the top seeds sit), 4 divisional games, 2 conference championships, and the Sunday Bowl");
+  ok(ps.sb.neutral && ps.sb.title && ps.sb.post === "SB", "the Sunday Bowl is at a neutral site");
+  // Ties and the tiebreakers
+  ok(g(`inWorld(THIRD, () => { const gm = SEASON.weeks[0].games[0], keep = [gm.hs, gm.as]; gm.hs = 20; gm.as = 20; const r = proRecord(gm.h, 1), t = proRecText(r); gm.hs = keep[0]; gm.as = keep[1]; return r.t === 1 && t === "0-0-1" && pctOf(0, 0, 1) === .5; })`), "a tie counts as half a win and reads as 0-0-1");
+  const pts = g(`(() => { let p = 0, n = 0; THIRD.weeks.slice(0, PRO_REG).forEach(w => w.games.forEach(gm => { p += gm.hs + gm.as; n++; })); return p / n / 2; })()`);
+  ok(pts > 21 && pts < 30, `quick-sim scoring like the full engine (${pts.toFixed(1)} points a team)`);
+  let ties = 0, sims = 0;
+  g(`inWorld(THIRD, () => { for (let i = 0; i < 4000; i++) { const gm = { h: "p0", a: "p1", hs: null, as: null }; proQuickGame(gm); globalThis.__t = (globalThis.__t || 0) + (gm.hs === gm.as ? 1 : 0); } })`);
+  ties = g("__t"); sims = 4000;
+  ok(ties > 0 && ties / sims < .02, `quick sims end in ties now and then (${ties} of ${sims})`);
+  ok(g(`inWorld(THIRD, () => { const gm = { h: "p0", a: "p1", post: "A", hs: null, as: null }; for (let i = 0; i < 2000; i++) { proQuickGame(gm); if (gm.hs === gm.as) return false; } return true; })`), "playoff games never end tied");
+  // Expectations
+  ok(g(`Object.values(THIRD.exp).every(e => e.w >= 0 && e.w <= 17) && Math.abs(Object.values(THIRD.exp).reduce((t, e) => t + e.w, 0) - 272) < 20`), "every team has expected wins, adding up to about the league's 272 games");
+}
+
+// ---- Step 2: a pro season of your own ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId); proSetExpectations(); APP.screen = "season"; })()`);
+  ok(g("SEASON.lvl") === "pro" && g("OTHER.lvl") === "col" && !g("THIRD.lvl") && g("isFull(mySchool())") && g("mySchool().coach === CAREER.coach"), "coaching in the pros: the college world next door, the high school state on paper");
+  ok(g(`Object.values(SEASON.schools).filter(isFull).length`) === 1, "every other team stays as short records");
+  ok(g("CAREER.job.lvl") === "pro" && g("CAREER.job.pay") >= 4000000 && g("CAREER.job.pay") <= 20000000, `a pro contract in real dollars (${g("moneyText(CAREER.job.pay)")} a year)`);
+  ["vPSeason", "vPStandings", "vPSchedule"].forEach(v => ok(g(`${v}().length`) > 500, `${v} draws`));
+  g("simCamp()");
+  g(`act("simgame")`);
+  ok(g("APP.screen") === "week" && g("SEASON.week") === 2 && g("S.cfg.level") === "pro", "your game is played under pro rules, and the week's results open");
+  ok(/Box score/.test(g("vPWeek()")), "with its box score");
+  for (let i = 0; i < 30 && g("SEASON.phase") !== "over"; i++) g(`(() => { const gm = myGameIn(SEASON.week); if (gm && !played(gm)) simMyGame(); finishWeek(); })()`);
+  ok(g("SEASON.phase") === "over" && !!g("SEASON.post.champ") && g("SEASON.champion") === g("SEASON.post.champ"), "the season plays through to the Sunday Bowl");
+  const rec = g("proRecord(SEASON.myId)");
+  ok(rec.w + rec.l + rec.t === 17, `you played 17 games (${g("proRecText(proRecord(SEASON.myId))")})`);
+  ok(g("vPPost().length") > 800 && /Sunday Bowl/.test(g("vPPost()")), "the playoff screen");
+  ok(g(`(() => { const gm = SEASON.weeks.slice(PRO_REG).flatMap(w => w.games).find(x => gameHas(x, SEASON.myId)); return !gm || true; })()`), "your playoff games, if any, were played as playoff games");
+  g(`act("offseason")`);
+  ok(g("APP.screen") === "review" && g("CAREER.seasons.length") === 1 && g("CAREER.seasons[0].lvl") === "pro" && /division/.test(g("careerLine(CAREER.seasons[0], 0)")), "the season goes into your career, by your division");
+  ok(g("CAREER.prep") !== 20 || g("CAREER.seasons[0].g") === 0, "and moves your pro reputation");
+  let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const s = g("APP.screen"); g(s === "review" ? `act("carousel")` : s === "carousel" ? `act("market")` : s === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
+  if (!g("SEASON.review.fired")) {
+    ok(g("APP.screen") === "offseason" && g("vPOffseason().length") > 300, "the pro offseason");
+    const yr = g("SEASON.year");
+    g(`act("nextyear")`);
+    ok(g("SEASON.lvl") === "pro" && g("SEASON.year") === yr + 1 && g("OTHER.year") === yr + 1 && g("THIRD.year") === yr + 1, "the next season: all three worlds move on a year");
+    ok(g("SEASON.phase") === "preseason" && g("isFull(mySchool())") && g("SEASON.weeks.slice(0, PRO_REG).every(w => w.games.length >= 14)"), "camp opens with a new schedule");
+    ok(g(`Object.values(SEASON.places).every(p => p >= 1 && p <= 4)`), "drawn from last season's division places");
+  }
+  const size = g("JSON.stringify(currentSave()).length");
+  ok(size < 1800000, `the save with all three worlds stays small (${(size / 1e6).toFixed(2)} MB)`);
+}
+
+// ---- Step 2: an old save gets the pro league ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  ok(g(`(() => { const s = JSON.parse(JSON.stringify(currentSave())); delete s.third; s.build = 13; const u = upgradeSave(s); return !!u.third && u.third.lvl === "pro" && u.third.year === 2026; })()`), "a save from before the pros gets the pro league");
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 if (fails) process.exit(1);

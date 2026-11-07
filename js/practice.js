@@ -245,7 +245,7 @@ function filmStudy(opp, me, n) {
   const keep = S, kt = kickTD, ke = kickEnded, out = { off: {}, def: {} };
   n = n || 60;
   try {
-    initGame({ level: SEASON && SEASON.lvl === "col" ? "col" : "hs", cpu: [true, true] }, [opp, me]);
+    initGame({ level: gameLevel(), cpu: [true, true] }, [opp, me]);
     for (const b in FILM_SITS) {
       const off = {}, opk = {}, def = {}, dpk = {};
       let runs = 0, plays = 0, blitz = 0, calls = 0;

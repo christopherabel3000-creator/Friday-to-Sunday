@@ -6,6 +6,7 @@
 const otText = gm => gm.ot ? (gm.ot > 1 ? ` in ${gm.ot} overtimes` : " in overtime") : "";
 // "Hillsboro Hawks 28, Pine Hollow Pirates 21", the winner first
 function scoreText(gm) {
+  if (gm.hs === gm.as) return `${nameOf(gm.a)} ${gm.as}, ${nameOf(gm.h)} ${gm.hs}, a tie${otText(gm)}`;
   const w = winnerOf(gm), l = loserOf(gm);
   return `${nameOf(w)} ${Math.max(gm.hs, gm.as)}, ${nameOf(l)} ${Math.min(gm.hs, gm.as)}${otText(gm)}`;
 }
@@ -17,10 +18,10 @@ const myScore = (gm, id) => gm.h === id ? [gm.hs, gm.as] : [gm.as, gm.hs];
 // "You beat the Hillsboro Hawks 28-21" or "You lost to the Hillsboro Hawks 28-21"
 function resultText(gm, id) {
   const [m, t] = myScore(gm, id), opp = nameOf(opponentIn(gm, id));
-  return `${m > t ? `You beat the ${opp}` : `You lost to the ${opp}`} ${Math.max(m, t)}-${Math.min(m, t)}${otText(gm)}`;
+  return `${m > t ? `You beat the ${opp}` : m < t ? `You lost to the ${opp}` : `You tied the ${opp}`} ${Math.max(m, t)}-${Math.min(m, t)}${otText(gm)}`;
 }
 // "Won 28-21" or "Lost 28-21 in overtime"
-const wonText = (gm, id) => { const [m, t] = myScore(gm, id); return `${m > t ? "Won" : "Lost"} ${Math.max(m, t)}-${Math.min(m, t)}${otText(gm)}`; };
+const wonText = (gm, id) => { const [m, t] = myScore(gm, id); return `${m > t ? "Won" : m < t ? "Lost" : "Tied"} ${Math.max(m, t)}-${Math.min(m, t)}${otText(gm)}`; };
 // "District game", "Non-district game", or the playoff round
 function gameKind(gm, n) {
   if (isPlayoffWeek(n)) return gm.title ? "State championship · Neutral site" : `State playoffs · ${weekName(n)}`;
@@ -349,7 +350,7 @@ function runSeasonSim(stopAt) {
   setTimeout(step, 30);
 }
 function vSimming() {
-  const last = SEASON.lvl === "col" ? COL_LAST : LAST_WEEK, done = simJob ? SEASON.week - simJob.from : 0, total = simJob ? Math.min(simJob.stopAt, last + 1) - simJob.from : 1;
+  const last = inPros() ? PRO_LAST : SEASON.lvl === "col" ? COL_LAST : LAST_WEEK, done = simJob ? SEASON.week - simJob.from : 0, total = simJob ? Math.min(simJob.stopAt, last + 1) - simJob.from : 1;
   return `
     <div class="masthead">
       <p class="eyebrow">${esc(nameOf(SEASON.myId))}</p>

@@ -651,7 +651,7 @@ Not in this milestone: the coordinator path (Milestone 6), assistant coaches on 
 Build steps, each one playable and tested before the next:
 
 1. **Done:** pro rules checked against the 2026 rulebook, and an exhibition pro game between two generated teams, with the level of play checked. Pro starters average about 74. Over 200 computer games: about 26 points a team (the real NFL is nearer 23), 44 percent runs, 65 percent completions, 7.4 yards a pass, 86 percent of field goals and 92 percent of extra points good, overtime in about 4 percent of games and a tie now and then. The regular season's 10-minute overtime, with ties, is new; the playoffs keep Gridiron Duel's.
-2. The pro league and its season: teams, divisions, the 17-game schedule, standings and tiebreakers, the playoff, the quick sim refit for the pros, and the league on paper while you coach in high school or college, with speed and save size measured. (A test career can start in the pros.)
+2. **Done:** the pro league and its season: teams, divisions, the 17-game schedule, standings and tiebreakers, the playoff, the quick sim refit for the pros, and the league on paper while you coach in high school or college, with speed and save size measured. (A test career can start in the pros.) Measured on a desktop computer: the league is built in about a tenth of a second, a pro season on paper takes a few hundredths, a new year while coaching in the pros about 2.5 seconds (most of it the high school state), and a save with all three worlds is about 1.4 MB as text, the pro league about 200 KB of it.
 3. Pro players and the cap: ages, growth and decline, retirement, contracts, cap space and dead money, the 90-man offseason roster, cutdown to 53, the practice squad, injured reserve and game-day actives.
 4. The pro job: the way in, the pro reputation, pro jobs in the market, coaching contracts, personnel control, owners, expectations and job security, computer GMs and your requests.
 5. The draft: declaring, the prospects, scouting and the combine, your board, the draft order, the draft room, rookie contracts and undrafted free agents. When you have control, your staff can run any part of it.
@@ -765,7 +765,8 @@ When you have control:
 
 - Three worlds: SEASON, the one you coach in, and the other two on paper. Each year all three move on, and the draft passes players from the college world to the pros. The college world's players who leave early now go to the draft instead of just leaving.
 - While you're in the pros, every team keeps its real players, since trades and free agency need them, but only your team is kept in full. The rest are kept as short records (name, age, position, ratings, contract) and rebuilt in full when you play them or open them.
-- To measure in step 2: the new year with all three worlds on a phone, and the save with 32 pro rosters. If it's too much, the other teams' players can be kept even more briefly.
+- Measured in step 2 (on a desktop computer; still to check on a phone): see build step 2. Each team's 53 players take about 6 KB as short records.
+- Quick sims in the pros, fit from 300 full-engine games between pro teams: expected points of 9.04 + 1.199 times the offense's starter rating, minus 0.989 times the defense's, plus 1.86 at home, plus 0.149 per point of coaching edge, from 11 drives with a field goal on two scores in five. A regular-season game tied after four quarters goes to overtime, which ends tied about one time in eight.
 
 ## The world
 

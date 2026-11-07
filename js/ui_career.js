@@ -169,10 +169,10 @@ function vSummary() {
   if (L.sck) ld.push(`Sacks: ${fullName(L.sck[0])}, ${v(L.sck[1], "sck")}.`);
   if (L.int) ld.push(`Interceptions: ${fullName(L.int[0])}, ${v(L.int[1], "int")}.`);
   const better = x.improved.map(y => `${fullName(y.p)}, ${yearName(y.p)} ${posName(y.p.pos)}: ${y.from} to ${y.to}.`);
-  const col = SEASON.lvl === "col", unit = col ? (s.conf ? `the ${confName(me)}` : "your schedule") : `District ${SEASON.district}`, ow = k => k < 8 ? ordWord(k) : `${k + 1}th`;
-  const record = [`${recText(x.all)} overall, ${x.reg.dw}-${x.reg.dl} in ${col ? "the conference" : "district"}.`];
+  const col = worldy(), grp = inPros() ? "the division" : "the conference", unit = col ? (s.conf ? `the ${confName(me)}` : "your schedule") : `District ${SEASON.district}`, ow = k => k < 8 ? ordWord(k) : `${k + 1}th`;
+  const record = [`${recText(x.all)} overall, ${x.reg.dw}-${x.reg.dl}${x.reg.dt ? `-${x.reg.dt}` : ""} in ${col ? grp : "district"}.`];
   // Where you finished, against where your starters ranked before the season
-  if (x.place && (!col || s.conf)) record.push(`Finished ${ow(x.place - 1)} in ${unit}${x.expect ? `, with ${x.expect === 1 ? "the best" : `the ${ow(x.expect - 1)}-best`} starters in ${col ? "the conference" : "the district"} before the season` : ""}.`);
+  if (x.place && (!col || s.conf)) record.push(`Finished ${ow(x.place - 1)} in ${unit}${x.expect ? `, with ${x.expect === 1 ? "the best" : `the ${ow(x.expect - 1)}-best`} starters in ${col ? grp : "the district"} before the season` : ""}.`);
   record.push(`${x.finish}.`, `Scored ${numText(x.pf)} points and allowed ${numText(x.pa)}, about ${Math.round(x.pf / n)} to ${Math.round(x.pa / n)} a game.`);
   return `
     <div class="masthead" style="--team:${s.color}">
@@ -303,7 +303,7 @@ function openSaveFile(file) {
 // Loads a save in place of the game on this device, keeping that game as the backup
 function adoptSave(d, cloud) {
   keepBackup();
-  APP = d.app; S = d.game && d.game.teams ? d.game : null; SEASON = d.season || null; CAREER = d.career || null; OTHER = d.other || null; adoptNames(d.names); nameAll();
+  APP = d.app; S = d.game && d.game.teams ? d.game : null; SEASON = d.season || null; CAREER = d.career || null; OTHER = d.other || null; THIRD = d.third || null; adoptNames(d.names); nameAll();
   if (!APP.ex) newExhibition();
   if (cloud) APP.cloud = cloud;
   relinkCareer();
