@@ -230,6 +230,11 @@ function plain(g, extra) {
   const opp = g(`(() => { const gm = myGameIn(1); return gm ? seasonSchool(opponentIn(gm, SEASON.myId)).players.length : 0; })()`);
   ok(opp >= 90, "an opponent's roster is rebuilt when you play it");
   ok(/Camp, then 12 games/.test(g("vCSeason()")), "the season screen, in camp");
+  ok(/Expected: about \d+-\d+/.test(g("vCSeason()")), "the season screen says what the athletic director expects");
+  g("CAREER.xp = 37; CAREER.xpAll = 120; startColJob(SEASON.myId);");
+  const cp = g("vCoach()");
+  ok(/<h3>XP to spend: 37<\/h3>/.test(cp) && /120 XP earned in your career/.test(cp), "your coach's page leads with the XP to spend");
+  ok(/<h3>Your job: /.test(cp) && /athletic director(&#39;|')s expectation this season: about \d+-\d+/.test(cp) && /Your first season here/.test(cp) && /a year, \d+ years? left on the contract/.test(cp), "and your job: the athletic director's expectation, job security and the contract");
   g("simCamp()");
   ok(/data-a="keygame"/.test(g("vCSeason()")) && /On paper/.test(g("vCSeason()")), "the week ahead: your opponent, on paper, and play, key moments or sim");
   g(`act("simgame")`);

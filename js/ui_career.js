@@ -79,8 +79,10 @@ function vCoach() {
     <div class="masthead"${me ? ` style="--team:${me.color}"` : ""}>
       <p class="eyebrow">Your coach${me ? ` · ${esc(nameOf(me.id))}` : ""}</p>
       <h2 data-focus tabindex="-1">${esc(coachFullName(c))}</h2>
-      <p class="muted">${bg ? `${esc(bg.name)}. ` : ""}${esc(schemes)} ${xp} XP to spend${CAREER.xpAll ? `, of ${CAREER.xpAll} earned` : ""}.</p>
+      <p class="muted">${bg ? `${esc(bg.name)}. ` : ""}${esc(schemes)}</p>
     </div>
+    ${xpSpendPanel()}
+    ${jobPanel()}
     ${repPanel()}
     <section class="panel">
       <h3>Ratings</h3>
@@ -134,6 +136,31 @@ function gradePanel() {
   return `<section class="panel"><h3>Season grade: ${esc(capFirst(gradeWord(last.g)))} (${signed(last.g)})</h3>
     <p>${esc(gradeWhy(r, expectOf(SEASON.myId)))}</p>
     <p>${esc(`${repText(last.rep)} That's ${last.drep >= 0 ? "up" : "down"} ${Math.abs(last.drep).toFixed(1)}.`)}</p></section>`;
+}
+
+/* ---------- Your coach's page: XP to spend and your job ---------- */
+// "XP to spend: 140", at the top of your coach's page, with the cheapest thing it buys
+function xpSpendPanel() {
+  const c = CAREER.coach, xp = CAREER.xp || 0;
+  const costs = COACH_RATINGS.filter(([k]) => c[k] < RATING_MAX).map(([k]) => rateCost(c[k])).concat(PERK_IDS.filter(k => !coachHas(c, k)).map(k => PERKS[k].cost));
+  const low = costs.length ? Math.min(...costs) : 0;
+  const note = !costs.length ? "Every rating is maxed and every perk learned." : xp >= low ? "Spend it on ratings and perks below." : `The cheapest rating or perk costs ${low} XP.`;
+  return `<section class="panel"><h3>XP to spend: ${xp}</h3><p>${esc(`${note}${CAREER.xpAll ? ` ${CAREER.xpAll} XP earned in your career.` : ""}`)}</p></section>`;
+}
+// Your job: where you coach, what the athletic director (or owner) expects this season, where your
+// job stands, and your contract or stipend
+function jobPanel() {
+  const J = CAREER.job;
+  if (!J || !SEASON) return "";
+  const boss = bossWord(), here = SEASON.myId === J.id && !movedSchools();
+  if (!here) return `<section class="panel"><h3>Your job: ${esc(jobName(J.id))}</h3><p>${esc(`Your new job starts at the preseason. ${J.yrs ? capFirst(contractText(J)) + "." : ""}`)}</p></section>`;
+  const done = ["over", "offseason"].includes(SEASON.phase), e = expectOf(J.id);
+  const exp = e ? `The ${boss}'s expectation ${done ? "for this past season was" : "this season:"} ${expectWords(e)} (${plural(Math.round(e.w * 10) / 10, "win")}).` : "";
+  const sec = J.ten === 0 ? `Your first season here. A new coach gets two full seasons before the ${boss} can let him go.`
+    : J.ten === 1 ? `${secWord(J.sec)} After one season here, you get one more full season before the ${boss} can let you go.`
+    : `${secWord(J.sec)} ${plural(J.ten, "season")} here, with ${patienceWord(patienceOf(jobSchool(J.id)))}.`;
+  const pay = J.yrs ? `${capFirst(contractText(J))}.` : J.pay ? `Your stipend: ${moneyText(J.pay)} a season.` : "";
+  return `<section class="panel"><h3>Your job: ${esc(jobName(J.id))}</h3><p>${esc(exp)}</p><p>${esc(sec)}</p>${pay ? `<p>${esc(pay)}</p>` : ""}</section>`;
 }
 
 /* ---------- XP ---------- */

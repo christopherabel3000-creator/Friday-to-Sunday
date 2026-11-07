@@ -61,6 +61,7 @@ function vPSeason() {
       <p class="eyebrow">${esc(`${SEASON.year} · ${PRO_CONF_NAMES[proCf(id)]} · ${proDivName(id)}`)}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
       <p class="muted">${esc(proStatus())}</p>
+      ${SEASON.phase !== "over" ? `<p class="muted">${esc(expectText(expectOf(id)))}</p>` : ""}
     </div>
     ${cutdownPanel()}
     ${camp && cutWait() ? `<section class="panel"><h3>Cutdown day</h3><p>${esc(`You're ${onActive(s).length - PRO_ACTIVE} over ${PRO_ACTIVE}, and the cuts are yours. Release players or move them to the practice squad from the roster, or let your staff cut to ${PRO_ACTIVE}.`)}</p><div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="staffcut">Let your staff cut to ${PRO_ACTIVE}</button></div></section>` : ""}

@@ -60,6 +60,7 @@ function vCSeason() {
       <p class="eyebrow">${esc(`${SEASON.year} · ${levelName(s.cls)} · ${confName(id)}`)}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
       <p class="muted">${esc(colStatus())}</p>
+      ${SEASON.phase !== "over" ? `<p class="muted">${esc(expectText(expectOf(id)))}</p>` : ""}
     </div>
     ${main}
     ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>` : ""}
