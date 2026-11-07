@@ -24,7 +24,7 @@ const bigMoney = n => Math.abs(n) >= 1e6 ? `$${(Math.round(n / 1e5) / 10).toLoca
 
 /* ---------- What a player is worth ---------- */
 // From his overall, his position and his age: about $10 million a year for a solid starter (75) at
-// most positions, doubling every 6 points, much more at quarterback and on the pass rush, and less at
+// most positions, doubling every 8 points, much more at quarterback and on the pass rush, and less at
 // running back and for kickers. Past his peak, a player is worth less each year.
 const VAL_POS = { QB: 1.8, DL: 1.2, WR: 1.1, OL: 1, CB: 1, LB: .8, S: .75, TE: .7, RB: .6, K: .25, P: .2 };
 // Ages players peak at, by position: running backs early, quarterbacks and kickers late
@@ -32,9 +32,9 @@ const PEAK_AGE = { RB: 26, QB: 30, K: 32, P: 32 };
 const peakAge = p => PEAK_AGE[p.pos] || 28;
 function proValue(p) {
   const o = ovr(p, p.pos), past = Math.max(0, p.age - peakAge(p) - 1);
-  let v = 10e6 * Math.pow(2, (o - 75) / 6) * (VAL_POS[p.pos] || .8) * Math.max(.3, 1 - .14 * past);
+  let v = 10.5e6 * Math.pow(2, (o - 75) / 8) * (VAL_POS[p.pos] || .8) * Math.max(.3, 1 - .14 * past);
   if (p.inj && p.inj.w >= 50) v *= .7;
-  return clamp(Math.round(v * capScale() / 5000) * 5000, proMin(p.exp), Math.round(.2 * capNow()));
+  return clamp(Math.round(v * capScale() / 5000) * 5000, proMin(p.exp), Math.round(.18 * capNow()));
 }
 
 /* ---------- Contracts ---------- */
@@ -56,7 +56,8 @@ const ctTotal = p => p.ct ? p.ct.y.reduce((a, b) => a + b, 0) : 0;
 function proContractText(p) {
   if (!p.ct || !p.ct.y.length) return "No contract.";
   const n = p.ct.y.length;
-  return `${bigMoney(p.ct.y[0])} this year${n > 1 ? `, ${plural(n, "year")} left (${bigMoney(ctTotal(p))} in all)` : ", the last year of his contract"}${p.ct.g ? `, ${bigMoney(p.ct.g)} guaranteed` : ""}.${p.ct.rk ? " Rookie contract." : ""}`;
+  const g = (p.ct.g || 0) + (p.ct.gx || 0);
+  return `${bigMoney(p.ct.y[0])} this year${n > 1 ? `, ${plural(n, "year")} left (${bigMoney(ctTotal(p))} in all)` : ", the last year of his contract"}${g ? `, ${bigMoney(g)} guaranteed` : ""}.${p.tag && SEASON && p.tag >= SEASON.year && ctYears(p) <= 2 ? " The franchise tag." : p.ct.rk ? " Rookie contract." : ""}`;
 }
 // A new contract for a player at what he's worth: longer for a young player, shorter for an old one
 function marketContract(p, rng) {
@@ -80,7 +81,7 @@ const capRoom = s => capLimit(s) - capUsed(s);
 const capNext = s => s.players.concat(teamPS(s)).reduce((t, p) => t + (p.ct && p.ct.y[1] || 0), 0);
 // Cutting a player: whatever's left of his guarantee counts against this year's cap, all at once
 function cutPlayer(s, p) {
-  const dead = p.ct ? p.ct.g || 0 : 0;
+  const dead = p.ct ? (p.ct.g || 0) + (p.ct.gx || 0) : 0;
   s.dead = (s.dead || 0) + dead;
   s.players = s.players.filter(x => x !== p);
   if (s.ps) s.ps = s.ps.filter(x => x !== p);
@@ -121,7 +122,7 @@ function gauss(rng) { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng
 // season-ending injury, and for a player who isn't good enough to be wanted
 function retires(p, rng) {
   const late = { QB: 3, K: 4, P: 4, RB: -2 }[p.pos] || 0, a = p.age - late;
-  let pr = a < 30 ? .01 : a < 32 ? .06 : a < 34 ? .18 : a < 36 ? .4 : .7;
+  let pr = p.age < 26 ? 0 : a < 30 ? .01 : a < 32 ? .06 : a < 34 ? .18 : a < 36 ? .4 : .7;
   if (ovr(p, p.pos) < 60 && a >= 28) pr += .25;
   if (p.inj && p.inj.w >= 50) pr += .08;
   return rng() < pr;
@@ -303,54 +304,18 @@ function toRoster(s, id) {
 }
 
 /* ---------- A team's year ---------- */
-// At the end of a season, for every team: everyone a year older (growing or declining), retirements,
-// contracts a year shorter, expiring contracts kept or let go, and the roster filled back to camp
-// size with rookies and young players off the street. Then the team gets under the cap.
-// s: a team in full. Returns what happened: { retired, left, kept, rookies, grew }.
-// req: your requests to the GM, for your team (pworld.js: myReq), and log: where his answers go
-function proTeamYear(s, year, rng, mine, rookies, oldCap, req, log) {
-  const out = { retired: [], left: [], kept: [], rookies: [], grew: [], freed: [] };
-  // Last year's unused cap space carries over (up to $30 million, in 2026 dollars)
-  const carry = Math.max(0, Math.min((oldCap || capNow()) + (s.carry || 0) - capUsed(s), 30e6 * capScale()));
-  const all = s.players.concat(s.ps || []);
-  all.forEach(p => { delete p.ir; delete p.up; if (p.inj && p.inj.w < 50) delete p.inj; });
-  const before = {};
-  all.forEach(p => { before[p.id] = ovr(p, p.pos); proAgeYear(p, s.coach.dev, rng, mine); if (p.inj) delete p.inj; });
-  // Retirements
-  const stay = all.filter(p => { if (retires(p, rng)) { out.retired.push(p); return false; } return true; });
-  // Contracts a year shorter: what was paid comes off the guarantee
-  const lastPay = {};
-  stay.forEach(p => { if (!p.ct) return; const paid = p.ct.y.shift() || 0; lastPay[p.id] = paid; p.ct.g = Math.max(0, (p.ct.g || 0) - paid); });
-  // Expiring contracts, within the money left: the team keeps the players it wants most, best first
-  // (a new contract at what he's worth, or, with fewer than four seasons, a year at his pay plus 10
-  // percent), and the rest leave
+// When the new season starts (after free agency and the draft: pfa.js, pdraft.js): everyone a year
+// older, growing or declining, then the rookies, then young players and journeymen off the street to
+// about 80 in camp. s: a team in full. Returns { rookies, grew }.
+function proTeamAge(s, year, rng, mine, rookies) {
+  const out = { rookies: [], grew: [] }, all = s.players.concat(s.ps || []), before = {};
+  all.forEach(p => { delete p.ir; delete p.up; if (p.inj && p.inj.w < 50) delete p.inj; before[p.id] = ovr(p, p.pos); proAgeYear(p, s.coach.dev, rng, mine); if (p.inj) delete p.inj; });
   (rookies || []).forEach(p => { out.rookies.push(p); });
-  const signed = stay.filter(p => p.ct && p.ct.y.length).concat(out.rookies);
-  let budget = (oldCap ? capNow() : capNow()) + carry - signed.reduce((t, p) => t + capHit(p), 0) - 30 * proMin(0);
-  const ranked = stay.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)), wantN = 46;
-  stay.filter(p => !(p.ct && p.ct.y.length)).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)).forEach(p => {
-    let wanted = ranked.indexOf(p) < wantN && ovr(p, p.pos) >= 60;
-    const ct = (p.exp || 0) < 4 ? makeContract(Math.max(proMin(p.exp), Math.round((lastPay[p.id] || proMin(p.exp)) * 1.1 / 5000) * 5000), 1, { g: 0 }) : marketContract(p, rng);
-    // Your requests: a player you asked to keep, or to let go, if the GM goes along
-    if (req && (req.keep.includes(p.id) || req.go.includes(p.id))) {
-      const keep = req.keep.includes(p.id), yes = gmFollows(`${keep ? "keep" : "go"}:${p.id}`) && !(keep && ct.y[0] > budget + 20 * proMin(0));
-      if (log) log.push({ yes, t: `${keep ? "Keep" : "Let go"} ${fullName(p)}: ${yes ? (keep ? `re-signed, ${proContractText({ ct })}` : "his contract ran out and he's gone") : keep ? (ct.y[0] > budget + 20 * proMin(0) ? "there wasn't the money" : "the GM let him go") : "the GM kept him"}` });
-      if (yes) wanted = keep;
-      else wanted = !keep && wanted;
-    }
-    if (!wanted || ct.y[0] > budget + (req && req.keep.includes(p.id) ? 20 * proMin(0) : 0)) { delete p.ct; out.left.push(p); return; }
-    p.ct = ct; budget -= ct.y[0];
-    out.kept.push(p);
-  });
-  const left = new Set(out.left);
-  let team = stay.filter(p => !left.has(p)).concat(out.rookies);
-  // Young players off the street, to about 80 in camp
+  const team = s.players.concat(s.ps || [], out.rookies);
   const g = dice(hashSeed(`${s.seed}:${year}:street`));
   let k = 0;
   while (team.length < 80) { const need = Object.keys(ROSTER_MIX).sort((a, b) => team.filter(p => p.pos === a).length / ROSTER_MIX[a] - team.filter(p => p.pos === b).length / ROSTER_MIX[b])[0]; team.push(streetPlayer(g, `${s.id}y${year}n${k++}`, CLASS_LEVEL.PRO - 6, need)); }
   s.players = team; s.ps = [];
-  // Last year's unused cap space carries over, and the new year starts with no dead money
-  s.carry = carry; s.dead = 0;
   out.grew = team.filter(p => before[p.id] != null && ovr(p, p.pos) > before[p.id]).map(p => [p.id, before[p.id], ovr(p, p.pos)]).sort((a, b) => (b[2] - b[1]) - (a[2] - a[1]));
   return out;
 }

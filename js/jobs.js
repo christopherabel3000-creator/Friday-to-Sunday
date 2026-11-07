@@ -252,6 +252,8 @@ function yearEndReview() {
   SEASON.market = { stage: signNews ? "signing" : "review", tried: {}, offer: null, fallback: null, took: null, from: null, transfers: [], done: false };
   R.news = carouselNews();
   checkFallback();
+  // The pros: re-signing and free agency come next (pfa.js)
+  if (inPros()) proOffseasonStart(SEASON);
   return R;
 }
 // Who the news is about: your district, and the notable changes in your class (a firing at a proud

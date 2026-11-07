@@ -177,11 +177,12 @@ function vPOffseason() {
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${SEASON.year} offseason</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(s.id))}</h2>
-      <p class="muted">${esc(gone ? proStatus() : `${proStatus()} The offseason program comes next: four weeks with your practice plan, then training camp.`)}</p>
+      <p class="muted">${esc(gone ? proStatus() : `${proStatus()} Re-signing and free agency come first, then the draft, then four weeks of the offseason program and training camp.`)}</p>
     </div>
     ${gone ? newJobPanel() : ""}
     ${gone ? "" : `<section class="panel"><h3>${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</h3><p>${esc(gmLine())}</p><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "The front office" : "Requests for the GM"}</button></section>`}
-    ${gone || !SEASON.draft ? "" : `<section class="panel"><h3>The ${SEASON.draft.year} draft</h3><p>${esc(SEASON.draft.done ? "The draft is done. Your rookies and undrafted free agents join you for camp." : `The combine is in. ${CAREER.job && CAREER.job.ctl ? "Your picks are yours" : "Your GM makes the picks, with a push from you each round"}. Whatever's left of the draft when the new season starts is picked for you.`)}</p><div class="choices"><button class="btn" data-a="draftroom">The draft room</button><button class="btn ghost" data-a="dboard">Your board</button></div></section>`}
+    ${gone ? "" : offseasonFAPanels()}
+    ${gone || !SEASON.draft || (SEASON.off && SEASON.off.stage !== "draft") ? "" : `<section class="panel"><h3>The ${SEASON.draft.year} draft</h3><p>${esc(SEASON.draft.done ? "The draft is done. Your rookies and undrafted free agents join you for camp." : `The combine is in. ${CAREER.job && CAREER.job.ctl ? "Your picks are yours" : "Your GM makes the picks, with a push from you each round"}. Whatever's left of the draft when the new season starts is picked for you.`)}</p><div class="choices"><button class="btn" data-a="draftroom">The draft room</button><button class="btn ghost" data-a="dboard">Your board</button></div></section>`}
     ${gone ? "" : `<section class="panel"><h3>The offseason program</h3><p>${esc("Four weeks of practice with your plan. Opponent prep time goes into install.")}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;

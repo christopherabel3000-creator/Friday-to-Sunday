@@ -35,11 +35,13 @@ const proWeekName = n => n <= PRO_REG ? `Week ${n}` : PRO_ROUND_NAMES[n - PRO_RE
 const PACKED_KEYS = new Set(["id", "first", "last", "age", "exp", "pos", "pos2", "arch", "r", "eth", "sta", "hlt", "pot", "potSeen", "num", "yr", "ct"]);
 // A contract in a few characters: each year's pay and the guarantee in units of $5,000, and r for a
 // rookie contract, o for a fifth-year option still to decide: "200,206/150/r"
-const packCt = ct => ct ? `${ct.y.map(v => Math.round(v / 5000)).join(",")}/${Math.round((ct.g || 0) / 5000)}/${ct.rk ? "r" : ""}${ct.o5 ? "o" : ""}` : "";
+// (and the guarantee on years added by an extension, until the league year: "200/150/r/40")
+const packCt = ct => ct ? `${ct.y.map(v => Math.round(v / 5000)).join(",")}/${Math.round((ct.g || 0) / 5000)}/${ct.rk ? "r" : ""}${ct.o5 ? "o" : ""}${ct.gx ? `/${Math.round(ct.gx / 5000)}` : ""}` : "";
 function unpackCt(s) {
   if (!s) return null;
-  const [y, g, f] = s.split("/");
-  return { y: y ? y.split(",").map(v => +v * 5000) : [], g: +g * 5000, rk: f.includes("r"), o5: f.includes("o") };
+  const [y, g, f, gx] = s.split("/"), ct = { y: y ? y.split(",").map(v => +v * 5000) : [], g: +g * 5000, rk: f.includes("r"), o5: f.includes("o") };
+  if (gx) ct.gx = +gx * 5000;
+  return ct;
 }
 // (in-season state that doesn't need keeping on a team that isn't yours)
 const UNPACKED_SKIP = new Set(["inj", "o0", "fat", "elig"]);
@@ -395,7 +397,7 @@ function newProSeason(seed, year, prev) {
     rot: "normal", depthMode: "always", nextDepth: null, stats: {}, news: {}, plan: prev ? prev.plan : newPlan(), practice: null, cpuWeek: -PRESEASON_WEEKS, film: null, injLog: {},
     history: prev ? prev.history : [], summer: newSummer(), halls: null, cls: null,
     district: 1, districts: [{ n: 1, ids: prev && prev.myId ? [prev.myId] : [] }] };
-  se.cap = prev ? capFor(year, prev.cap, g) : capFor(year);
+  se.cap = prev ? (prev.capYear === year ? prev.cap : capFor(year, prev.cap, g)) : capFor(year);
   se.places = proPlacesFrom(se, prev);
   se.weeks = makeProSchedule(se, g, se.places);
   nameWorld(se);
@@ -541,30 +543,28 @@ function proNextSeason() {
     if (s.trad0 == null) s.trad0 = s.trad;
     s.trad = newTradition(s, r.w, r.l, r.pw, !!r.ch);
   }
-  // The draft (pdraft.js): whatever's left of it is made now, by the computer GMs, your staff or your GM
+  // The rest of the offseason, whatever you've left of it (pfa.js): re-signing, the new league year
+  // and free agency, then the draft (pdraft.js), by the computer GMs, your staff or your GM
+  proOffseasonAuto(old);
   const D = old.draft || inWorld(old, () => newProDraft(old.year + 1));
   inWorld(old, () => { draftAddFormers(D); combine(D); runDraft(old, D, false); });
   const order = proDraftOrder(old);
   old.drafted = inWorld(old, () => formersDrafted(D, old));
-  // Every team's year (pcap.js), with the new year's cap in place
-  const cap = capFor(old.year + 1, old.cap, dice(hashSeed(`${old.world}:${old.year + 1}:cap`)));
+  // Every team a year older, with its rookies (pcap.js); the cap is already the new year's
   let mine = null;
-  inWorld(Object.assign({}, old, { cap }), () => {
-    // (rookie contracts at the new year's scale)
+  inWorld(old, () => {
     const drafted = draftedBy(D), udfa = undrafted(D, order.slice().reverse()), rookies = {};
     order.forEach(id => { rookies[id] = (drafted[id] || []).concat(udfa[id] || []); });
     for (const id in old.schools) {
       const sum = old.schools[id], full = isFull(sum), s = full ? sum : proRoster(sum), rng = seededRandom(hashSeed(`${old.world}:${old.year}:${id}:year`));
-      const J = full && CAREER && CAREER.job && CAREER.job.lvl === "pro" ? CAREER.job : null;
-      const rep = proTeamYear(s, old.year + 1, rng, full, rookies[id], old.cap || PRO_CAP0, J ? myReq() : null, J ? (J.log = J.log || []) : null);
+      const rep = proTeamAge(s, old.year + 1, rng, full, rookies[id]);
       rep.freed = getUnderCap(s);
       // Your team's offseason program: four weeks with your practice plan, like college spring practice
       if (full) { s.depth = autoDepth(s); rep.spring = springPractice(s, old.plan, old.year + 1); mine = rep; s.depth = autoDepth(s); s.rating = schoolRating(s); continue; }
       // A team on paper holds its cutdown right away
       cutdown(s);
       getUnderCap(s);
-      old.schools[id] = proToPaper(s);
-      old.schools[id].dead = s.dead; old.schools[id].carry = s.carry;
+      old.schools[id] = Object.assign(proToPaper(s), { dead: s.dead, carry: s.carry });
     }
   });
   const champ = old.post && old.post.champ;
@@ -581,7 +581,8 @@ function proNextSeason() {
   if (me && mine) {
     const who = p => ({ name: fullName(p), pos: p.pos, ovr: ovr(p, p.pos), age: p.age, stats: careerStatLine(p.cs) });
     const best = list => list.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));
-    se.yearReport = { pro: true, from: old.year, grads: best(mine.retired).map(who), left: best(mine.left.concat(mine.freed)).map(who), kept: best(mine.kept).map(p => Object.assign(who(p), { ct: proContractText(p) })),
+    const O = old.off.mine, s = se.schools[me], keptP = O.kept.map(id => playerById(s, id)).filter(Boolean);
+    se.yearReport = { pro: true, from: old.year, grads: O.retired, left: O.left.concat(best(mine.freed).map(who)), kept: best(keptP).map(p => Object.assign(who(p), { ct: proContractText(p) })), signed: O.signed,
       fresh: mine.rookies.map(p => p.id), joined: [], grew: mine.grew.slice(0, 10), went: 0, offers: [], drafted: old.drafted || [],
       spring: mine.spring ? { mastery: mine.spring.mastery.slice(0, 8), n: Object.keys(mine.spring.grew).length } : null };
   }

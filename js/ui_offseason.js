@@ -121,6 +121,7 @@ function proNewYear(R, s, fresh, grew, rank, list) {
     ${(R.drafted || []).length ? `<section class="panel"><h3>Your former players in the draft</h3>${list(R.drafted)}</section>` : ""}
     <section class="panel"><h3>Retired</h3>${R.grads.length ? list(R.grads.map(who)) : "<p>Nobody retired.</p>"}</section>
     ${R.left.length ? `<section class="panel"><h3>Let go</h3><p class="muted">Their contracts ran out and they weren't kept, or they were released to get under the cap.</p>${list(R.left.map(who))}</section>` : ""}
+    ${(R.signed || []).length ? `<section class="panel"><h3>Signed in free agency</h3>${list(R.signed.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.ct}`))}</section>` : ""}
     ${(R.kept || []).length ? `<section class="panel"><h3>Kept, with new contracts</h3>${list(R.kept.map(x => `${x.name}, ${posName(x.pos)} ${x.ovr}: ${x.ct}`))}</section>` : ""}
     <section class="panel"><h3>Rookies</h3>${fresh.length ? list(fresh.map(p => `${playerLine(p, s.level)}${p.pick ? ` Round ${p.pick.rd}, pick ${p.pick.n}.` : ""}`)) : "<p>No rookies this year.</p>"}</section>
     <section class="panel"><h3>A year older</h3>${grew.length ? list(grew) : "<p>Nobody's overall rating went up this year.</p>"}</section>

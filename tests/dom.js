@@ -810,8 +810,23 @@ function checkScreen(page, label) {
   checkScreen(pp, "pro review");
   if (!ep("SEASON.review.fired")) {
     tap(pp, "carousel"); tap(pp, "market"); tap(pp, "stay");
-    ok(ep("APP.screen") === "offseason" && /draft room/.test(dp.body.textContent), "the pro offseason, with the draft");
-    checkScreen(pp, "pro offseason");
+    ok(ep("APP.screen") === "offseason" && /Re-signing and the franchise tag/.test(dp.body.textContent), "the pro offseason: re-signing first");
+    checkScreen(pp, "pro offseason, re-signing");
+    tap(pp, "fastart");
+    ok(/Free agency, day 2 of 5/.test(dp.body.textContent), "then free agency, day by day");
+    checkScreen(pp, "pro offseason, free agency");
+    tap(pp, "falist");
+    ok(/The free agents/.test(headp()) && dp.querySelectorAll('[data-a="faplayer"]').length > 0, "the free agents, by position");
+    checkScreen(pp, "free agents");
+    tap(pp, "fapos", "WR");
+    ok(dp.activeElement && dp.activeElement.id === "fahead", "picking a position moves to its list");
+    tap(pp, "faplayer", ep("faPlayers(SEASON).filter(p => p.pos === 'WR')[0].id"));
+    ok(/Ask the GM to go after him|Your offer/.test(dp.body.textContent), "a free agent");
+    checkScreen(pp, "free agent");
+    tap(pp, "back"); tap(pp, "back");
+    ep(`while (SEASON.off.stage === "fa") proFADay(SEASON); render();`);
+    ok(ep("APP.screen") === "offseason" && /draft room/.test(dp.body.textContent), "then the draft");
+    checkScreen(pp, "pro offseason, the draft");
     tap(pp, "dboard");
     ok(/Your draft board/.test(headp()) && dp.querySelectorAll('[data-a="dprospect"]').length === 40, "the draft board: 40 prospects in order");
     checkScreen(pp, "draft board");

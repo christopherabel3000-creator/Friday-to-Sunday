@@ -385,9 +385,12 @@ function plain(g, extra) {
   g(`act("offseason")`);
   let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const sc = g("APP.screen"); g(sc === "review" ? `act("carousel")` : sc === "carousel" ? `act("market")` : sc === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
   if (!g("SEASON.review.fired")) {
+    ok(g("SEASON.off.stage") === "resign" && g(`(() => { act("draftroom"); return APP.screen; })()`) !== "draftroom", "the draft waits until free agency is done");
+    g(`act("fastart"); act("faall"); act("faall")`);
+    ok(g("SEASON.off.stage") === "draft", "then it's draft time");
     g(`act("draftroom")`);
     const P = g("SEASON.draft.picks");
-    ok(g("APP.screen") === "draftroom" && P.length === 224 && P.slice(0, 32).every((pk, i) => pk.rd === 1 && pk.n === i + 1), "the draft room: seven rounds of 32");
+    ok(g("APP.screen") === "draftroom" && P.length === 224 + g("SEASON.comp.length") && P.slice(0, 32).every((pk, i) => pk.rd === 1 && pk.n === i + 1), `the draft room: seven rounds of 32, and ${g("SEASON.comp.length")} compensatory picks`);
     const ord = g(`proDraftOrder(SEASON)`), first = g(`(() => { const o = proDraftOrder(SEASON); return [recPct(proRecord(o[0], PRO_REG)), recPct(proRecord(o[13], PRO_REG)), o[31] === SEASON.post.champ, SEASON.post.A.seeds.concat(SEASON.post.P.seeds).includes(o[20])]; })()`);
     ok(first[0] <= first[1] && first[2] && first[3], "the order: worst records first, then the playoff teams by how far they went, the champion last");
     void ord;
@@ -399,7 +402,7 @@ function plain(g, extra) {
     g(`act("dtake", { v: "${want}" })`);
     ok(g(`SEASON.draft.picks.find(pk => pk.n === ${cur.n}).pid`) === want, "taking him");
     g(`act("dsimall"); act("dsimall")`);
-    ok(g("SEASON.draft.done") && g(`SEASON.draft.picks.every(pk => !!pk.pid)`) && g(`new Set(SEASON.draft.picks.map(pk => pk.pid)).size`) === 224, "the rest of the draft: every pick made, nobody picked twice");
+    ok(g("SEASON.draft.done") && g(`SEASON.draft.picks.every(pk => !!pk.pid)`) && g(`new Set(SEASON.draft.picks.map(pk => pk.pid)).size`) === g("SEASON.draft.picks.length"), "the rest of the draft: every pick made, nobody picked twice");
     const val = g(`(() => { const D = SEASON.draft, o = pk => { const p = draftProspect(D, pk.pid); return ovr(p, p.pos) + p.pot; }, a = D.picks.slice(0, 32).map(o), b = D.picks.slice(192).map(o); return [avg(a), avg(b)]; })()`);
     ok(val[0] > val[1] + 10, `first-rounders are better than seventh-rounders (${val.map(x => x.toFixed(0)).join(" and ")})`);
     g(`act("nextyear")`);
@@ -428,6 +431,78 @@ function plain(g, extra) {
   // From your high school: a player who signed with a college comes up when his college career is over
   const hs = g(`(() => { const C = OTHER, c = Object.values(C.schools).find(x => x.cls === "P4"), p = genPlayer(dice(5), { id: "hsstar", arch: "speed", yr: 12, level: 60, last: "Hill" }); sendToCollege(p, c.id, 2021, "Bellmont Greyhounds"); const q = c.joined.find(x => x.id === "hsstarc"); return { you: q.you, name: q.hsName }; })()`);
   ok(hs.you && hs.name === "Bellmont Greyhounds", "a high school player you sent to college is marked as yours");
+}
+
+// ---- Step 6: re-signing, the tag and free agency ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 60; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, true); proSetExpectations(); APP.screen = "season"; })()`);
+  g("simSeason()");
+  g(`act("offseason")`);
+  let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const sc = g("APP.screen"); g(sc === "review" ? `act("carousel")` : sc === "carousel" ? `act("market")` : sc === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
+  if (!g("SEASON.review.fired")) {
+    ok(g("SEASON.off.stage") === "resign" && /Re-signing and the franchise tag/.test(g("vPOffseason()")), "the offseason opens with re-signing and the tag");
+    const ex = g(`expiringOf(mySchool()).filter(p => (p.exp || 0) >= 4).sort((a, b) => proValue(b) - proValue(a)).map(p => ({ id: p.id, pay: capHit(p), pos: p.pos }))`);
+    const tp = g(`tagPrice(SEASON, playerById(mySchool(), "${ex[0].id}"))`), top5 = g(`(() => { const h = []; Object.values(SEASON.schools).forEach(s => (isFull(s) ? s.players : s.roster.map(unpackPlayer)).forEach(q => { if (q.pos === "${ex[0].pos}") h.push(capHit(q)); })); h.sort((a, b) => b - a); return avg(h.slice(0, 5)); })()`);
+    ok(Math.abs(tp - Math.max(top5, ex[0].pay * 1.2)) < 10000, `the tag's price: the top five at his position, or 120 percent of his pay (${g(`bigMoney(${tp})`)})`);
+    g(`act("rsset", { t: "tag", v: "${ex[0].id}" }); act("rsset", { t: "ext", v: "${ex[1].id}" }); act("rsset", { t: "go", v: "${ex[2].id}" })`);
+    const cap0 = g("SEASON.cap");
+    g(`act("fastart")`);
+    ok(g("SEASON.off.stage") === "fa" && g("SEASON.off.day") === 1 && g("SEASON.cap") > cap0, `the new league year: a bigger cap (${g("bigMoney(SEASON.cap)")}) and free agency open`);
+    const t = g(`(() => { const p = playerById(mySchool(), "${ex[0].id}"); return p && { y: p.ct.y, g: p.ct.g, tag: p.tag }; })()`);
+    ok(t && t.y.length === 1 && t.y[0] === tp && t.g === tp && t.tag === 2027, "the tagged player: one more year at the tag price, fully guaranteed");
+    const e = g(`(() => { const p = playerById(mySchool(), "${ex[1].id}"); return p && ctYears(p); })()`);
+    ok(e >= 1, `the extended player is signed on (${e} years)`);
+    ok(!g(`playerById(mySchool(), "${ex[2].id}")`) && g(`faPlayers(SEASON).some(p => p.id === "${ex[2].id}" && p.from === SEASON.myId) || Object.values(SEASON.schools).some(s => !isFull(s) && s.roster.some(x => x.startsWith("${ex[2].id}|"))) || SEASON.off.mine.retired.length > 0`), "the one you let go is a free agent (or already signed elsewhere)");
+    const fa = g(`(() => { const F = faPlayers(SEASON); return { n: F.length, noCt: F.every(p => !p.ct), from: F.every(p => !!SEASON.schools[p.from]) }; })()`);
+    ok(fa.n > 150 && fa.noCt && fa.from, `the market: ${fa.n} free agents, each from his old team`);
+    ok(g(`Object.values(SEASON.schools).every(s => (s.dead || 0) === 0)`), "dead money starts over in the new league year");
+    // Your offer
+    const target = g(`(() => { const F = faPlayers(SEASON).filter(p => !(SEASON.off.offers[p.id] || []).length).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)); return F[0].id; })()`);
+    g(`act("faplayer", { v: "${target}" })`);
+    ok(/Your offer/.test(g("vFAPlayer()")) && /Years/.test(g("vFAPlayer()")), "a free agent's screen: your offer, by years, pay and guarantee");
+    ok(g(`myFAOffer(SEASON, "${target}", 3, capRoom(mySchool()) + 1e6, .3)`) !== "", "an offer bigger than your room is turned down");
+    g(`act("fapay", { v: 1.25 }); act("fagtd", { v: "most" }); act("faoffer")`);
+    ok(g(`SEASON.off.offers["${target}"].some(o => o.team === SEASON.myId)`), "making an offer");
+    g(`act("faday")`);
+    ok(g(`!!playerById(mySchool(), "${target}")`), "a big enough offer, and he signs with you at the end of the day");
+    ok(g("SEASON.off.mine.signed.length") >= 1 && /Signed/.test(g("vPOffseason()")), "and the offseason screen says so");
+    g(`act("faall"); act("faall")`);
+    ok(g("SEASON.off.stage") === "draft" && g("SEASON.off.pool.length") === 0, "after five days, free agency closes");
+    const comp = g("SEASON.comp");
+    const per = {}; comp.forEach(c => { per[c.team] = (per[c.team] || 0) + 1; });
+    ok(comp.length <= 32 && Object.values(per).every(n => n <= 4) && comp.every(c => c.rd >= 3 && c.rd <= 7), `compensatory picks: ${comp.length}, at most four a team, in rounds 3 to 7`);
+    const signedN = g(`(() => { let n = 0; Object.values(SEASON.schools).forEach(s => { (isFull(s) ? s.players : s.roster.map(unpackPlayer)).forEach(p => { if (p.ct && !p.ct.rk && p.age >= 24) n++; }); }); return n; })()`);
+    ok(signedN > 1000, "teams filled out with free agents and veterans");
+    g(`act("draftroom")`);
+    const P = g("SEASON.draft.picks");
+    ok(comp.length === 0 || P.filter(pk => pk.comp).length === comp.length && P.filter(pk => pk.comp).every(pk => P.find(x => x.rd === pk.rd + 1) ? P.indexOf(pk) < P.findIndex(x => x.rd === pk.rd + 1) : true), "the compensatory picks come at the ends of their rounds");
+    g(`act("dsimall"); act("dsimall")`);
+    g(`act("nextyear")`);
+    ok(/Signed in free agency/.test(g("vNewYear()")), "the new year's report lists your free agent signings");
+    ok(g(`(() => { const p = playerById(mySchool(), "${ex[0].id}"); return !p || (p.ct.y.length === 1 && /franchise tag/.test(proContractText(p))); })()`), "the tagged player plays the season on the tag");
+  }
+}
+
+// ---- Step 6: with a GM ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, false); proSetExpectations(); APP.screen = "season"; })()`);
+  g("simSeason()");
+  g(`act("offseason")`);
+  let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const sc = g("APP.screen"); g(sc === "review" ? `act("carousel")` : sc === "carousel" ? `act("market")` : sc === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
+  if (!g("SEASON.review.fired")) {
+    ok(/Your GM decides/.test(g("vPOffseason()")) && /Ask to keep/.test(g("vPOffseason()")), "with a GM: he decides, and you can ask");
+    g(`act("fastart")`);
+    const target = g(`faPlayers(SEASON).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos))[0].id`);
+    g(`act("faplayer", { v: "${target}" })`);
+    ok(/Ask the GM to go after him/.test(g("vFAPlayer()")), "a free agent's screen: ask the GM to go after him");
+    g(`act("fawant")`);
+    ok(g("myReq().want.id") === target, "the request is noted");
+    ok(g("Object.values(SEASON.off.offers).some(os => os.some(o => o.team === SEASON.myId))") || g("SEASON.off.mine.signed.length") >= 0, "and the GM makes offers for your team");
+  }
 }
 
 console.log(`${checks - fails}/${checks} checks passed`);

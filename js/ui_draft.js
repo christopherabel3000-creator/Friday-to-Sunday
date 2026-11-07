@@ -114,7 +114,7 @@ function draftAct(a, ds) {
       announce(ds.v === "remove" ? "Off your board." : k >= 0 ? `Number ${k + 1} on your board.` : "");
       return true;
     }
-    case "draftroom": if (SEASON.phase === "offseason" && marketClosed() && !leavingSchool()) { combine(D); if (!D.picks) D.picks = draftPicks(proDraftOrder(SEASON), SEASON.comp || []); APP.screen = "draftroom"; scrollTop(); } return true;
+    case "draftroom": if (SEASON.phase === "offseason" && marketClosed() && !leavingSchool() && (!SEASON.off || SEASON.off.stage === "draft")) { combine(D); if (!D.picks) D.picks = draftPicks(proDraftOrder(SEASON), SEASON.comp || []); APP.screen = "draftroom"; scrollTop(); } return true;
     case "dsim": { if (D.done) return true; const from = D.cur, pk = runDraft(SEASON, D, true); focusNext = { id: "clock" }; announce(pk ? `You're on the clock: ${pickText(pk)}.${boardGone(D, from)}` : `The draft is done.${boardGone(D, from)}`); return true; }
     case "dsimall": { if (D.done || !confirmed("dsimall")) return true; const from = D.cur; while (!D.done) { const pk = runDraft(SEASON, D, true); if (pk) myPick(SEASON, D, null); } announce(`The draft is done.${boardGone(D, from)}`); return true; }
     case "dtake": case "dstaff": {
