@@ -37,7 +37,7 @@ function plain(g, extra) {
 // ---- Regular-season overtime: one 10-minute period, and ties ----
 {
   let otGames = 0, ties = 0, bad = [];
-  for (let i = 0; i < 120 && otGames < 50; i++) {
+  for (let i = 0; i < 240 && (otGames < 50 || !ties); i++) {
     const { g, F } = game(true);
     plain(g, { quarter: 4, clock: 0, periodOver: true });
     g(`S.teams[0].score = 20; S.teams[1].score = 20; endPeriod()`);
