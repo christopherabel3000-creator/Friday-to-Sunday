@@ -73,8 +73,15 @@ function checkScreen(page, label) {
     const dom = new JSDOM(broken, { runScripts: "dangerously", resources: new LocalOnly(), pretendToBeVisual: true, virtualConsole: vc, url: HOST + "index.html?fresh=1", beforeParse(w) { w.scrollTo = () => {}; } });
     await new Promise(r => dom.window.addEventListener("load", r)); await settle();
     const dd = dom.window.document;
-    ok(/couldn't start/.test(dd.body.textContent) && /saves are safe/.test(dd.body.textContent) && dd.activeElement && dd.activeElement.id === "bootfail", "if the files don't fit together, the page says so and that your saves are safe");
+    ok(/couldn't start/.test(dd.body.textContent) && /saves are safe/.test(dd.body.textContent) && /vTrade/.test(dd.body.textContent) && /ui\.js/.test(dd.body.textContent) && dd.activeElement && dd.activeElement.id === "bootfail", `if the files don't fit together, the page says so, that your saves are safe, and what failed (${(dd.getElementById("bootwhy") || {}).textContent})`);
     dom.window.close();
+    // An error from something that isn't the game (an extension) while the page loads: the game starts anyway
+    const vc2 = new VirtualConsole(); vc2.on("jsdomError", () => {});
+    const noisy = html.replace("<!-- Plain scripts, loaded in order.", '<script>setTimeout(function () { throw new Error("from an extension"); }, 0); window.dispatchEvent(new ErrorEvent("error", { message: "Script error.", filename: "" }));</script><!-- Plain scripts, loaded in order.');
+    const dom2 = new JSDOM(noisy, { runScripts: "dangerously", resources: new LocalOnly(), pretendToBeVisual: true, virtualConsole: vc2, url: HOST + "index.html?fresh=1", beforeParse(w) { w.scrollTo = () => {}; } });
+    await new Promise(r => dom2.window.addEventListener("load", r)); await settle(); await settle();
+    ok(!/couldn't start/.test(dom2.window.document.body.textContent) && !!dom2.window.document.querySelector('[data-a]'), "an error from something else doesn't stop the game");
+    dom2.window.close();
   }
   // ---- The main menu, the exhibition, rosters and a player ----
   let page = await openPage();

@@ -9,77 +9,83 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Barlow:wght@400;500;600;700&family=Chivo+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="style.css?v=20261106">
+<link rel="stylesheet" href="style.css?v=20261106b">
 </head>
 <body>
 <div class="wrap" id="app"></div>
 <div id="sr" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <script>
 // Every file's address carries the version (?v=), so an update brings all new files together. If the
-// browser still ends up with a mix of old and new files, a script fails before the game starts: load
-// the page once more, fresh, and if that fails too, say so.
+// browser still ends up with a mix of old and new files, one of the game's own scripts fails before the
+// game starts: load the page once more, fresh, and if that fails too, say so and say what failed.
+// Errors from anything else (a browser extension, say) are left alone, and once the game has started
+// this never steps in.
 window.FTS_BOOT = { ok: false };
-window.addEventListener("error", function () {
-  if (window.FTS_BOOT.ok) return;
+window.addEventListener("error", function (e) {
+  var B = window.FTS_BOOT, file = (e && e.filename) || "";
+  if (B.ok || B.shown || file.indexOf(location.origin + location.pathname.replace(/[^/]*$/, "") + "js/") !== 0) return;
   var u = new URL(location.href);
   if (!u.searchParams.has("fresh")) { u.searchParams.set("fresh", String(Date.now())); location.replace(u.href); return; }
-  if (window.FTS_BOOT.shown) return;
-  window.FTS_BOOT.shown = true;
+  B.shown = true;
+  var what = String((e.message || "an error") + " in " + file.replace(/^.*\/js\//, "").replace(/\?.*$/, "") + (e.lineno ? ", line " + e.lineno : ""));
   var show = function () {
+    if (B.ok) return;
     var app = document.getElementById("app");
-    if (app) app.innerHTML = '<h1 tabindex="-1" id="bootfail">Friday to Sunday couldn\'t start</h1><p>The game was just updated, and your browser may still have some of the old files. Your saves are safe. Wait a minute, then load the page again.</p><button class="btn" onclick="location.replace(location.pathname + \'?fresh=\' + Date.now())">Load the page again</button>';
-    var h = document.getElementById("bootfail"); if (h) h.focus();
+    if (!app) return;
+    app.innerHTML = '<h1 tabindex="-1" id="bootfail">Friday to Sunday couldn\'t start</h1><p>Your saves are safe. Load the page again in a minute. If this keeps happening, send this to the developer: <span id="bootwhy"></span></p><button class="btn" onclick="location.replace(location.pathname + \'?fresh=\' + Date.now())">Load the page again</button>';
+    document.getElementById("bootwhy").textContent = what;
+    document.getElementById("bootfail").focus();
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", show); else show();
 });
 </script>
 <!-- Plain scripts, loaded in order. Each file's top-level names are shared with the files after it. -->
-<script src="js/util.js?v=20261106"></script>
-<script src="js/data.js?v=20261106"></script>
-<script src="js/rules.js?v=20261106"></script>
-<script src="js/players.js?v=20261106"></script>
-<script src="js/team.js?v=20261106"></script>
-<script src="js/coach.js?v=20261106"></script>
-<script src="js/fatigue.js?v=20261106"></script>
-<script src="js/engine.js?v=20261106"></script>
-<script src="js/sim.js?v=20261106"></script>
-<script src="js/ai.js?v=20261106"></script>
-<script src="js/practice.js?v=20261106"></script>
-<script src="js/season.js?v=20261106"></script>
-<script src="js/career.js?v=20261106"></script>
-<script src="js/years.js?v=20261106"></script>
-<script src="js/program.js?v=20261106"></script>
-<script src="js/jobs.js?v=20261106"></script>
-<script src="js/money.js?v=20261106"></script>
-<script src="js/recruit.js?v=20261106"></script>
-<script src="js/names.js?v=20261106"></script>
-<script src="js/cworld.js?v=20261106"></script>
-<script src="js/cyear.js?v=20261106"></script>
-<script src="js/crecruit.js?v=20261106"></script>
-<script src="js/cportal.js?v=20261106"></script>
-<script src="js/cjobs.js?v=20261106"></script>
-<script src="js/pworld.js?v=20261106"></script>
-<script src="js/pcap.js?v=20261106"></script>
-<script src="js/pdraft.js?v=20261106"></script>
-<script src="js/pfa.js?v=20261106"></script>
-<script src="js/ptrade.js?v=20261106"></script>
-<script src="js/cloud.js?v=20261106"></script>
-<script src="js/sound.js?v=20261106"></script>
-<script src="js/ui_game.js?v=20261106"></script>
-<script src="js/ui_depth.js?v=20261106"></script>
-<script src="js/ui_practice.js?v=20261106"></script>
-<script src="js/ui_season.js?v=20261106"></script>
-<script src="js/ui_career.js?v=20261106"></script>
-<script src="js/ui_offseason.js?v=20261106"></script>
-<script src="js/ui_jobs.js?v=20261106"></script>
-<script src="js/ui_money.js?v=20261106"></script>
-<script src="js/ui_college.js?v=20261106"></script>
-<script src="js/ui_pros.js?v=20261106"></script>
-<script src="js/ui_draft.js?v=20261106"></script>
-<script src="js/ui_fa.js?v=20261106"></script>
-<script src="js/ui_trade.js?v=20261106"></script>
-<script src="js/ui_board.js?v=20261106"></script>
-<script src="js/ui_names.js?v=20261106"></script>
-<script src="js/ui.js?v=20261106"></script>
+<script src="js/util.js?v=20261106b"></script>
+<script src="js/data.js?v=20261106b"></script>
+<script src="js/rules.js?v=20261106b"></script>
+<script src="js/players.js?v=20261106b"></script>
+<script src="js/team.js?v=20261106b"></script>
+<script src="js/coach.js?v=20261106b"></script>
+<script src="js/fatigue.js?v=20261106b"></script>
+<script src="js/engine.js?v=20261106b"></script>
+<script src="js/sim.js?v=20261106b"></script>
+<script src="js/ai.js?v=20261106b"></script>
+<script src="js/practice.js?v=20261106b"></script>
+<script src="js/season.js?v=20261106b"></script>
+<script src="js/career.js?v=20261106b"></script>
+<script src="js/years.js?v=20261106b"></script>
+<script src="js/program.js?v=20261106b"></script>
+<script src="js/jobs.js?v=20261106b"></script>
+<script src="js/money.js?v=20261106b"></script>
+<script src="js/recruit.js?v=20261106b"></script>
+<script src="js/names.js?v=20261106b"></script>
+<script src="js/cworld.js?v=20261106b"></script>
+<script src="js/cyear.js?v=20261106b"></script>
+<script src="js/crecruit.js?v=20261106b"></script>
+<script src="js/cportal.js?v=20261106b"></script>
+<script src="js/cjobs.js?v=20261106b"></script>
+<script src="js/pworld.js?v=20261106b"></script>
+<script src="js/pcap.js?v=20261106b"></script>
+<script src="js/pdraft.js?v=20261106b"></script>
+<script src="js/pfa.js?v=20261106b"></script>
+<script src="js/ptrade.js?v=20261106b"></script>
+<script src="js/cloud.js?v=20261106b"></script>
+<script src="js/sound.js?v=20261106b"></script>
+<script src="js/ui_game.js?v=20261106b"></script>
+<script src="js/ui_depth.js?v=20261106b"></script>
+<script src="js/ui_practice.js?v=20261106b"></script>
+<script src="js/ui_season.js?v=20261106b"></script>
+<script src="js/ui_career.js?v=20261106b"></script>
+<script src="js/ui_offseason.js?v=20261106b"></script>
+<script src="js/ui_jobs.js?v=20261106b"></script>
+<script src="js/ui_money.js?v=20261106b"></script>
+<script src="js/ui_college.js?v=20261106b"></script>
+<script src="js/ui_pros.js?v=20261106b"></script>
+<script src="js/ui_draft.js?v=20261106b"></script>
+<script src="js/ui_fa.js?v=20261106b"></script>
+<script src="js/ui_trade.js?v=20261106b"></script>
+<script src="js/ui_board.js?v=20261106b"></script>
+<script src="js/ui_names.js?v=20261106b"></script>
+<script src="js/ui.js?v=20261106b"></script>
 </body>
 </html>
