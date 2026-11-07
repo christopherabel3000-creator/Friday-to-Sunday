@@ -90,7 +90,7 @@ function seasonOnPaper(p, coach, rng, s) {
   [p.pos, p.pos2].forEach(pos => {
     const unit = unitOfPos(pos);
     if (!unit) return;
-    const amt = GROW_RATE * effBlocks(b[unit]) * ethMul(p) * dev * (YEAR_GROW[p.yr] || 1) * PAPER_WEEKS / steps;
+    const amt = GROW_RATE * effBlocks(unitBlocks(b)) * ethMul(p) * dev * (YEAR_GROW[p.yr] || 1) * PAPER_WEEKS / steps;
     for (let i = 0; i < steps; i++) growPlayer(p, strAttrs(UNITS[unit][pos], s), pos, amt, rng, null);
   });
   // Conditioning: stamina, and a little strength and speed

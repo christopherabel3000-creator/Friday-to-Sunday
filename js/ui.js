@@ -141,6 +141,9 @@ function upgradeSave(s) {
     if (!w.cap) w.cap = capFor(w.year);
     inWorld(w, () => Object.values(w.schools).forEach(t => { if (!isFull(t) && !t.psr) proLeagueContracts(t, dice(hashSeed(`${t.seed}:ct`)), w.year); }));
   });
+  // November 2026: fundamentals became one area (all the position groups at once). A plan from before
+  // gets one fundamentals weight from its six position groups.
+  [s.season, s.other, s.third].forEach(w => { if (w && w.plan && w.plan.areas) w.plan.areas = fundPlan(w.plan.areas); });
   s.build = BUILD;
   return s;
 }
@@ -374,7 +377,7 @@ function vHelp() {
     ]))}
     ${sec("Practice", ul([
       "Each week has ten practice blocks. Give each area none, light, normal or heavy, and the blocks are shared out by weight. Presets give a quick start: Balanced, Install, Game prep and Rest.",
-      "Fundamentals grow the players in each unit: quarterbacks, running backs and receivers, the offensive line, the defensive front, the secondary and the kickers. Growth depends on the player's work ethic, his year, your Development rating and the time spent, and slows as he nears his potential.",
+      "Fundamentals are individual periods: every position group works at the same time, quarterbacks, running backs and receivers, the offensive line, the defensive front, the secondary and the kickers, so one setting covers them all. A normal week of fundamentals is half the week. Growth depends on the player's work ethic, his year, your Development rating and the time spent, and slows as he nears his potential.",
       "Contact trades growth against injuries: shorts, shells or full pads. Conditioning builds stamina. Recovery means fewer practice injuries, faster healing and fresher legs on game day.",
       "Practice happens once a week, before the game. Hold it yourself to read the practice report first, or it happens on its own when you play or sim the game.",
       "The practice report lists only what changed: who got better, who got hurt, and the plays your team learned."

@@ -5,11 +5,12 @@
 /* ---------- The plan ---------- */
 // Ten blocks a week: five days, two blocks a day. Each area gets a weight (none, light, normal or
 // heavy), and the blocks are shared out by weight, so giving one area more time takes it from the rest.
+// Fundamentals are individual periods: every position group works at once, each with its own coach,
+// so they count three times their weight (a normal week of fundamentals is half the week).
 const PRACTICE_BLOCKS = 10;
-const PRACTICE_AREAS = [
-  ["qb", "Quarterbacks"], ["skill", "Running backs and receivers"], ["ol", "Offensive line"], ["front", "Defensive front"],
-  ["secondary", "Secondary"], ["kick", "Kickers"], ["install", "Install"], ["prep", "Opponent prep"], ["cond", "Conditioning"], ["rec", "Recovery"]
-];
+const PRACTICE_AREAS = [["fund", "Fundamentals"], ["install", "Install"], ["prep", "Opponent prep"], ["cond", "Conditioning"], ["rec", "Recovery"]];
+const AREA_WEIGHT = { fund: 3 };
+const FUND_UNITS = ["qb", "skill", "ol", "front", "secondary", "kick"];
 const AREA_IDS = PRACTICE_AREAS.map(a => a[0]);
 const AREA_NAMES = Object.fromEntries(PRACTICE_AREAS);
 const INTENSITY = ["None", "Light", "Normal", "Heavy"]; // the weights 0 to 3
@@ -21,10 +22,10 @@ const CONTACT = {
 };
 const CONTACT_IDS = ["shorts", "shells", "pads"];
 const PRESETS = {
-  balanced: { name: "Balanced", areas: { qb: 1, skill: 1, ol: 1, front: 1, secondary: 1, kick: 1, install: 2, prep: 2, cond: 1, rec: 1 }, contact: "shells" },
-  install: { name: "Install", areas: { qb: 1, skill: 1, ol: 1, front: 1, secondary: 1, kick: 1, install: 3, prep: 1, cond: 0, rec: 1 }, contact: "shells" },
-  gameprep: { name: "Game prep", areas: { qb: 1, skill: 1, ol: 1, front: 1, secondary: 1, kick: 1, install: 1, prep: 3, cond: 0, rec: 2 }, contact: "shells" },
-  rest: { name: "Rest", areas: { qb: 1, skill: 1, ol: 1, front: 1, secondary: 1, kick: 1, install: 1, prep: 1, cond: 0, rec: 3 }, contact: "shorts" }
+  balanced: { name: "Balanced", areas: { fund: 2, install: 2, prep: 2, cond: 1, rec: 1 }, contact: "shells" },
+  install: { name: "Install", areas: { fund: 2, install: 3, prep: 1, cond: 0, rec: 1 }, contact: "shells" },
+  gameprep: { name: "Game prep", areas: { fund: 2, install: 1, prep: 3, cond: 0, rec: 2 }, contact: "shells" },
+  rest: { name: "Rest", areas: { fund: 2, install: 1, prep: 1, cond: 0, rec: 3 }, contact: "shorts" }
 };
 const PRESET_IDS = ["balanced", "install", "gameprep", "rest"];
 // Every school starts with a balanced week, and the computer's schools keep it all season
@@ -32,15 +33,25 @@ const newPlan = () => ({ areas: clone(PRESETS.balanced.areas), contact: "shells"
 const CPU_PLAN = newPlan();
 // Blocks per area for a plan (a plan with nothing in it is a week of rest)
 function blocksOf(plan) {
-  const w = plan.areas, tot = AREA_IDS.reduce((s, a) => s + (w[a] || 0), 0), out = {};
-  AREA_IDS.forEach(a => { out[a] = tot ? PRACTICE_BLOCKS * (w[a] || 0) / tot : (a === "rec" ? PRACTICE_BLOCKS : 0); });
+  const w = plan.areas, wt = a => (w[a] || 0) * (AREA_WEIGHT[a] || 1), tot = AREA_IDS.reduce((s, a) => s + wt(a), 0), out = {};
+  AREA_IDS.forEach(a => { out[a] = tot ? PRACTICE_BLOCKS * wt(a) / tot : (a === "rec" ? PRACTICE_BLOCKS : 0); });
   return out;
 }
 const presetOf = plan => PRESET_IDS.find(id => AREA_IDS.every(a => (PRESETS[id].areas[a] || 0) === (plan.areas[a] || 0))) || null;
 // More blocks help, with diminishing returns
 const effBlocks = b => b > 0 ? Math.pow(b, .75) : 0;
 // Blocks spent on the field: fundamentals and conditioning (install and film are walk-throughs and meetings)
-const physBlocks = b => ["qb", "skill", "ol", "front", "secondary", "kick", "cond"].reduce((s, a) => s + b[a], 0);
+const physBlocks = b => (b.fund || 0) + (b.cond || 0);
+// The individual-period time a position group's growth counts: a sixth of the fundamentals blocks, so
+// a normal week grows players just as it did when each group had its own share of the week
+const unitBlocks = b => (b.fund || 0) / FUND_UNITS.length;
+// A plan from before fundamentals were one area: the six position groups' weights, added up
+function fundPlan(areas) {
+  if (!areas || areas.fund != null) return areas;
+  const sum = FUND_UNITS.reduce((t, u) => t + (areas[u] || 0), 0), out = { fund: Math.min(3, Math.round(sum / 3)) };
+  ["install", "prep", "cond", "rec"].forEach(a => { out[a] = areas[a] || 0; });
+  return out;
+}
 // Opponent prep: no report, a light one, a full one, or the works
 const prepLevelOf = b => b <= 0 ? 0 : b < 1.25 ? 1 : b < 2.4 ? 2 : 3;
 // A coach with Scouting 45 or better gets one level more out of the same film time
@@ -205,7 +216,7 @@ function practiceSchool(s, plan, rng, opts) {
   s.players.forEach(p => { before[p.id] = {}; POS_IDS.forEach(pos => { before[p.id][pos] = ovr(p, pos); }); });
   // Fundamentals, unit by unit
   for (const unit in UNITS) {
-    const eff = effBlocks(b[unit]);
+    const eff = effBlocks(unitBlocks(b));
     if (!eff) continue;
     // A coach's background or perks can speed up a unit (a former quarterback's quarterbacks, say)
     const bg = unitGrowMul(s.coach, unit);

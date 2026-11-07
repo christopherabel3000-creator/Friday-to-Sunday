@@ -416,9 +416,10 @@ function checkScreen(page, label) {
   checkScreen(p4, "practice plan");
   tap(p4, "ppreset", "gameprep");
   ok(ev("SEASON.plan.areas.prep") === 3 && /Game prep plan/.test(await said4()) && focused(d4) === btn(d4, "ppreset", "gameprep"), "a preset sets the plan, and says so");
-  const olHeavy = [...d4.querySelectorAll('[data-a="parea"]')].find(b => b.dataset.t === "ol" && b.dataset.v === "3");
-  olHeavy.focus(); olHeavy.click();
-  ok(ev("SEASON.plan.areas.ol") === 3 && /Offensive line: heavy, \d/.test(await said4()) && !btn(d4, "ppreset", "gameprep").matches('[aria-pressed="true"]'), "heavy on the offensive line: announced, and it's no longer a preset");
+  ok(d4.querySelectorAll('[data-a="parea"]').length === 20, "five areas to set: fundamentals, install, opponent prep, conditioning and recovery");
+  const fHeavy = [...d4.querySelectorAll('[data-a="parea"]')].find(b => b.dataset.t === "fund" && b.dataset.v === "3");
+  fHeavy.focus(); fHeavy.click();
+  ok(ev("SEASON.plan.areas.fund") === 3 && /Fundamentals: heavy, \d/.test(await said4()) && !btn(d4, "ppreset", "gameprep").matches('[aria-pressed="true"]'), "heavy fundamentals: announced, and it's no longer a preset");
   tap(p4, "install");
   ok(/Install focus/.test(heading() || "") && d4.querySelectorAll('[data-a="pfocus"]').length === 19, "the install screen lists the whole playbook");
   tap(p4, "pfocus", "ms"); tap(p4, "pfocus", "zb");

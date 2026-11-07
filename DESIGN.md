@@ -925,7 +925,7 @@ You earn XP for good things: winning snaps (Gridiron Duel already judges who won
 
 - Each week has 10 practice blocks: five practice days, two blocks each. You give each area none, light, normal or heavy.
 - The areas:
-  - Fundamentals, by unit: quarterbacks, running backs and receivers, the offensive line, the defensive front, the secondary, and kickers. Grows those players' ratings.
+  - Fundamentals: individual periods, with every position group (quarterbacks, running backs and receivers, the offensive line, the defensive front, the secondary, and kickers) working at the same time. Grows those players' ratings. One setting for all of them (November 2026; it used to be six, one per group, each taking time from the others). It counts three times its weight in the week, so a normal week of fundamentals is half the week, and each group's growth counts a sixth of the fundamentals time, so a normal week grows players just as the old balanced week did.
   - Install: raises playbook mastery (see Playbook and mastery).
   - Opponent prep: a detailed report on this week's opponent and a small edge against their habits.
   - Conditioning: stamina, so players tire less.

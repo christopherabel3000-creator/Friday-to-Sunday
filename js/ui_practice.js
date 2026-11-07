@@ -6,7 +6,7 @@
 const blocksText = b => { const v = Math.round(b * 10) / 10; return `${v} block${v === 1 ? "" : "s"}`; };
 // "fundamentals 5 blocks, install 1.7, opponent prep 1.7, conditioning 0.8, recovery 0.8"
 function blocksLine(b) {
-  const fund = ["qb", "skill", "ol", "front", "secondary", "kick"].reduce((s, a) => s + b[a], 0), r = v => Math.round(v * 10) / 10;
+  const fund = b.fund != null ? b.fund : FUND_UNITS.reduce((s, a) => s + (b[a] || 0), 0), r = v => Math.round(v * 10) / 10;
   const parts = [`fundamentals ${blocksText(fund)}`];
   [["install", "install"], ["prep", "opponent prep"], ["cond", "conditioning"], ["rec", "recovery"]].forEach(([a, nm]) => { if (b[a] > 0) parts.push(`${nm} ${r(b[a])}`); });
   return parts.join(", ");
@@ -38,8 +38,8 @@ function vPractice() {
     </section>
     <section class="panel">
       <h3>Fundamentals</h3>
-      <p class="muted styledesc">Players get better in the skills of the unit they practice with. Growth slows as a player nears his potential.</p>
-      ${["qb", "skill", "ol", "front", "secondary", "kick"].map(row).join("")}
+      ${row("fund")}
+      <p class="muted styledesc">Individual periods: every position group works at the same time with its own coach, and players get better in the skills of the groups they play in. Growth slows as a player nears his potential.</p>
     </section>
     <section class="panel">
       <h3>Team</h3>
