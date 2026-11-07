@@ -626,12 +626,16 @@ Decisions (Nov 2026):
 - Contracts and the cap are realistic, but a bit simpler: real dollars, contract years and yearly pay, guaranteed money that becomes dead money when a player is cut, the rookie scale by draft pick, and the franchise tag. No signing bonuses spread over years, restructures, void years or incentives.
 - Trades of players and draft picks, including on draft day.
 - Draft prospects' ratings are estimates, a range that narrows with scouting and the combine. Busts and steals happen.
+- The game names the league for now: the Sunday League, with the Atlantic and Pacific Conferences, each with North, South, East and West divisions, and the Sunday Bowl as the championship game. All of it can be renamed.
+- Players with fewer than four seasons whose contracts run out are simply kept or let go by their teams (no restricted free agency, for now).
+- No preseason games to play. The preseason weeks are for installing plays and practice.
+- No holdouts, for now.
 
 In this milestone:
 
 - The pro league: 32 teams in two conferences of four divisions, each team with an owner, a GM, a coach, a stadium, fans and a tradition.
 - Pro rules, as the NFL plays them in 2026, and pro overtime (both already in the engine from Gridiron Duel), checked again.
-- A pro season: training camp, three preseason games, cutdown day, 17 games over 18 weeks with one bye, the trade deadline, a 14-team playoff and a championship game at a neutral site.
+- A pro season: training camp and three preseason weeks of practice, cutdown day, 17 games over 18 weeks with one bye, the trade deadline, a 14-team playoff and a championship game at a neutral site.
 - Pro players: ages instead of class years, growth to a peak and then a decline that comes earlier at some positions, retirement, a 53-man roster, a practice squad and injured reserve.
 - The salary cap and contracts.
 - The pro reputation, pro job markets, owners, contracts for coaches, with and without personnel control.
@@ -642,7 +646,7 @@ In this milestone:
 - Your former players: the players you coached in high school and college can be drafted, play in the league, and end up on your roster.
 - Renaming teams, and the league's name.
 
-Not in this milestone: the coordinator path (Milestone 6), assistant coaches on your staff, signing bonuses and restructures, holdouts, expansion and relocation, players from outside the college world, and a Hall of Fame.
+Not in this milestone: the coordinator path (Milestone 6), assistant coaches on your staff, signing bonuses and restructures, restricted free agency, preseason games to play, holdouts, expansion and relocation, players from outside the college world, and a Hall of Fame.
 
 Build steps, each one playable and tested before the next:
 
@@ -667,7 +671,8 @@ Milestone 5 is done when:
 
 ### The league
 
-- 32 teams in two conferences of 16, each with four divisions of four, like the NFL. Made-up team names, cities and colors, never a real team's. A made-up name for the league and the championship game (see Open questions).
+- 32 teams in two conferences of 16, each with four divisions of four, like the NFL: the Sunday League, its Atlantic and Pacific Conferences, each with North, South, East and West divisions, and the Sunday Bowl. Made-up team names, cities and colors, never a real team's.
+- The preseason: training camp, then three preseason weeks. The NFL plays three preseason games, but starters barely play in them, so here those weeks are practice weeks, for installing plays and getting ready, with nothing to play. The games happen on paper and don't count for anything.
 - Each team has an owner (patience, and how much he spends, up to the cap), a GM, a coach, a stadium, fans and a tradition, all made up and kept from year to year.
 - The schedule, as the NFL builds it: 6 division games (home and away), 4 against a division in your conference, 4 against a division in the other conference (both rotate each year), 2 against teams in your conference that finished in the same place in their divisions, and a 17th game against a team from the other conference that finished in the same place. 18 weeks, one bye for each team between weeks 5 and 14.
 - Standings and tiebreakers follow the NFL's order: head-to-head, then division record, then common games, conference record, and strength of victory. (The full list is long; the game uses its first steps and a coin flip after them.)
@@ -690,7 +695,7 @@ Milestone 5 is done when:
 - Every contract has a length (1 to 5 years), pay for each year, and a guaranteed amount. A player's pay each year is his cap hit.
 - Cutting a player: whatever is left of his guaranteed money counts against this year's cap as dead money, all at once. Anything not guaranteed is gone, so cutting an older player on a big contract can save money.
 - The rookie scale: drafted players get four-year contracts set by where they were picked, at the real 2026 values, rising each year with the cap. The first pick gets about $54.6 million over four years, the last pick of the first round about $16.1 million, and the last pick of the draft about $4.4 million. First-round contracts are fully guaranteed and have a fifth-year option the team can pick up after the third season. Undrafted players get three-year contracts at the minimum.
-- Free agency: a player whose contract runs out after four or more seasons in the league is a free agent. A player with fewer seasons is kept by his team at a set raise if it wants him (see Open questions).
+- Free agency: a player whose contract runs out after four or more seasons in the league is a free agent. A player with fewer seasons (mostly undrafted players, on three-year contracts) can be kept by his team for one more year at his pay plus 10 percent, or the minimum if that's more. If his team lets him go, he's a free agent too. No restricted free agency, tenders or offer sheets, for now.
 - The franchise tag: once a year, a team can keep one player whose contract is running out for one more year, at the tag price for his position. In 2026 that's about $43.9 million for a quarterback, $27.3 million for a receiver, $27.1 million for a defensive tackle, $26.9 million for a linebacker, $20.1 million for a safety, $15.0 million for a tight end, $14.3 million for a running back and $6.6 million for a kicker or punter, rising with the cap. In the game, the tag price is the average of the five biggest cap hits at the position, or 120 percent of the player's own pay if that's more.
 - The minimum salary goes up with a player's seasons in the league. (To check against the 2026 numbers.)
 - How it works, in numbers: a player's market value comes from his overall, his position, his age and his health. About $400,000 a year at the bottom of a roster, about $10 million a year for a solid starter at most positions, and $25 million to $55 million a year for the best quarterbacks and pass rushers, scaled to each year's cap. How much is guaranteed rises with his value.
@@ -1143,9 +1148,4 @@ How it's built (step 5):
 
 ## Open questions
 
-For Milestone 5:
-
-1. The league's name and the championship game's name: made up by the game, or chosen by you? (They can be renamed either way.)
-2. Players with fewer than four seasons whose contracts run out: kept by their teams at a set raise (simpler), or the real restricted free agency, with tenders and offer sheets?
-3. Preseason games: three real games you can play or sim, or just camp with the games played on paper?
-4. Holdouts: should a star who wants a new contract ever skip camp, or leave that out?
+None right now.
