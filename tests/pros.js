@@ -505,5 +505,90 @@ function plain(g, extra) {
   }
 }
 
+// ---- Step 7: trades ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(91, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 60; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, true); proSetExpectations(); APP.screen = "season"; })()`);
+  ok(Math.round(g("chartValue(1)")) === 3000 && Math.abs(g("chartValue(32)") - 590) < 15 && g("chartValue(64)") < 300 && g("chartValue(160)") < 40, "the pick value chart: 3,000 for the first pick, about 590 for the 32nd, falling after");
+  const me = g("SEASON.myId"), yr = g("SEASON.draft.year");
+  ok(g(`teamPicks(SEASON, "${me}").length`) === 21, "every team has its picks in the next three drafts: 21");
+  ok(g(`pickValue(SEASON, pickKey(${yr + 1}, 1, "${me}"))`) < g(`pickValue(SEASON, pickKey(${yr}, 1, "${me}"))`) * .5, "a pick a year out is worth about a round less");
+  ok(g("tradesOpen(SEASON)"), "trades are open in camp");
+  // Building a trade
+  const them = g(`Object.keys(SEASON.schools).find(id => id !== SEASON.myId)`);
+  g(`act("trade")`);
+  ok(g("APP.screen") === "trade" && /Trade with/.test(g("vTrade()")), "the trade screen: pick a team");
+  g(`act("trteam", { v: "${them}" })`);
+  const star = g(`(() => { const B = proRoster(SEASON.schools["${them}"]); return B.players.slice().sort((a, b) => playerTradeValue(b) - playerTradeValue(a))[0].id; })()`);
+  g(`act("trin", { t: "get", v: "p:${star}" })`);
+  ok(/Not close/.test(g("vTrade()")), "asking for their best player for nothing: not close");
+  const cheap = g(`(() => { const B = proRoster(SEASON.schools["${them}"]); return B.players.filter(p => ovr(p, p.pos) < 66 && capHit(p) <= proMin(3)).sort((a, b) => playerTradeValue(a) - playerTradeValue(b))[0].id; })()`);
+  g(`act("trclear"); act("trin", { t: "get", v: "p:${cheap}" }); act("trin", { t: "give", v: "k:${yr}:1:${me}" })`);
+  ok(/They.{1,5}d take that/.test(g("vTrade()")), "a first-round pick for a backup: they'd take that");
+  const before = g("onActive(mySchool()).length");
+  g(`act("trsend")`);
+  ok(g(`mySchool().players.some(p => p.id === "${cheap}")`) && !g(`proRoster(SEASON.schools["${them}"]).players.some(p => p.id === "${cheap}")`), "the player changes teams");
+  ok(g(`pickOwnerOf(SEASON, "${yr}:1:${me}")`) === them && !g(`teamPicks(SEASON, "${me}").includes("${yr}:1:${me}")`) && g(`teamPicks(SEASON, "${them}").includes("${yr}:1:${me}")`), "and so does the pick");
+  ok(g("onActive(mySchool()).length") === before + 1 && g("APP.trade") === null, "your roster grows by one");
+  // A cap check
+  ok(g(`(() => { const T = newTrade("${them}"); const B = SEASON.schools["${them}"]; B.dead = (B.dead || 0) + 1e9; T.give.players.push(mySchool().players.slice().sort((a, b) => capHit(b) - capHit(a))[0].id); const w = tradeAnswer(SEASON, T).word; B.dead -= 1e9; return w; })()`) === "They can't fit it under the cap.", "a team can't take on pay it can't fit");
+  // An offer from another team
+  let tries = 0;
+  while (!g("SEASON.tradeOffer") && tries++ < 60) g(`(() => { const T = cpuOfferFor(SEASON, seededRandom(${tries})); if (T) { T.at = 0; SEASON.tradeOffer = T; } })()`);
+  if (g("SEASON.tradeOffer")) {
+    ok(/An offer from the/.test(g("vTrade()")) && /Accept it/.test(g("vTrade()")), "an offer from another team waits on the trade screen");
+    const O = g("SEASON.tradeOffer");
+    g(`act("tracc")`);
+    ok(!g(`mySchool().players.some(p => p.id === "${O.give.players[0]}")`) && O.get.picks.every(k => g(`pickOwnerOf(SEASON, "${k}")`) === me), "accepting it: your player goes, their picks come");
+  } else ok(false, "a computer team makes an offer");
+  // The season: trades between computer teams, and the deadline
+  g("simCamp()");
+  for (let i = 0; i < 9; i++) g(`(() => { const gm = myGameIn(SEASON.week); if (gm && !played(gm)) simMyGame(); finishWeek(); })()`);
+  ok(!g("tradesOpen(SEASON)") && /Trades are closed/.test(g("vTrade()")), "after week 9 the deadline has passed");
+  const news = g(`Object.values(SEASON.news).flat().filter(t => /^Trade: /.test(t))`);
+  ok(news.length >= 1, `computer teams trade with each other (${news.length} by the deadline${news[0] ? `: ${news[0]}` : ""})`);
+  ok(g(`Object.values(SEASON.schools).filter(s => !isFull(s)).every(s => { const r = proRoster(s); return onActive(r).length <= 53 && capRoom(r) > -5e6; })`), `every roster stays legal (${g(`Object.values(SEASON.schools).filter(s => !isFull(s)).map(s => { const r = proRoster(s); return onActive(r).length + "/" + Math.round(capRoom(r) / 1e6); }).join(" ")`)})`);
+  // Picks carry into the draft
+  g("simSeason()");
+  g(`act("offseason")`);
+  let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const sc = g("APP.screen"); g(sc === "review" ? `act("carousel")` : sc === "carousel" ? `act("market")` : sc === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
+  if (!g("SEASON.review.fired")) {
+    ok(g("tradesOpen(SEASON)"), "trades open again in the offseason");
+    g(`act("fastart"); act("faall"); act("faall"); act("draftroom")`);
+    ok(g(`SEASON.draft.picks.find(pk => pk.key === "${yr}:1:${me}").team`) === them, "the pick you traded is theirs on draft day");
+    ok(/from the /.test(g(`pickText(SEASON.draft.picks.find(pk => pk.key === "${yr}:1:${me}"))`)), "and shows where it came from");
+    g(`act("dsim")`);
+    const cur = g("SEASON.draft.picks[SEASON.draft.cur]");
+    if (cur && cur.team === me && cur.key) {
+      const offers = g("tradeDownOffers(SEASON, SEASON.draft)");
+      ok(offers.length >= 1 && /Trade down/.test(g("vDraftRoom()")), `on the clock, teams call to move up (${offers.length})`);
+      if (offers.length) {
+        g(`act("dtrade", { v: "${offers[0].with}" })`);
+        ok(g(`SEASON.draft.picks.find(pk => pk.n === ${cur.n}).team`) === offers[0].with && offers[0].get.picks.every(k => g(`pickOwnerOf(SEASON, "${k}")`) === me), "trading down: they pick there, and their picks are yours");
+      }
+    }
+    g(`act("dsimall"); act("dsimall"); act("nextyear")`);
+    ok(g(`Object.keys(SEASON.pickOwner || {}).every(k => +k.split(":")[0] > ${yr})`), "traded picks from a draft that's been held are cleared");
+    ok(g(`teamPicks(SEASON, "${me}").every(k => +k.split(":")[0] > ${yr})`), "and the next three drafts are the ones that count");
+  }
+}
+
+// ---- Step 7: with a GM, a move at a position ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(92, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, false); proSetExpectations(); APP.screen = "season"; })()`);
+  ok(/Your GM makes the trades/.test(g("vTrade()")) && !/data-a="trade"/.test(g("vPSeason()")), "with a GM, he makes the trades");
+  g(`act("gm")`);
+  ok(/Ask him to trade for a starter/.test(g("vGM()")), "you can ask him for a move at a position");
+  g(`act("gmmove", { v: "WR" })`);
+  ok(g("myReq().move") === "WR", "the request is noted");
+  g(`CAREER.job.gms = 100`);
+  g("simCamp()");
+  for (let i = 0; i < 9; i++) g(`(() => { const gm = myGameIn(SEASON.week); if (gm && !played(gm)) simMyGame(); finishWeek(); })()`);
+  ok(g(`(CAREER.job.log || []).some(x => /Make a move at receiver/.test(x.t))`) && g("myReq().move") === null, `he answers by the deadline (${(g("CAREER.job.log") || []).map(x => x.t).filter(t => /move/.test(t)).join("")})`);
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 if (fails) process.exit(1);

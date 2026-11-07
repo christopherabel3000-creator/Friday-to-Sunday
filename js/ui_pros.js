@@ -71,7 +71,7 @@ function vPSeason() {
     <section class="panel"><h3>The season</h3>
       <div class="choices"><button class="btn ghost" data-a="standings">Standings and the playoff picture</button>${SEASON.post ? `<button class="btn ghost" data-a="bracket">The playoff</button>` : ""}</div>
       <div class="choices"><button class="btn ghost" data-a="schedule">Schedule and stats</button>${gm && !played(gm) && !live && !camp ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`}<button class="btn ghost" data-a="coach">Your coach</button></div>
-      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</button>${SEASON.draft ? `<button class="btn ghost" data-a="dboard">The ${SEASON.draft.year} draft board</button>` : ""}</div>
+      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</button>${CAREER.job && CAREER.job.ctl && tradesOpen(SEASON) ? `<button class="btn ghost" data-a="trade">Trades${SEASON.tradeOffer ? ", an offer waiting" : ""}</button>` : ""}${SEASON.draft ? `<button class="btn ghost" data-a="dboard">The ${SEASON.draft.year} draft board</button>` : ""}</div>
     </section>
     ${simBtn && !live ? `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>`
       : camp ? `<button class="btn ghost" data-a="campsim">${confirming === "campsim" ? "Tap again to sim the rest of camp" : "Sim the rest of camp"}</button>` : ""}`;
@@ -180,7 +180,7 @@ function vPOffseason() {
       <p class="muted">${esc(gone ? proStatus() : `${proStatus()} Re-signing and free agency come first, then the draft, then four weeks of the offseason program and training camp.`)}</p>
     </div>
     ${gone ? newJobPanel() : ""}
-    ${gone ? "" : `<section class="panel"><h3>${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</h3><p>${esc(gmLine())}</p><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "The front office" : "Requests for the GM"}</button></section>`}
+    ${gone ? "" : `<section class="panel"><h3>${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</h3><p>${esc(gmLine())}</p><div class="choices"><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "The front office" : "Requests for the GM"}</button>${CAREER.job && CAREER.job.ctl && tradesOpen(SEASON) ? `<button class="btn ghost" data-a="trade">Trades${SEASON.tradeOffer ? ", an offer waiting" : ""}</button>` : ""}</div></section>`}
     ${gone ? "" : offseasonFAPanels()}
     ${gone || !SEASON.draft || (SEASON.off && SEASON.off.stage !== "draft") ? "" : `<section class="panel"><h3>The ${SEASON.draft.year} draft</h3><p>${esc(SEASON.draft.done ? "The draft is done. Your rookies and undrafted free agents join you for camp." : `The combine is in. ${CAREER.job && CAREER.job.ctl ? "Your picks are yours" : "Your GM makes the picks, with a push from you each round"}. Whatever's left of the draft when the new season starts is picked for you.`)}</p><div class="choices"><button class="btn" data-a="draftroom">The draft room</button><button class="btn ghost" data-a="dboard">Your board</button></div></section>`}
     ${gone ? "" : `<section class="panel"><h3>The offseason program</h3><p>${esc("Four weeks of practice with your plan. Opponent prep time goes into install.")}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
@@ -240,7 +240,8 @@ function vGM() {
   const body = J.ctl
     ? `<section class="panel"><h3>What your staff handles</h3><p class="muted">Anything big still waits for you.</p>${STAFF_JOBS.map(([k, name, desc]) => `<div class="xprow"><span>${esc(`${name}: ${desc}`)}</span><button class="btn ghost slim" data-a="staffjob" data-v="${k}" aria-pressed="${!!J.staff[k]}">${J.staff[k] ? "Staff handles it" : "You handle it"}</button></div>`).join("")}</section>`
     : `<section class="panel"><h3>Your needs</h3><p class="muted">Up to three positions, most important first, for the draft and free agency.</p><div class="seg wrap" role="group" aria-label="Needs">${POS_IDS.map(pos => `<button data-a="gmneed" data-v="${pos}" aria-pressed="${R.needs.includes(pos)}">${capFirst(posName(pos))}${R.needs.includes(pos) ? ` (${R.needs.indexOf(pos) + 1})` : ""}</button>`).join("")}</div></section>
-      <section class="panel"><h3>Players</h3>${reqList("keep", "Keep")}${reqList("go", "Let go")}</section>`;
+      <section class="panel"><h3>Players</h3>${reqList("keep", "Keep")}${reqList("go", "Let go")}</section>
+      ${SEASON.phase !== "regular" || SEASON.week <= TRADE_DEADLINE ? `<section class="panel"><h3>A trade</h3><p class="muted">${esc(`Ask him to trade for a starter at one position. He looks in the last week before the deadline, the Tuesday after week ${TRADE_DEADLINE}.`)}</p><div class="seg wrap" role="group" aria-label="Trade for">${POS_IDS.map(pos => `<button data-a="gmmove" data-v="${pos}" aria-pressed="${R.move === pos}">${capFirst(posName(pos))}</button>`).join("")}</div></section>` : ""}`;
   return `
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${esc(nameOf(s.id))}</p>

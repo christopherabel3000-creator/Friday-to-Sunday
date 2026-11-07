@@ -65,7 +65,7 @@ function vDFind() {
 /* ---------- The draft room ---------- */
 function vDraftRoom() {
   const D = draftHere(), W = SEASON, s = mySchool(), J = CAREER.job;
-  if (!D.picks) D.picks = draftPicks(proDraftOrder(W), W.comp || []);
+  if (!D.picks) D.picks = draftPicksFor(W);
   const mine = D.picks.filter(pk => pk.team === s.id), cur = D.picks[D.cur], taken = draftTaken(D);
   const avail = D.board.filter(id => !taken.has(id)).slice(0, 8);
   const recent = D.picks.slice(Math.max(0, D.cur - 8), D.cur).reverse().map(pk => `${pk.n}. ${pk.team === s.id ? "You" : `The ${SEASON.schools[pk.team].mascot}`}: ${pk.pid ? `${fullName(draftProspect(D, pk.pid))}, ${posName(draftProspect(D, pk.pid).pos)}, ${draftProspect(D, pk.pid).col}` : "no pick"}.`);
@@ -77,6 +77,7 @@ function vDraftRoom() {
     clock = `<section class="panel teamcard" style="--team:${s.color}"><p class="eyebrow">${esc(capFirst(pickText(cur)))}</p><h3 id="clock" tabindex="-1">You're on the clock</h3>
       <p>${esc(push ? `Your GM makes the pick. You get one push a round for a player you want${pushed ? `: this round, ${fullName(draftProspect(D, pushed))}` : ""}. ${standingWord(J.gms)}` : "The pick is yours.")}</p>
       ${avail.length ? `<ul class="hlist">${avail.map(id => { const p = draftProspect(D, id); return `<li class="xprow"><span>${esc(prospectLineD(p))}</span><button class="btn ghost slim" data-a="${push ? "dpush" : "dtake"}" data-v="${id}"${push && pushed === id ? ' aria-pressed="true"' : ""}>${push ? (pushed === id ? `Pushing for ${esc(p.first)}` : `Push for ${esc(p.first)}`) : `Take ${esc(fullName(p))}`}</button></li>`; }).join("")}</ul>` : "<p>Nobody from your board is left.</p>"}
+      ${push ? "" : tradeDownPanel(W, D)}
       <div class="choices"><button class="btn" data-a="dstaff">${push ? "Let the GM pick" : "Let your staff pick"}</button><button class="btn ghost" data-a="dboard">Your board</button><button class="btn ghost" data-a="dfind">Find prospects</button></div></section>`;
   } else if (cur) clock = `<section class="panel"><p class="eyebrow">${esc(capFirst(pickText(cur)))}</p><h3 id="clock" tabindex="-1">${esc(`On the clock: the ${schoolName(SEASON.schools[cur.team])}`)}</h3>
       <div class="choices"><button class="btn" data-a="dsim">Sim to your next pick</button><button class="btn ghost" data-a="dsimall">${confirming === "dsimall" ? "Tap again to sim the rest of the draft" : "Sim the rest of the draft"}</button></div></section>`;
@@ -91,6 +92,11 @@ function vDraftRoom() {
     ${recent.length ? `<section class="panel"><h3>The last picks</h3><ul class="hlist">${recent.map(t => `<li>${esc(t)}</li>`).join("")}</ul></section>` : ""}
     ${(D.log || []).length ? `<section class="panel"><h3>Your GM</h3><ul class="hlist">${D.log.map(x => `<li>${esc(x.t)}</li>`).join("")}</ul></section>` : ""}
     <button class="btn ghost" data-a="back">Back to the offseason</button>`;
+}
+// Teams calling to move up into your spot
+function tradeDownPanel(W, D) {
+  const offers = tradeDownOffers(W, D);
+  return offers.length ? `<p class="sechead" role="heading" aria-level="4">Trade down</p><ul class="hlist">${offers.map(T => `<li class="xprow"><span>${esc(`The ${schoolName(W.schools[T.with])} offer ${andList(T.get.picks.map(k => pickName(W, k, T.with)))}.`)}</span><button class="btn ghost slim" data-a="dtrade" data-v="${T.with}">Take it</button></li>`).join("")}</ul>` : "";
 }
 // After the computer teams pick: one line on what went from your board (only those are announced)
 function boardGone(D, from) {
@@ -114,7 +120,7 @@ function draftAct(a, ds) {
       announce(ds.v === "remove" ? "Off your board." : k >= 0 ? `Number ${k + 1} on your board.` : "");
       return true;
     }
-    case "draftroom": if (SEASON.phase === "offseason" && marketClosed() && !leavingSchool() && (!SEASON.off || SEASON.off.stage === "draft")) { combine(D); if (!D.picks) D.picks = draftPicks(proDraftOrder(SEASON), SEASON.comp || []); APP.screen = "draftroom"; scrollTop(); } return true;
+    case "draftroom": if (SEASON.phase === "offseason" && marketClosed() && !leavingSchool() && (!SEASON.off || SEASON.off.stage === "draft")) { combine(D); if (!D.picks) D.picks = draftPicksFor(SEASON); APP.screen = "draftroom"; scrollTop(); } return true;
     case "dsim": { if (D.done) return true; const from = D.cur, pk = runDraft(SEASON, D, true); focusNext = { id: "clock" }; announce(pk ? `You're on the clock: ${pickText(pk)}.${boardGone(D, from)}` : `The draft is done.${boardGone(D, from)}`); return true; }
     case "dsimall": { if (D.done || !confirmed("dsimall")) return true; const from = D.cur; while (!D.done) { const pk = runDraft(SEASON, D, true); if (pk) myPick(SEASON, D, null); } announce(`The draft is done.${boardGone(D, from)}`); return true; }
     case "dtake": case "dstaff": {

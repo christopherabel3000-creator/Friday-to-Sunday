@@ -112,15 +112,18 @@ function proDraftOrder(W) {
     return ids;
   });
 }
-function draftPicks(order, comp) {
+function draftPicks(order, comp, year, owner) {
   const picks = [];
   for (let r = 1; r <= DRAFT_ROUNDS; r++) {
-    order.forEach(team => picks.push({ rd: r, team }));
+    order.forEach(team => { const key = year ? pickKey(year, r, team) : null; picks.push({ rd: r, team: key && owner ? owner(key) : team, key, orig: team }); });
     (comp || []).filter(c => c.rd === r).forEach(c => picks.push({ rd: r, team: c.team, comp: true }));
   }
   picks.forEach((p, i) => { p.n = i + 1; });
   return picks;
 }
+
+// This year's picks, with the traded ones in their new teams' hands (ptrade.js)
+const draftPicksFor = W => draftPicks(proDraftOrder(W), W.comp || [], W.draft.year, k => pickOwnerOf(W, k));
 
 /* ---------- The draft ---------- */
 // SEASON.draft: { year, pool: [short records], byId: { id: { i } }, board: [ids] (yours, best first),
@@ -198,7 +201,7 @@ function makePick(W, D, pick, choice) {
 }
 // The rest of the draft, or up to (not including) your next pick when stopAtMine
 function runDraft(W, D, stopAtMine) {
-  if (!D.picks) D.picks = draftPicks(proDraftOrder(W), W.comp || []);
+  if (!D.picks) D.picks = draftPicksFor(W);
   for (; D.cur < D.picks.length; D.cur++) {
     const pick = D.picks[D.cur];
     if (stopAtMine && pick.team === W.myId && !(CAREER.job && CAREER.job.ctl && CAREER.job.staff && CAREER.job.staff.late && pick.rd >= 4)) return pick;
@@ -216,7 +219,7 @@ function myPick(W, D, choice) {
   return pid;
 }
 // "Round 1, pick 7 (7th overall)"
-const pickText = pk => `round ${pk.rd}, pick ${pk.n}${pk.comp ? ", a compensatory pick" : ""}`;
+const pickText = pk => `round ${pk.rd}, pick ${pk.n}${pk.comp ? ", a compensatory pick" : pk.orig && pk.orig !== pk.team ? `, from the ${SEASON.schools[pk.orig].mascot}` : ""}`;
 // Everyone drafted, by team, with rookie contracts by where they were picked
 function draftedBy(D) {
   const out = {};

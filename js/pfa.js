@@ -187,6 +187,7 @@ function proFADay(W) {
   const off = W.off;
   if (off.stage !== "fa") return;
   off.day++;
+  tradeWeek(W, 0);
   const J = CAREER && CAREER.job, me = W.myId;
   withTeams(W, T => {
     let FA = faPlayers(W);

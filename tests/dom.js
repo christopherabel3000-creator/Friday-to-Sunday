@@ -788,8 +788,27 @@ function checkScreen(page, label) {
   tap(pp, "back"); tap(pp, "gm");
   ok(/Your general manager/.test(headp()) && dp.querySelectorAll('[data-a="gmneed"]').length === 11, "the GM screen: your standing and your needs");
   checkScreen(pp, "pro general manager");
+  ok(dp.querySelectorAll('[data-a="gmmove"]').length === 11, "and a trade you can ask him for");
   tap(pp, "gmneed", "QB");
   ok(btn(dp, "gmneed", "QB").getAttribute("aria-pressed") === "true" && dp.activeElement === btn(dp, "gmneed", "QB"), "a need, with focus staying on its button");
+  // Trades, with control of the roster (a second page)
+  {
+    const tp = await openPage(), dt = tp.d, et = x => tp.w.eval(x), headt = () => (dt.querySelector("[data-focus]") || {}).textContent || "";
+    et(`newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); (() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 60; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, true); proSetExpectations(); })(); APP.screen = "season"; render();`);
+    tap(tp, "trade");
+    ok(/Trades/.test(headt()) && dt.querySelectorAll('[data-a="trteam"]').length === 31, "the trade screen: the other 31 teams");
+    checkScreen(tp, "trades");
+    tap(tp, "trteam", et(`Object.keys(SEASON.schools).find(id => id !== SEASON.myId)`));
+    ok(/You give/.test(dt.body.textContent) && /You get/.test(dt.body.textContent) && dt.querySelectorAll('[data-a="trpos"]').length === 11, "building a trade: both sides, by position");
+    checkScreen(tp, "trade builder");
+    tap(tp, "trpos", "WR");
+    ok(dt.activeElement && dt.activeElement.id === "traddhead", "picking a position moves to its list");
+    const add = dt.querySelector('[data-a="trin"][data-t="get"]');
+    tap(tp, "trin", add.getAttribute("data-v"));
+    ok(/Not close|more|take that/.test(dt.getElementById("trword").textContent) && dt.getElementById("trword").getAttribute("aria-live") === "polite", "their answer reads out as you build");
+    checkScreen(tp, "trade with a player in it");
+    ok(tp.errors.length === 0, "no script errors in trades: " + tp.errors.slice(0, 2).join(" | "));
+  }
   tap(pp, "back"); tap(pp, "sroster", ep("SEASON.myId"));
   tap(pp, "player", ep("mySchool().players[3].id"));
   ok(!!btn(dp, "gmkeep") && /Contract:/.test(dp.body.textContent), "a player's screen: his contract, and requests for the GM");

@@ -404,6 +404,8 @@ function newProSeason(seed, year, prev) {
   inWorld(se, proSetExpectations);
   // Next spring's draft class, scouted all season (pdraft.js)
   se.formers = prev ? prev.formers : [];
+  // Traded picks (ptrade.js), but none from a draft that's been held
+  if (prev && prev.pickOwner) { se.pickOwner = {}; for (const k in prev.pickOwner) if (+k.split(":")[0] > year) se.pickOwner[k] = prev.pickOwner[k]; }
   se.draft = inWorld(se, () => newProDraft(year + 1));
   return se;
 }
@@ -479,6 +481,7 @@ function proFinishWeek() {
   proAfterWeek(n);
   proPostXP(n);
   proNews(n);
+  tradeWeek(SEASON, n);
   // Your staff scouts the draft class (pdraft.js); the combine comes after the season
   if (SEASON.draft) { scoutWeek(); if (CAREER && CAREER.job && CAREER.job.lvl === "pro" && (!CAREER.job.ctl || CAREER.job.staff.board)) staffBoard(SEASON.draft, myNeeds()); }
   if (SEASON.phase === "over") { seasonEndXP(n); if (SEASON.draft) combine(SEASON.draft); }
