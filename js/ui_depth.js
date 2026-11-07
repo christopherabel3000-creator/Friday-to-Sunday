@@ -232,6 +232,7 @@ function vPlayer() {
       <h3>Overall</h3>
       <ul class="hlist">${shown.map(pos => `<li>${capFirst(posName(pos))} ${ovr(p, pos)}</li>`).join("")}
         <li>Next best fits: ${others.map(([pos, v]) => `${posName(pos)} ${v}`).join(", ")}</li></ul>
+      ${viewCtx() === "season" ? proPlayerActions(tm, p) : ""}
       ${p.ct && isPro(tm.cls) ? `<p>${esc(`${p.ir ? "On injured reserve. " : teamPS(tm).some(q => q.id === p.id) ? "On the practice squad. " : ""}Contract: ${proContractText(p)}${p.pick ? ` Drafted in round ${p.pick.rd} in ${p.pick.year}, pick ${p.pick.n}.` : ""}`)}</p>` : ""}
       ${mineInSeason && SEASON.lvl === "col" && REC_LV[SEASON.schools[SEASON.myId].cls] ? `<p>${esc(`Paid ${moneyText(p.pay || 0)} a year in revenue sharing and NIL. Fair pay here: about ${moneyText(fairPay(p, SEASON.schools[SEASON.myId]))}.`)}</p>` : ""}
       <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}, grades ${gradesOf(p)}.</p>

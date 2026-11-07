@@ -87,24 +87,30 @@ const jobWorld = id => SEASON.schools[id] ? SEASON : OTHER && OTHER.schools[id] 
 const otherWorldJob = id => !SEASON.schools[id] && !!jobWorld(id);
 // The reputation a school looks at, and its bar: a high school looks at your high school
 // reputation, a college at your college one (or, from high school, your high school one against 80)
+// (a pro team looks at your pro reputation, or from college your college one against 75: pworld.js)
 function jobRepFor(s) {
+  if (isPro(s.cls)) return inPros() ? (CAREER.prep || 0) : (CAREER.crep || 0);
   if (!isCollege(s.cls)) return CAREER && CAREER.rep != null ? CAREER.rep : REP_START;
-  return inCollege() ? (CAREER.crep || 0) : (CAREER && CAREER.rep) || 0;
+  return inCollege() || inPros() ? (CAREER.crep || 0) : (CAREER && CAREER.rep) || 0;
 }
 function jobBarFor(s) {
+  if (isPro(s.cls)) return (inPros() ? REP_BAR.PRO : COL_TO_PRO) + .2 * Math.max(0, s.trad - 50);
   if (!isCollege(s.cls)) return REP_BAR[s.cls] + .2 * Math.max(0, s.trad - 50);
-  if (!inCollege()) return HS_TO_COL + (s.cls === "D2" ? 3 : 0) + .1 * Math.max(0, s.trad - 50);
+  if (!inCollege() && !inPros()) return HS_TO_COL + (s.cls === "D2" ? 3 : 0) + .1 * Math.max(0, s.trad - 50);
   return COL_JOB_BAR[s.cls] + .2 * Math.max(0, s.trad - 50);
 }
 // The open jobs in the other world that are interested in you
+// (both other worlds: the pro league's jobs come from THIRD while you coach in college)
 function otherJobs() {
-  const W = OTHER, R = W && W.review;
-  if (!R || !CAREER) return [];
-  return R.open.filter(id => {
-    const s = W.schools[id];
-    if (!s || id === (W.myId || "") || R.why[id] === "taken") return false;
-    if (isCollege(s.cls) && !inCollege() && (!HS_TO_COL_LEVELS.has(s.cls) || (CAREER.rep || 0) < HS_TO_COL)) return false;
-    return !!interestIn(s);
+  if (!CAREER) return [];
+  return [OTHER, THIRD].flatMap(W => {
+    const R = W && W.review;
+    if (!R) return [];
+    return R.open.filter(id => {
+      const s = W.schools[id];
+      if (!s || id === (W.myId || "") || R.why[id] === "taken") return false;
+      return !!interestIn(s);
+    });
   });
 }
 // The other world's year-end review and coaching changes happen with yours
@@ -129,7 +135,7 @@ function takeJobAcross(id) {
   if (SEASON.schools[old].rating) SEASON.schools[old].rating.c = Math.round((SEASON.schools[old].coach.off + SEASON.schools[old].coach.def) / 2);
   const W = jobWorld(id), cls = W.schools[id].cls;
   W.review.why[id] = "taken";
-  CAREER.next = { lvl: isPro(cls) ? "pro" : isCollege(cls) ? "col" : "hs", id };
+  CAREER.next = { lvl: isPro(cls) ? "pro" : isCollege(cls) ? "col" : "hs", id, ctl: isPro(cls) ? !!M.ctl : false };
   Object.assign(M, { took: id, from: old, offer: null, done: true, stage: "done", transfers: [] });
   fillJobs(); otherWorldFill();
 }
@@ -149,7 +155,7 @@ function switchWorlds() {
   if (nx.lvl === "pro") {
     if (CAREER.prep == null) CAREER.prep = startPrep(CAREER.crep);
     proTakeOver(nx.id);
-    startProJob(nx.id);
+    startProJob(nx.id, nx.ctl);
     proSetExpectations();
   } else if (nx.lvl === "col") {
     if (CAREER.crep == null) CAREER.crep = startCrep(CAREER.rep);
@@ -279,9 +285,9 @@ function colFinishText(id) {
 }
 // Where a job is: "Class 4A, District 3", or "Division II, Heartland Conference"
 function jobPlace(id) {
-  const s = jobSchool(id);
+  const s = jobSchool(id), W = jobWorld(id) || SEASON, c = (W.confs || []).find(x => x.id === s.conf);
+  if (isPro(s.cls)) return `The Sunday League, ${c ? c.name : ""}`;
   if (!isCollege(s.cls)) return `Class ${s.cls}, District ${s.district}`;
-  const W = SEASON.schools[id] ? SEASON : OTHER, c = (W.confs || []).find(x => x.id === s.conf);
   return `${levelName(s.cls)}, ${c ? c.name : "Independent"}`;
 }
 const jobName = id => schoolName(jobSchool(id));

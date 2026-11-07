@@ -132,8 +132,10 @@ function firedAfter(J) {
   if (J.ten === 2) return J.tg.length >= 2 && J.tg[0] <= SHORT && J.tg[1] <= SHORT;
   return J.sec < FIRE_AT;
 }
-const secWord = sec => sec >= 70 ? "Your job is safe." : sec >= 45 ? "The athletic director expects improvement." : "You're on the hot seat.";
-const patienceWord = trad => trad >= 65 ? "an impatient athletic director" : trad <= 35 ? "a patient athletic director" : "an athletic director who wants results";
+// Who decides your job: the athletic director, or in the pros the owner
+const bossWord = () => inPros() ? "owner" : "athletic director";
+const secWord = sec => sec >= 70 ? "Your job is safe." : sec >= 45 ? `The ${bossWord()} expects improvement.` : "You're on the hot seat.";
+const patienceWord = trad => trad >= 65 ? `an impatient ${bossWord()}` : trad <= 35 ? `a patient ${bossWord()}` : `${bossWord() === "owner" ? "an owner" : "an athletic director"} who wants results`;
 const newJob = () => ({ sec: SEC_START, ten: 0, tg: [] });
 
 /* ---------- The stipend ---------- */
@@ -207,7 +209,7 @@ function yearEndReview() {
     if (entry && entry.g == null) gradeMySeason(entry);
     const g = entry ? entry.g : 0;
     J.ten++; if (J.tg.length < 2) J.tg.push(g);
-    J.sec = newSec(J.sec, g, s.trad, boostersOf(s));
+    J.sec = newSec(J.sec, g, patienceOf(s), inPros() ? 0 : boostersOf(s));
     R.paid = J.pay; CAREER.earned = (CAREER.earned || 0) + J.pay;
     if (J.lvl !== "col" && J.lvl !== "pro" && J.ten <= RAISE_YEARS) J.pay = Math.round(J.pay * (1 + RAISE));
     R.fired = firedAfter(J); R.sec = J.sec;
@@ -220,6 +222,9 @@ function yearEndReview() {
       if (R.fired && J.yrs > 0) { R.buyout = Math.round((pro ? PRO_BUYOUT : BUYOUT) * J.pay * J.yrs / 1000) * 1000; CAREER.earned += R.buyout; }
       else if (!R.fired && J.yrs === 0) { J.yrs = pro ? PRO_YEARS : COL_YEARS[s.cls]; J.pay = Math.round(J.pay * 1.05 / 5000) * 5000; R.renewed = true; }
     }
+    // The pros: an extension may come with control of the roster, and your standing with the GM moves
+    // with the season (pworld.js)
+    if (J.lvl === "pro") proJobYear(J, R, g, s);
     if (entry) Object.assign(entry, { sid: me, sec: J.sec, fired: R.fired, pay: R.paid, pw: res[me].pw, po: res[me].po, dt: res[me].dt, ch: res[me].ch });
     if (R.fired) { R.open.push(me); R.why[me] = "fired"; }
   }
@@ -229,13 +234,13 @@ function yearEndReview() {
     c.rep = newRep(c.rep, g, s.cls); c.age++; c.yrs++;
     if (c.yrs <= COACH_GROWTH_YEARS) growCoach(c);
     const J = c.job; J.ten++; if (J.tg.length < 2) J.tg.push(g);
-    J.sec = newSec(J.sec, g, s.trad, boostersOf(s));
+    J.sec = newSec(J.sec, g, patienceOf(s), inPros() ? 0 : boostersOf(s));
     const why = c.yrs >= c.span ? "retired" : firedAfter(J) ? "fired" : "";
     if (why) { R.open.push(id); R.why[id] = why; }
   }
   // Boosters move with every school's season, and the computer schools build (money.js). Then the
   // last offers for the seniors, signing day, and the spring offers for the juniors (recruit.js).
-  moneyYearEnd(res);
+  if (!inPros()) moneyYearEnd(res);
   if (CAREER && me && !worldy()) {
     R.post = offerWindow("post");
     const sg = signingDay();
@@ -304,8 +309,9 @@ function fillJobs() {
     } else {
       // A Division III or II job with no college coach for it may go to one of the state's best high
       // school coaches (cjobs.js)
-      const up = SEASON.lvl === "col" && HS_TO_COL_LEVELS.has(s.cls) ? hsCoachUp(s) : null;
-      if (up) { s.coach = up.coach; hired.add(up.coach); moves.push(`The ${nameOf(id)} hired Coach ${coachName(up.coach)} from the ${up.from}, a high school.`); }
+      // A pro job may go to one of the best power-conference coaches (pworld.js)
+      const up = SEASON.lvl === "col" && HS_TO_COL_LEVELS.has(s.cls) ? hsCoachUp(s) : inPros() ? colCoachUp(s) : null;
+      if (up) { s.coach = up.coach; hired.add(up.coach); moves.push(`The ${nameOf(id)} hired Coach ${coachName(up.coach)} from the ${up.from}, ${inPros() ? "in college" : "a high school"}.`); }
       else { s.coach = outsideCoach(s); hired.add(s.coach); say(id, s.coach, null); }
     }
     applyCoach(s);
@@ -322,7 +328,11 @@ function fillJobs() {
 const INTEREST_ODDS = { high: .85, medium: .55, low: .25 };
 // (each school looks at the reputation for its own level: cjobs.js)
 function interestIn(s) {
-  if (isCollege(s.cls) && !inCollege() && (!HS_TO_COL_LEVELS.has(s.cls) || ((CAREER && CAREER.rep) || 0) < HS_TO_COL)) return "";
+  // The pros: from a power-conference head coaching job only (pworld.js), and from the pros, college
+  // jobs but no high school ones
+  if (isPro(s.cls) && !inPros() && !(inCollege() && SEASON.myId && mySchool().cls === "P4" && (CAREER.crep || 0) >= COL_TO_PRO)) return "";
+  if (inPros() && !isPro(s.cls) && !isCollege(s.cls)) return "";
+  if (isCollege(s.cls) && !inCollege() && !inPros() && (!HS_TO_COL_LEVELS.has(s.cls) || ((CAREER && CAREER.rep) || 0) < HS_TO_COL)) return "";
   const d = jobRepFor(s) - jobBarFor(s); return d >= 10 ? "high" : d >= 0 ? "medium" : d >= -8 ? "low" : "";
 }
 // The jobs you can pursue: this world's, and the other world's that want you
@@ -344,7 +354,7 @@ function pursueJob(id) {
   const M = SEASON.market;
   if (!M || M.done || M.offer || !marketJobs().includes(id)) return "";
   const roll = seededRandom(hashSeed(`${SEASON.seed}:${id}:offer`))();
-  if (roll < INTEREST_ODDS[interestIn(jobSchool(id))]) { M.offer = id; return "offer"; }
+  if (roll < INTEREST_ODDS[interestIn(jobSchool(id))]) { M.offer = id; M.ctl = isPro(jobSchool(id).cls) ? offerHasControl(id) : false; return "offer"; }
   M.tried[id] = "no";
   checkFallback();
   return "no";

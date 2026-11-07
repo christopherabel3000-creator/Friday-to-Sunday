@@ -546,7 +546,8 @@ function proNextSeason() {
     const rookies = proRookies(old.year + 1, order);
     for (const id in old.schools) {
       const sum = old.schools[id], full = isFull(sum), s = full ? sum : proRoster(sum), rng = seededRandom(hashSeed(`${old.world}:${old.year}:${id}:year`));
-      const rep = proTeamYear(s, old.year + 1, rng, full, rookies[id], old.cap || PRO_CAP0);
+      const J = full && CAREER && CAREER.job && CAREER.job.lvl === "pro" ? CAREER.job : null;
+      const rep = proTeamYear(s, old.year + 1, rng, full, rookies[id], old.cap || PRO_CAP0, J ? myReq() : null, J ? (J.log = J.log || []) : null);
       rep.freed = getUnderCap(s);
       // Your team's offseason program: four weeks with your practice plan, like college spring practice
       if (full) { s.depth = autoDepth(s); rep.spring = springPractice(s, old.plan, old.year + 1); mine = rep; s.depth = autoDepth(s); s.rating = schoolRating(s); continue; }
@@ -591,18 +592,13 @@ function proWorldNextYear() {
 const PREP_START = 20;
 const startPrep = colRep => Math.round((PREP_START + Math.max(0, (colRep || 0) - 80) / 2) * 10) / 10;
 STAGE.PRO = 2.4;
-REP_BAR.PRO = 0;
+REP_BAR.PRO = 15;
 // Head coaching contracts in real dollars (2026): about $4 million to $20 million a year, more at a
 // proud team and for a bigger reputation. Five years, and a fired coach is paid all of what's left.
 const PRO_PAY = [4000000, 20000000], PRO_YEARS = 5, PRO_BUYOUT = 1;
 function proSalary(s, prep) {
   const [lo, hi] = PRO_PAY, k = clamp(.4 * ((s.trad || 50) - 20) / 75 + .6 * (prep || 0) / 100, 0, 1);
   return Math.round((lo + (hi - lo) * k) / 50000) * 50000;
-}
-function startProJob(id) {
-  const s = SEASON.schools[id];
-  CAREER.job = Object.assign(newJob(), { id, lvl: "pro", pay: proSalary(s, CAREER.prep || 0), yrs: PRO_YEARS, ctl: false });
-  return CAREER.job;
 }
 // Moving to another pro team: yours goes back to short records and the new one comes in full
 function proMoveWithin(id) {
@@ -613,8 +609,139 @@ function proMoveWithin(id) {
   proTakeOver(id);
   SEASON.phase = "offseason"; SEASON.camp = 0;
   void c;
-  startProJob(id);
+  startProJob(id, M.ctl);
   Object.assign(M, { took: id, from: old, offer: null, done: true, stage: "done", transfers: [] });
   REBUILT.clear();
   fillJobs(); otherWorldFill();
+}
+
+/* ---------- Owners and general managers ---------- */
+// Every team has an owner (his patience: 0.6 to 1.4, how hard he takes a bad season) and a general
+// manager (a rating, how well he scouts and builds, and a philosophy: building through the draft, or
+// buying in free agency). Both are made up and kept from year to year.
+const GM_PHIL = { draft: "builds through the draft", fa: "buys in free agency", bal: "builds through the draft and free agency both" };
+function proOwner(s) {
+  if (!s.owner) { const g = dice(hashSeed(`${s.seed}:owner`)); s.owner = { first: g.pick(COACH_FIRST), last: g.pick(LAST_NAMES), pat: Math.round(clamp(g.n(1, .2), .6, 1.4) * 100) / 100 }; }
+  return s.owner;
+}
+function newGM(g) {
+  return { first: g.pick(COACH_FIRST), last: g.pick(LAST_NAMES), rt: clamp(Math.round(g.n(60, 12)), 30, 92), ph: g.pick(["draft", "draft", "fa", "bal", "bal"]), ten: g.i(0, 8) };
+}
+function proGM(s) {
+  if (!s.gm) s.gm = newGM(dice(hashSeed(`${s.seed}:gm`)));
+  return s.gm;
+}
+// How patient a team's boss is, on the tradition scale the job security reads (50 is average): a pro
+// team's owner, or a school's tradition
+const patienceOf = s => isPro(s.cls) ? 50 + (proOwner(s).pat - 1) * 100 : s.trad;
+const ownerWord = pat => pat >= 1.15 ? "who takes losing hard" : pat <= .85 ? "a patient one" : "who wants results";
+const gmWord = r => r >= 80 ? "one of the league's best" : r >= 65 ? "a good one" : r >= 50 ? "an average one" : "one of the league's weaker ones";
+
+/* ---------- The way in, and pro offers ---------- */
+// Pro jobs come to a power-conference head coach with a college reputation of 75 or more, the best
+// openings wanting a little more
+const COL_TO_PRO = 75;
+// Whether an offer comes with control of the roster: more likely the bigger your pro reputation, the
+// worse the team was last season and the more the owner wants you. A first-time pro coach rarely
+// gets it. (Rolled once a season for each job, so it never changes.)
+function offerHasControl(id) {
+  const W = jobWorld(id) || SEASON, s = W.schools[id], r = W.results && W.results[id], rep = inPros() ? (CAREER.prep || 0) : 0;
+  const bad = r ? clamp((8 - (r.rw || 0)) / 16, 0, .5) : .2, want = clamp((jobRepFor(s) - jobBarFor(s)) / 60, 0, .3);
+  const first = !(CAREER.seasons || []).some(x => x.lvl === "pro");
+  const p = clamp((first ? .03 : -.15 + rep / 100 * .8) + bad * (first ? .2 : .6) + want, .02, .9);
+  return seededRandom(hashSeed(`${W.seed}:${id}:control`))() < p;
+}
+// One pro job, in a few sentences
+function proJobText(id) {
+  const s = jobSchool(id), o = proOwner(s), gm = proGM(s), M = SEASON.market, offer = M && M.offer === id;
+  const rep = inPros() ? CAREER.prep || 0 : startPrep(CAREER.crep);
+  return `${lastSeasonText(id)} ${talentText(s.rating)} ${capFirst(tradWord(s.trad))} (tradition ${Math.round(s.trad)}). Salary about ${bigMoney(proSalary(s, rep))} a year, for ${plural(PRO_YEARS, "year")}. Owner ${o.first} ${o.last}, ${ownerWord(o.pat)}. General manager ${gm.first} ${gm.last}, ${gmWord(gm.rt)}, ${GM_PHIL[gm.ph]}.${offer ? M.ctl ? " This offer comes with control of the roster." : " The GM keeps control of the roster." : ""} ${whyOpen(id)}`.replace(/\s+/g, " ").replace(/\.\./g, ".").trim();
+}
+// A closer look at a pro job: the roster under contract next season, by position, and the cap
+function proJobLook(id, M, canPursue, isOffer, interest) {
+  const sum = SEASON.schools[id], s = seasonSchool(id), c = CAREER.coach;
+  const back = s.players.filter(p => ctYears(p) > 1), k = coreKnown(s, c.off_style, c.def_style);
+  const groups = {};
+  back.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)).forEach(p => { const gname = POS_INFO[p.pos].group; (groups[gname] = groups[gname] || []).push(p); });
+  const order = OFF_POS.concat(DEF_POS, ["K", "P"]).map(pos => POS_INFO[pos].group).filter((x, i, a) => a.indexOf(x) === i && groups[x]);
+  return `
+    <div class="masthead" style="--team:${sum.color}">
+      <p class="eyebrow">A closer look · ${esc(jobPlace(id))}${interest ? ` · ${interest} interest` : ""}</p>
+      <h2 data-focus tabindex="-1">${esc(jobName(id))}</h2>
+      <p class="muted">${esc(jobText(id))}</p>
+    </div>
+    <section class="panel"><h3>The playbook</h3><p>${esc(`The last coach ran the ${schemeText(sum)}. The team knows ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense well.`)}</p></section>
+    <section class="panel"><h3>The money</h3><p>${esc(`${bigMoney(capUsed(s))} committed against this year's cap of ${bigMoney(capNow())}, and ${bigMoney(capNext(s))} already for next year.`)}</p></section>
+    <section class="panel"><h3>Under contract next season</h3>
+      <p>${esc(`${plural(back.length, "player")} signed past this season. The rest have contracts ending, and rookies and free agents come in before camp.`)}</p>
+      ${order.map(gname => `<p class="sechead" role="heading" aria-level="4">${esc(gname)}</p><ul class="hlist">${groups[gname].map(p => `<li>${esc(`${playerLine(p, s.level)} ${bigMoney(capHit(p))}.`)}</li>`).join("")}</ul>`).join("")}
+    </section>
+    ${canPursue ? `<button class="btn" data-a="pursue" data-v="${id}">Pursue the ${esc(sum.mascot)} job</button>` : isOffer ? `<button class="btn" data-a="accept">Take the job</button>` : ""}
+    <button class="btn ghost" data-a="back">Back to the job market</button>`;
+}
+// One of the best power-conference coaches moves up to a pro job (never you): about half the time,
+// the best one with a college reputation of 75 or more. His college program gets a new coach.
+function colCoachUp(job) {
+  const C = colWorld();
+  if (!C || seededRandom(hashSeed(`${SEASON.seed}:${job.id}:colup`))() >= .5) return null;
+  const best = Object.values(C.schools).filter(x => x.cls === "P4" && x.coach && !isYou(x.coach) && x.id !== C.myId && (x.coach.rep || 0) >= COL_TO_PRO && !x.coach.movedUp).sort((a, b) => b.coach.rep - a.coach.rep)[0];
+  if (!best) return null;
+  const c = clone(best.coach);
+  Object.assign(c, { rep: startPrep(c.rep), job: newJob() });
+  best.coach.movedUp = true;
+  const from = schoolName(best);
+  best.coach = inWorld(C, () => outsideCoach(best));
+  applyCoach(best);
+  return { coach: c, from };
+}
+
+/* ---------- Your pro job, year by year ---------- */
+// Your requests to the GM: up to three needs by position, up to three players to keep and three to
+// let go, and one player to go after. job.gms: your standing with him, 0 to 100, starting at 50.
+// The higher it is, the more he follows: about a quarter of the time at 20, nearly always at 90.
+const GM_REQ_MAX = 3;
+const newReq = () => ({ needs: [], keep: [], go: [], want: null });
+const gmFollowOdds = st => clamp(.25 + (st - 20) * .0107, .1, .99);
+function myReq() { const J = CAREER.job; if (!J.req) J.req = newReq(); if (J.gms == null) J.gms = 50; return J.req; }
+// Does the GM go along with one request? With control of the roster, your word is final.
+function gmFollows(key) {
+  const J = CAREER.job;
+  if (J.ctl) return true;
+  myReq();
+  return seededRandom(hashSeed(`${SEASON.seed}:${key}:gm`))() < gmFollowOdds(J.gms);
+}
+const standingWord = st => st >= 80 ? "He trusts you completely." : st >= 60 ? "He listens to you." : st >= 40 ? "He hears you out." : st >= 20 ? "He mostly goes his own way." : "He barely listens.";
+function startProJob(id, ctl) {
+  const s = SEASON.schools[id];
+  CAREER.job = Object.assign(newJob(), { id, lvl: "pro", pay: proSalary(s, CAREER.prep || 0), yrs: PRO_YEARS, ctl: !!ctl, req: newReq(), gms: 50,
+    staff: { cut: true, board: true, late: true, udfa: true, trades: false } });
+  return CAREER.job;
+}
+// After each pro season: your standing with the GM moves with your grade (and a little more when he
+// followed your requests and you won); an extension may come with control of the roster; and an
+// owner who's losing patience may fire the GM instead of you.
+function proJobYear(J, R, g, s) {
+  const gm = proGM(s), ownerMad = J.sec < 45 && !R.fired;
+  if (!J.ctl) {
+    const followed = (J.log || []).filter(x => x.yes).length;
+    J.gms = clamp(Math.round(((J.gms == null ? 50 : J.gms) + clamp(5 * g, -15, 15) + (g > 0 && followed ? 3 : 0)) * 10) / 10, 0, 100);
+  }
+  J.log = [];
+  gm.ten = (gm.ten || 0) + 1;
+  if (R.renewed && !J.ctl && seededRandom(hashSeed(`${SEASON.seed}:extension:control`))() < clamp(-.1 + (CAREER.prep || 0) / 100 * .9, .05, .85)) { J.ctl = true; R.ctlNow = true; }
+  if (!J.ctl && ownerMad && gm.ten >= 3 && seededRandom(hashSeed(`${SEASON.seed}:gmfire`))() < .4) {
+    R.gmFired = `${gm.first} ${gm.last}`;
+    s.gm = newGM(dice(hashSeed(`${SEASON.seed}:${s.id}:newgm`))); s.gm.ten = 0;
+    J.gms = 50; J.sec = Math.min(100, J.sec + 15);
+  }
+}
+// The GM on the owner's review
+function gmReviewPanel() {
+  const R = SEASON.review, J = CAREER.job, s = mySchool(), gm = proGM(s);
+  if (!J || J.lvl !== "pro") return "";
+  const lines = [];
+  if (R.ctlNow) lines.push("Your new contract gives you control of the roster: the draft, free agency, trades and cuts are yours now.");
+  if (R.gmFired) lines.push(`The owner fired general manager ${R.gmFired}. The new GM is ${gm.first} ${gm.last}, ${gmWord(gm.rt)}, who ${GM_PHIL[gm.ph]}.`);
+  if (!J.ctl) lines.push(`General manager ${gm.first} ${gm.last}. ${standingWord(J.gms)} (Your standing with him: ${Math.round(J.gms)}.)`);
+  return lines.length ? `<section class="panel"><h3>The front office</h3>${lines.map(t => `<p>${esc(t)}</p>`).join("")}</section>` : "";
 }

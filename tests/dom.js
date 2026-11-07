@@ -785,7 +785,16 @@ function checkScreen(page, label) {
   tap(pp, "back"); tap(pp, "cap");
   ok(/The salary cap/.test(headp()) && /committed/.test(dp.body.textContent), "the salary cap screen");
   checkScreen(pp, "pro salary cap");
+  tap(pp, "back"); tap(pp, "gm");
+  ok(/Your general manager/.test(headp()) && dp.querySelectorAll('[data-a="gmneed"]').length === 11, "the GM screen: your standing and your needs");
+  checkScreen(pp, "pro general manager");
+  tap(pp, "gmneed", "QB");
+  ok(btn(dp, "gmneed", "QB").getAttribute("aria-pressed") === "true" && dp.activeElement === btn(dp, "gmneed", "QB"), "a need, with focus staying on its button");
   tap(pp, "back"); tap(pp, "sroster", ep("SEASON.myId"));
+  tap(pp, "player", ep("mySchool().players[3].id"));
+  ok(!!btn(dp, "gmkeep") && /Contract:/.test(dp.body.textContent), "a player's screen: his contract, and requests for the GM");
+  checkScreen(pp, "pro player");
+  tap(pp, "back"); tap(pp, "back"); tap(pp, "sroster", ep("SEASON.myId"));
   ok(/Practice squad/.test(dp.body.textContent) && /Inactive on game day/.test(dp.body.textContent), "the pro roster: the depth chart, game day and the practice squad");
   checkScreen(pp, "pro roster");
   tap(pp, "back"); tap(pp, "schedule");

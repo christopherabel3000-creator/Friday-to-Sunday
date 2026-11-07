@@ -244,5 +244,113 @@ function plain(g, extra) {
   }
 }
 
+// ---- Step 4: the way in ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]);`);
+  g(`CAREER.rep = 95; simSeason(); act("offseason"); if (APP.screen === "signing") act("adreview"); act("carousel"); act("market")`);
+  ok(!!g("THIRD.review && THIRD.review.news.length"), "the pro league's coaching changes happen with yours");
+  ok(g(`marketJobs().every(id => !isPro(jobSchool(id).cls))`), "a high school coach never gets pro offers");
+  // A power-conference coach
+  const sb2 = load(), h = sb2.__get;
+  h(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  h(`(() => { const C = OTHER; OTHER = SEASON; SEASON = C; arrangeWorlds([OTHER, THIRD]); CAREER.crep = 95; const id = SEASON.confs.find(c => c.cls === "P4").ids[0]; colTakeOver(id); startColJob(id); colSetExpectations(); APP.screen = "season"; })()`);
+  h(`simSeason(); act("offseason")`);
+  let k = 0; while (h("APP.screen") !== "market" && k++ < 6) { const s = h("APP.screen"); h(s === "signing" ? `act("adreview")` : s === "review" ? `act("carousel")` : `act("market")`); }
+  h("CAREER.crep = 95");
+  // (some years no pro coach is let go; then one is, for the test)
+  h(`(() => { const R = THIRD.review; if (!R.open.some(id => R.why[id] !== "taken")) { R.open.push("p5"); R.why.p5 = "fired"; } })()`);
+  const pros = h(`marketJobs().filter(id => isPro(jobSchool(id).cls))`);
+  ok(pros.length > 0, `a power-conference coach with a big college reputation gets pro jobs in his market (${pros.length})`);
+  h("CAREER.crep = 70");
+  ok(h(`marketJobs().filter(id => isPro(jobSchool(id).cls)).length`) === 0, "under 75, none");
+  h("CAREER.crep = 95");
+  ok(/The Sunday League/.test(h(`jobPlace("${pros[0]}")`)) && /Salary about \$[\d.]+ million/.test(h(`jobText("${pros[0]}")`)) && /General manager/.test(h(`jobText("${pros[0]}")`)) && /Owner/.test(h(`jobText("${pros[0]}")`)), "a pro job says its division, salary, owner and general manager");
+  ok(/Under contract next season/.test(h(`(() => { APP.jobLook = "${pros[0]}"; return vJobLook(); })()`)), "and has a closer look: who's signed and the money");
+  let got = null;
+  for (const id of pros) { if (h(`pursueJob("${id}")`) === "offer") { got = id; break; } }
+  if (got) {
+    ok(typeof h("SEASON.market.ctl") === "boolean" && /control of the roster/.test(h("offerPanel()")), "a pro offer says whether it comes with control of the roster");
+    const ctl = h("SEASON.market.ctl");
+    h(`act("accept")`);
+    ok(h("CAREER.next.lvl") === "pro" && h("CAREER.next.id") === got, "taking it: it starts next season");
+    h(`act("nextyear")`);
+    ok(h("SEASON.lvl") === "pro" && h("SEASON.myId") === got && h("OTHER.lvl") === "col" && !h("THIRD.lvl"), "the next season: you coach in the pros, with college next door and the state on paper");
+    ok(h("CAREER.job.lvl") === "pro" && h("CAREER.job.pay") >= 4e6 && h("CAREER.job.yrs") === 5 && h("CAREER.job.ctl") === ctl && h("CAREER.prep") >= 20, `a five-year pro contract (${h("bigMoney(CAREER.job.pay)")} a year), and a pro reputation (${h("CAREER.prep")})`);
+    ok(h("mySchool().players.length") === 53 && h("SEASON.phase") === "preseason", "your new team, in camp");
+  } else ok(true, "no pro offer came this time (each job rolls its answer)");
+}
+
+// ---- Step 4: owners, the GM and your requests ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, false); proSetExpectations(); APP.screen = "season"; })()`);
+  ok(g(`Object.values(SEASON.schools).every(s => { const o = proOwner(s), m = proGM(s); return o.pat >= .6 && o.pat <= 1.4 && m.rt >= 30 && m.rt <= 92 && !!GM_PHIL[m.ph]; })`), "every team has an owner with his patience and a general manager with a rating and a philosophy");
+  ok(g(`[20, 50, 90].map(gmFollowOdds).map(x => Math.round(x * 100)).join()`) === "25,57,99", "the GM follows about a quarter of your requests at 20, over half at 50, nearly all at 90");
+  ok(/Your general manager/.test(g("vPSeason()")) && g(`(() => { act("gm"); return APP.screen; })()`) === "gm" && /Your needs/.test(g("vGM()")), "the GM screen: who he is, your standing, your needs");
+  g(`act("gmneed", { v: "QB" }); act("gmneed", { v: "CB" }); act("gmneed", { v: "OL" }); act("gmneed", { v: "WR" })`);
+  ok(g("myReq().needs.join()") === "QB,CB,OL", "up to three needs, in order");
+  // Keep and let go, at the end of the season
+  const ids = g(`(() => { const s = mySchool(), end = s.players.filter(p => ctYears(p) === 1 && (p.exp || 0) >= 4).sort((a, b) => ovr(a, a.pos) - ovr(b, b.pos)); return [end[0].id, end[end.length - 1].id]; })()`);
+  g(`(() => { APP.view = { ctx: "season", team: SEASON.myId, back: "season", player: "${ids[0]}" }; APP.screen = "player"; })()`);
+  ok(/Ask the GM to keep him/.test(g("vPlayer()")), "a player's screen has the requests");
+  g(`act("gmkeep", { v: "${ids[0]}" }); act("gmgo", { v: "${ids[1]}" })`);
+  ok(g("myReq().keep[0]") === ids[0] && g("myReq().go[0]") === ids[1], "asking to keep one player and let another go");
+  g("CAREER.job.gms = 100");
+  g(`simSeason(); act("offseason")`);
+  let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const s = g("APP.screen"); g(s === "review" ? `act("carousel")` : s === "carousel" ? `act("market")` : s === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }
+  ok(/owner's review/.test(g("vReview()")) && /The front office/.test(g("vReview()")), "the owner's review, with the front office");
+  if (!g("SEASON.review.fired")) {
+    g("CAREER.job.gms = 100");
+    g(`act("nextyear")`);
+    const has = id => g(`!!playerById(mySchool(), "${id}")`);
+    ok(has(ids[0]) && !has(ids[1]), "with full trust, the GM keeps the player you asked for and lets the other go");
+    ok(g("CAREER.job.log.length") >= 1 && /Keep|Let go/.test(g("CAREER.job.log.map(x => x.t).join(' ')")), "and says so");
+  }
+  // His answers depend on your standing
+  const odds = g(`(() => { CAREER.job.gms = 20; let a = 0; for (let i = 0; i < 400; i++) if (gmFollows("t" + i)) a++; CAREER.job.gms = 90; let b = 0; for (let i = 0; i < 400; i++) if (gmFollows("t" + i)) b++; return [a, b]; })()`);
+  ok(odds[0] > 60 && odds[0] < 150 && odds[1] > 360, `low standing, few requests followed; high standing, nearly all (${odds.join(" and ")} of 400)`);
+  // Standing, extensions and the owner firing the GM
+  const yr = g(`(() => { const J = CAREER.job, s = mySchool(); J.gms = 50; J.log = [{ yes: true }]; proJobYear(J, { renewed: false }, 2, s); const up = J.gms; J.gms = 50; proJobYear(J, { renewed: false }, -2, s); const down = J.gms; J.sec = 30; s.gm.ten = 5; let fired = 0; for (let i = 0; i < 20; i++) { SEASON.seed++; s.gm.ten = 5; const R = {}; proJobYear(J, R, -1, s); if (R.gmFired) fired++; J.sec = 30; } return { up, down, fired }; })()`);
+  ok(yr.up > 55 && yr.down < 45, `your standing rises with a good season and falls with a bad one (${yr.up}, ${yr.down})`);
+  ok(yr.fired > 2 && yr.fired < 18, `an owner losing patience sometimes fires the GM instead of you (${yr.fired} of 20)`);
+}
+
+// ---- Step 4: control of the roster ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 60; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, true); proSetExpectations(); APP.screen = "season"; })()`);
+  ok(/Your front office/.test(g("vPSeason()")) && /What your staff handles/.test(g(`(() => { act("gm"); return vGM(); })()`)), "with control: your front office and what your staff handles");
+  const pid = g(`mySchool().players.find(p => p.ct && p.ct.g > 0).id`);
+  g(`APP.view = { ctx: "season", team: SEASON.myId, back: "season", player: "${pid}" }; APP.screen = "player";`);
+  ok(/Release him/.test(g("vPlayer()")), "a player's screen has your moves");
+  const dead0 = g("mySchool().dead || 0");
+  g(`act("release", { v: "${pid}" })`); g(`act("release", { v: "${pid}" })`);
+  ok(!g(`mySchool().players.some(p => p.id === "${pid}")`) && g("mySchool().dead") > dead0, "releasing a player: he's gone, and his guarantee is dead money");
+  const young = g(`mySchool().players.find(p => (p.exp || 0) <= 2 && !p.ir).id`), psN = g("mySchool().ps.length");
+  g(`act("release", { v: mySchool().ps[0].id }); act("release", { v: mySchool().ps[0].id })`);
+  g(`act("tops", { v: "${young}" })`);
+  ok(g(`mySchool().ps.some(p => p.id === "${young}")`) && g("mySchool().ps.length") === psN, "moving a young player to the practice squad");
+  g(`act("tor", { v: "${young}" })`);
+  ok(g(`mySchool().players.some(p => p.id === "${young}")`), "and promoting him back");
+  // Cuts that are yours
+  g(`(() => { act("staffjob", { v: "cut" }); const s = mySchool(), gg = dice(4); for (let k = 0; k < 6; k++) s.players.push(streetPlayer(gg, "camp" + k, 55, "WR")); })()`);
+  ok(g("CAREER.job.staff.cut") === false, "turning off the staff's cuts");
+  g("simCamp()");
+  ok(g("inCamp()") && g("cutWait()") && /the cuts are yours/.test(g("vPSeason()")), "camp waits at cutdown day until you're at 53");
+  g(`act("staffcut")`);
+  ok(!g("inCamp()") && g("onActive(mySchool()).length") === 53, "or your staff can cut for you, and the season starts");
+}
+
+// ---- Step 4: pro coaches from college ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  const n = g(`(() => { Object.values(OTHER.schools).filter(s => s.cls === "P4").forEach(s => { coachCareer(s.coach, s); s.coach.rep = 90; }); let up = 0; inWorld(THIRD, () => { for (let i = 0; i < 20; i++) { SEASON.seed++; if (colCoachUp({ id: "p" + i })) up++; } }); return up; })()`);
+  ok(n > 3, `pro teams hire the best power-conference coaches now and then (${n} of 20)`);
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 if (fails) process.exit(1);

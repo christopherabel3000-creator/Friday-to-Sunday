@@ -10,23 +10,24 @@ function vReview() {
   const R = yearEndReview(), s = mySchool(), J = myJob(), last = CAREER.seasons.find(x => x.seed === SEASON.seed);
   const seasons = plural(J.ten, "season");
   const job = R.fired
-    ? `<section class="panel"><h3>You're fired</h3><p>${esc(`The ${jobName(s.id)} athletic director let you go after ${seasons}. Every school that's interested in you is in the job market, and someone will hire you.`)}</p></section>`
-    : `<section class="panel"><h3>${esc(secWord(J.sec))}</h3><p>${esc(J.ten === 1 ? `After your first season at the ${jobName(s.id)}. A new coach gets two full seasons before the athletic director can let him go.`
-      : J.ten === 2 ? `After ${seasons} at the ${jobName(s.id)}. From here on, the athletic director looks at how you've done over the years, and ${patienceWord(s.trad)} at a program like this one takes bad seasons hard.`
-      : `After ${seasons} at the ${jobName(s.id)}, with ${patienceWord(s.trad)}.`)}</p></section>`;
+    ? `<section class="panel"><h3>You're fired</h3><p>${esc(`The ${jobName(s.id)} ${bossWord()} let you go after ${seasons}. Every school that's interested in you is in the job market, and someone will hire you.`)}</p></section>`
+    : `<section class="panel"><h3>${esc(secWord(J.sec))}</h3><p>${esc(J.ten === 1 ? `After your first season at the ${jobName(s.id)}. A new coach gets two full seasons before the ${bossWord()} can let him go.`
+      : J.ten === 2 ? `After ${seasons} at the ${jobName(s.id)}. From here on, the ${bossWord()} looks at how you've done over the years, and ${patienceWord(patienceOf(s))} at a ${inPros() ? "team" : "program"} like this one takes bad seasons hard.`
+      : `After ${seasons} at the ${jobName(s.id)}, with ${patienceWord(patienceOf(s))}.`)}</p></section>`;
   const raise = !R.fired && J.ten <= RAISE_YEARS;
-  const pay = J.lvl === "col" ? `<section class="panel"><h3>Your contract</h3><p>${esc(`${moneyText(R.paid || 0)} for this season.${R.buyout ? ` The rest of your contract is paid out: ${moneyText(R.buyout)}.` : R.fired ? "" : R.renewed ? ` Your contract was renewed: ${contractText(J)}.` : ` ${capFirst(contractText(J))}.`} Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p></section>`
+  const pay = J.lvl === "col" || J.lvl === "pro" ? `<section class="panel"><h3>Your contract</h3><p>${esc(`${moneyText(R.paid || 0)} for this season.${R.buyout ? ` The rest of your contract is paid out: ${moneyText(R.buyout)}.` : R.fired ? "" : R.renewed ? ` Your contract was renewed: ${contractText(J)}.` : ` ${capFirst(contractText(J))}.`} Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p></section>`
     : `<section class="panel"><h3>Your stipend</h3><p>${esc(`${moneyText(R.paid || 0)} for this season.${R.fired ? "" : ` Next season: ${moneyText(J.pay)}${raise ? ", a 3 percent raise" : ""}.`} Career earnings: ${moneyText(CAREER.earned || 0)}.`)}</p></section>`;
   return `
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">${SEASON.year} offseason · ${esc(jobName(s.id))}</p>
-      <h2 data-focus tabindex="-1">The athletic director's review</h2>
+      <h2 data-focus tabindex="-1">The ${bossWord()}'s review</h2>
       <p class="muted">${esc(last && last.g != null ? `Your season graded ${gradeWord(last.g)}. ${repText(myRep())}` : repText(myRep()))}</p>
     </div>
     ${gradePanel()}
     ${job}
     ${pay}
-    <button class="btn" data-a="carousel">Coaching changes around the state</button>`;
+    ${inPros() ? gmReviewPanel() : ""}
+    <button class="btn" data-a="carousel">Coaching changes around the ${inPros() ? "league" : worldy() ? "country" : "state"}</button>`;
 }
 
 /* ---------- Coaching changes ---------- */
@@ -48,15 +49,17 @@ const JOB_SORTS = [["interest", "Interest"], ["cls", "Class"], ["trad", "Traditi
 const INTEREST_RANK = { high: 0, medium: 1, low: 2 };
 // What a school's last season was: "6-4, expected about 5-5"
 function lastSeasonText(id) {
-  if (otherWorldJob(id)) return inWorld(OTHER, () => lastSeasonText(id));
+  if (otherWorldJob(id)) return inWorld(jobWorld(id), () => lastSeasonText(id));
   const r = SEASON.results && SEASON.results[id], e = SEASON.exp && SEASON.exp[id];
   if (!r) return "";
+  if (isPro(SEASON.schools[id].cls)) return `Last season: ${proRecText(r)}${r.ch ? `, ${PRO_BOWL} champions` : r.pw ? `, ${plural(r.pw, "playoff win")}` : r.po ? ", lost in the playoff" : ""}${e ? `, expected ${expectWords(e)}` : ""}.`;
   return `Last season: ${r.w}-${r.l}${r.ch ? ", state champions" : r.pw ? `, ${plural(r.pw, "playoff win")}` : r.po ? ", lost in the first round" : ""}${e ? `, expected ${expectWords(e)}` : ""}.`;
 }
-const whyOpen = id => ({ retired: "Its coach retired.", fired: "Its coach was fired.", left: "Its coach left." })[(otherWorldJob(id) ? OTHER : SEASON).review.why[id]] || "";
+const whyOpen = id => ({ retired: "Its coach retired.", fired: "Its coach was fired.", left: "Its coach left." })[(jobWorld(id) || SEASON).review.why[id]] || "";
 // One job, in a few sentences: everything the list says about it
 function jobText(id) {
   const s = jobSchool(id), col = isCollege(s.cls);
+  if (isPro(s.cls)) return proJobText(id);
   const pay = col ? `Salary about ${moneyText(colSalary(s, inCollege() ? CAREER.crep || 0 : startCrep(CAREER.rep)))} a year, for ${plural(COL_YEARS[s.cls], "year")}.` : `Enrollment ${numText(s.enroll)}. Stipend ${moneyText(stipendOf(s))}.`;
   return `${lastSeasonText(id)} ${talentText(s.rating)} ${capFirst(tradWord(s.trad))} (tradition ${Math.round(s.trad)}). ${pay} ${capFirst(patienceWord(s.trad))}. ${whyOpen(id)} ${col ? `${boostText(boostersOf(s))} ${facLine(s)}` : jobMoneyText(s)}`.replace(/\s+/g, " ").trim();
 }
@@ -77,7 +80,7 @@ function offerPanel() {
       <h3 id="offer" tabindex="-1">Offer: the ${esc(jobName(id))}</h3>
       ${M.counter ? `<p>${esc(`${jobName(SEASON.myId)} want to keep you: a ${Math.round(M.counter.raise * 100)} percent raise and ${plural(M.counter.yrs, "more year")} on your contract.`)}</p>
       <div class="choices"><button class="btn" data-a="counterstay">Stay, with the raise</button><button class="btn ghost" data-a="accept">Take the new job anyway</button></div>` : ""}
-      <p>${esc(fb ? `Nobody else is hiring you this year. The ${jobName(id)}, the weakest roster in Class 1A, will take you, and their coach is let go to make room.` : `The ${jobName(id)} want you as their head coach. You have to answer now.`)}</p>
+      <p>${esc(fb ? `Nobody else is hiring you this year. The ${jobName(id)}, the weakest roster ${inPros() ? "in the league" : "in Class 1A"}, will take you, and their coach is let go to make room.` : `The ${jobName(id)} want you as their head coach.${isPro(s.cls) ? ` ${M.ctl ? "The job comes with control of the roster: the draft, free agency, trades and cuts are yours." : "Their general manager keeps control of the roster; you coach the team and make requests."}` : ""} You have to answer now.`)}</p>
       <p class="muted">${esc(jobText(id))}</p>
       ${M.counter ? "" : `<div class="choices"><button class="btn" data-a="accept">Take the job</button>${fb ? "" : `<button class="btn ghost" data-a="decline">Turn it down</button>`}<button class="btn ghost" data-a="joblook" data-v="${id}">A closer look</button></div>`}
     </section>`;
@@ -115,10 +118,11 @@ function vMarket() {
 // playbook the team knows, and how its returning starters compare with the class
 function vJobLook() {
   const id = APP.jobLook, M = SEASON.market, canPursue0 = !M.done && !M.offer && marketJobs().includes(id), isOffer0 = M.offer === id, interest0 = marketJobs().includes(id) ? interestIn(jobSchool(id)) : "";
-  if (otherWorldJob(id)) return inWorld(OTHER, () => jobLookHtml(id, M, canPursue0, isOffer0, interest0));
+  if (otherWorldJob(id)) return inWorld(jobWorld(id), () => jobLookHtml(id, M, canPursue0, isOffer0, interest0));
   return jobLookHtml(id, M, canPursue0, isOffer0, interest0);
 }
 function jobLookHtml(id, M, canPursue, isOffer, interest) {
+  if (isPro(SEASON.schools[id].cls)) return proJobLook(id, M, canPursue, isOffer, interest);
   const sum = SEASON.schools[id], s = seasonSchool(id), c = CAREER.coach;
   const back = s.players.filter(p => p.yr < finalYear(s)), team = { id, cls: s.cls, players: back.map(p => p), coach: s.coach };
   team.depth = autoDepth(team);

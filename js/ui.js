@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 14;
+const BUILD = 15;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -125,6 +125,12 @@ function upgradeSave(s) {
   // Version 14: the pro league, built from the state's seed for the season's year
   const base = [s.season, s.other].find(w => w && w.world != null);
   if (base && !s.third && ![s.season, s.other].some(w => w && w.lvl === "pro")) s.third = newProSeason(base.world, base.year);
+  // Version 15: pro contracts and the cap. A pro league from before them gets contracts and practice squads.
+  [s.season, s.other, s.third].forEach(w => {
+    if (!w || w.lvl !== "pro") return;
+    if (!w.cap) w.cap = capFor(w.year);
+    inWorld(w, () => Object.values(w.schools).forEach(t => { if (!isFull(t) && !t.psr) proLeagueContracts(t, dice(hashSeed(`${t.seed}:ct`)), w.year); }));
+  });
   s.build = BUILD;
   return s;
 }
@@ -431,7 +437,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
-const SCREENS = { cap: vCap, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
+const SCREENS = { cap: vCap, gm: vGM, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
   schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason, vPOffseason), newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal, names: vNames };
@@ -576,7 +582,8 @@ function act(a, ds) {
     // Preseason camp: on to the next week, or the rest of camp at once (with a report on all of it)
     case "campnext":
       if (!inCamp()) break;
-      campNext(); APP.reportView = null; APP.screen = "season";
+      if (!campNext() && cutWait()) { announce(`Cutdown day: you're ${onActive(mySchool()).length - PRO_ACTIVE} over ${PRO_ACTIVE}. Release players or move them to the practice squad, or let your staff do it.`); break; }
+      APP.reportView = null; APP.screen = "season";
       if (!inCamp()) announce("Camp is over. Week 1 is next.");
       scrollTop(); break;
     case "campsim":
@@ -692,6 +699,7 @@ function act(a, ds) {
       else if (APP.screen === "prospect") APP.screen = APP.prospectBack === "rfind" ? "rfind" : "board";
       else if (APP.screen === "rfind") APP.screen = "board";
       else if (APP.screen === "portal") APP.screen = "offseason";
+      else if (APP.screen === "gm") APP.screen = SCREENS[APP.gmBack] && APP.gmBack !== "gm" ? APP.gmBack : seasonScreen();
       else if (APP.screen === "names") APP.screen = SCREENS[APP.namesBack] && APP.namesBack !== "names" ? APP.namesBack : "home";
       else if (APP.screen === "board") APP.screen = ["season", "week"].includes(APP.boardBack) ? APP.boardBack : seasonScreen();
       else APP.screen = seasonScreen();
@@ -753,7 +761,7 @@ function act(a, ds) {
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
     // A season game can't be thrown away: only an exhibition can end early
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
-    default: if (!collegeAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !namesAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
+    default: if (!collegeAct(a, ds) && !proAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !namesAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
@@ -767,7 +775,7 @@ function startScreen() {
   const sc = APP.screen, season = !!(SEASON && SEASON.myId);
   if (sc === "game") return S && S.teams ? sc : "home";
   if (sc === "roster" || sc === "player" || sc === "depth") return APP.view && (APP.view.ctx !== "season" || SEASON) && (APP.view.ctx !== "game" || (S && S.teams)) ? sc : "home";
-  if (sc === "cap") return season && inPros() ? sc : season ? "season" : "home";
+  if (sc === "cap" || sc === "gm") return season && inPros() ? sc : season ? "season" : "home";
   if (sc === "pick") return SEASON && SEASON.phase === "pick" && CAREER ? sc : "home";
   if (sc === "newcoach") return APP.coachDraft ? sc : "home";
   if (sc === "coach") return CAREER ? sc : "home";

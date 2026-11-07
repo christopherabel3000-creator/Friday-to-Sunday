@@ -550,11 +550,13 @@ function endOfCamp() {
 function campNext() {
   if (!inCamp()) return false;
   holdPractice();
+  // (with control of the roster and the staff's cuts off, camp can't end over 53: pcap.js)
+  if (cutWait()) return false;
   endOfCamp();
   SEASON.camp++;
   if (SEASON.camp > SEASON.pre) {
     // The pros: cutdown day, to 53 and the practice squad (pcap.js)
-    if (inPros()) { const me = mySchool(), cd = cutdown(me); cd.freed = getUnderCap(me); SEASON.cutdown = { cut: cd.cut.map(p => `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}`), ps: cd.ps.length, dead: cd.dead, freed: cd.freed.map(fullName) }; }
+    if (inPros()) { const me = mySchool(), J = CAREER.job, manual = J && J.ctl && J.staff && !J.staff.cut, cd = manual ? cutdownManual(me) : cutdown(me, J && J.lvl === "pro" ? myReq() : null, J ? (J.log = J.log || []) : null); cd.freed = getUnderCap(me); SEASON.cutdown = { cut: cd.cut.map(p => `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}`), ps: cd.ps.length, dead: cd.dead, freed: cd.freed.map(fullName) }; }
     SEASON.phase = "regular"; SEASON.camp = 0; SEASON.expect = talentRank(SEASON.myId);
   }
   return true;
@@ -562,7 +564,7 @@ function campNext() {
 // The rest of camp, every practice held with your plan. Returns the week's practice reports.
 function simCamp() {
   const reps = [];
-  while (inCamp()) { if (!practiced()) reps.push(holdPractice()); campNext(); }
+  while (inCamp()) { if (!practiced()) reps.push(holdPractice()); if (!campNext()) break; }
   return reps;
 }
 // Several practice reports as one: each rating and play from where it started to where it ended up,

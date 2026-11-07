@@ -236,10 +236,16 @@ function proIR(s, week) {
 /* ---------- Cutdown day ---------- */
 // At the end of camp: the best 53, the practice squad, and everyone else let go (any guarantee left is
 // dead money). Returns { cut: [players], ps: [players] }.
-function cutdown(s) {
+function cutdown(s, req, log) {
   if (!isPro(s.cls)) return null;
   const all = s.players.filter(p => !p.ir).concat(s.ps || []), ir = s.players.filter(p => p.ir);
-  const { keep, rest } = pick53(all), { ps, rest: gone } = pickPS(rest);
+  let { keep, rest } = pick53(all);
+  // Your requests: keep a player on the 53, or let him go, if the GM goes along
+  if (req) {
+    req.keep.forEach(id => { const p = rest.find(x => x.id === id); if (!p) return; const yes = gmFollows(`cutkeep:${id}`); if (log) log.push({ yes, t: `Keep ${fullName(p)} on the roster: ${yes ? "he made the 53" : "the GM cut him"}` }); if (yes) { const out = keep.filter(x => x.pos === p.pos && !req.keep.includes(x.id)).sort((a, b) => ovr(a, a.pos) - ovr(b, b.pos))[0] || keep.filter(x => !req.keep.includes(x.id)).sort((a, b) => ovr(a, a.pos) - ovr(b, b.pos))[0]; if (out) { keep = keep.filter(x => x !== out).concat(p); rest = rest.filter(x => x !== p).concat(out); } } });
+    req.go.forEach(id => { const p = keep.find(x => x.id === id); if (!p) return; const yes = gmFollows(`cutgo:${id}`); if (log) log.push({ yes, t: `Let ${fullName(p)} go: ${yes ? "he was cut" : "the GM kept him"}` }); if (yes) { keep = keep.filter(x => x !== p); rest = rest.filter(x => x !== p); const fill = rest.filter(x => x.pos === p.pos).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos))[0] || rest.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos))[0]; if (fill) { keep.push(fill); rest = rest.filter(x => x !== fill); } s.dead = (s.dead || 0) + (p.ct ? p.ct.g || 0 : 0); } });
+  }
+  const { ps, rest: gone } = pickPS(rest);
   ps.forEach(p => { if (!p.ct || capHit(p) < PS_PAY || !p.ct.rk) p.ct = makeContract(PS_PAY, 1, { g: 0 }); });
   const deadBefore = s.dead || 0;
   s.players = keep.concat(ir); s.ps = ps;
@@ -248,12 +254,61 @@ function cutdown(s) {
   return { cut: gone, ps, dead: (s.dead || 0) - deadBefore };
 }
 
+// With control of the roster and the staff's cuts turned off, you cut to 53 yourself; the end of camp
+// only trims the practice squad to 16
+function cutdownManual(s) {
+  const extra = (s.ps || []).slice().sort((a, b) => ovr(a, a.pos) - ovr(b, b.pos)).slice(0, Math.max(0, (s.ps || []).length - PS_MAX));
+  extra.forEach(p => cutPlayer(s, p));
+  s.depth = autoDepth(s); s.rating = schoolRating(s);
+  return { cut: extra, ps: (s.ps || []).length, dead: 0 };
+}
+
+// The last week of camp waits for you to get to 53, when cuts are yours
+function cutWait() {
+  if (!inPros() || !SEASON.myId || SEASON.camp < SEASON.pre) return false;
+  const J = CAREER && CAREER.job;
+  return !!(J && J.ctl && J.staff && !J.staff.cut && onActive(mySchool()).length > PRO_ACTIVE);
+}
+
+/* ---------- Moves you make yourself (with control of the roster) ---------- */
+// Releasing a player: his guarantee left is dead money now. Practice squad moves: a player with two
+// seasons or fewer (or one of six veterans) can go down, and anyone on it can come up to the 53.
+const psEligible = (s, p) => (p.exp || 0) <= 2 || teamPS(s).filter(q => (q.exp || 0) > 2).length < PS_VETS;
+function releasePlayer(s, id) {
+  const p = playerById(s, id);
+  if (!p) return null;
+  const dead = cutPlayer(s, p);
+  s.depth = autoDepth(s); s.rating = schoolRating(s);
+  return { p, dead };
+}
+function toPracticeSquad(s, id) {
+  const p = s.players.find(x => x.id === id);
+  if (!p || p.ir || (s.ps || []).length >= PS_MAX || !psEligible(s, p)) return false;
+  s.players = s.players.filter(x => x !== p);
+  const dead = p.ct ? p.ct.g || 0 : 0;
+  s.dead = (s.dead || 0) + dead;
+  p.ct = makeContract(PS_PAY, 1, { g: 0 });
+  (s.ps = s.ps || []).push(p);
+  s.depth = autoDepth(s); s.rating = schoolRating(s);
+  return true;
+}
+function toRoster(s, id) {
+  const p = (s.ps || []).find(x => x.id === id);
+  if (!p || (onActive(s).length >= PRO_ACTIVE && !inCamp())) return false;
+  s.ps = s.ps.filter(x => x !== p);
+  p.ct = makeContract(proMin(p.exp), 1, { g: 0 });
+  s.players.push(p);
+  s.depth = autoDepth(s); s.rating = schoolRating(s);
+  return true;
+}
+
 /* ---------- A team's year ---------- */
 // At the end of a season, for every team: everyone a year older (growing or declining), retirements,
 // contracts a year shorter, expiring contracts kept or let go, and the roster filled back to camp
 // size with rookies and young players off the street. Then the team gets under the cap.
 // s: a team in full. Returns what happened: { retired, left, kept, rookies, grew }.
-function proTeamYear(s, year, rng, mine, rookies, oldCap) {
+// req: your requests to the GM, for your team (pworld.js: myReq), and log: where his answers go
+function proTeamYear(s, year, rng, mine, rookies, oldCap, req, log) {
   const out = { retired: [], left: [], kept: [], rookies: [], grew: [], freed: [] };
   // Last year's unused cap space carries over (up to $30 million, in 2026 dollars)
   const carry = Math.max(0, Math.min((oldCap || capNow()) + (s.carry || 0) - capUsed(s), 30e6 * capScale()));
@@ -274,9 +329,16 @@ function proTeamYear(s, year, rng, mine, rookies, oldCap) {
   let budget = (oldCap ? capNow() : capNow()) + carry - signed.reduce((t, p) => t + capHit(p), 0) - 30 * proMin(0);
   const ranked = stay.slice().sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)), wantN = 46;
   stay.filter(p => !(p.ct && p.ct.y.length)).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos)).forEach(p => {
-    const wanted = ranked.indexOf(p) < wantN && ovr(p, p.pos) >= 60;
+    let wanted = ranked.indexOf(p) < wantN && ovr(p, p.pos) >= 60;
     const ct = (p.exp || 0) < 4 ? makeContract(Math.max(proMin(p.exp), Math.round((lastPay[p.id] || proMin(p.exp)) * 1.1 / 5000) * 5000), 1, { g: 0 }) : marketContract(p, rng);
-    if (!wanted || ct.y[0] > budget) { delete p.ct; out.left.push(p); return; }
+    // Your requests: a player you asked to keep, or to let go, if the GM goes along
+    if (req && (req.keep.includes(p.id) || req.go.includes(p.id))) {
+      const keep = req.keep.includes(p.id), yes = gmFollows(`${keep ? "keep" : "go"}:${p.id}`) && !(keep && ct.y[0] > budget + 20 * proMin(0));
+      if (log) log.push({ yes, t: `${keep ? "Keep" : "Let go"} ${fullName(p)}: ${yes ? (keep ? `re-signed, ${proContractText({ ct })}` : "his contract ran out and he's gone") : keep ? (ct.y[0] > budget + 20 * proMin(0) ? "there wasn't the money" : "the GM let him go") : "the GM kept him"}` });
+      if (yes) wanted = keep;
+      else wanted = !keep && wanted;
+    }
+    if (!wanted || ct.y[0] > budget + (req && req.keep.includes(p.id) ? 20 * proMin(0) : 0)) { delete p.ct; out.left.push(p); return; }
     p.ct = ct; budget -= ct.y[0];
     out.kept.push(p);
   });

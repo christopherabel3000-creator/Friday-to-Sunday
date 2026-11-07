@@ -63,6 +63,7 @@ function vPSeason() {
       <p class="muted">${esc(proStatus())}</p>
     </div>
     ${cutdownPanel()}
+    ${camp && cutWait() ? `<section class="panel"><h3>Cutdown day</h3><p>${esc(`You're ${onActive(s).length - PRO_ACTIVE} over ${PRO_ACTIVE}, and the cuts are yours. Release players or move them to the practice squad from the roster, or let your staff cut to ${PRO_ACTIVE}.`)}</p><div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="staffcut">Let your staff cut to ${PRO_ACTIVE}</button></div></section>` : ""}
     ${main}
     ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>` : ""}
     ${lastPanel}
@@ -70,7 +71,7 @@ function vPSeason() {
     <section class="panel"><h3>The season</h3>
       <div class="choices"><button class="btn ghost" data-a="standings">Standings and the playoff picture</button>${SEASON.post ? `<button class="btn ghost" data-a="bracket">The playoff</button>` : ""}</div>
       <div class="choices"><button class="btn ghost" data-a="schedule">Schedule and stats</button>${gm && !played(gm) && !live && !camp ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`}<button class="btn ghost" data-a="coach">Your coach</button></div>
-      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button></div>
+      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</button></div>
     </section>
     ${simBtn && !live ? `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>`
       : camp ? `<button class="btn ghost" data-a="campsim">${confirming === "campsim" ? "Tap again to sim the rest of camp" : "Sim the rest of camp"}</button>` : ""}`;
@@ -179,6 +180,7 @@ function vPOffseason() {
       <p class="muted">${esc(gone ? proStatus() : `${proStatus()} The offseason program comes next: four weeks with your practice plan, then training camp.`)}</p>
     </div>
     ${gone ? newJobPanel() : ""}
+    ${gone ? "" : `<section class="panel"><h3>${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</h3><p>${esc(gmLine())}</p><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "The front office" : "Requests for the GM"}</button></section>`}
     ${gone ? "" : `<section class="panel"><h3>The offseason program</h3><p>${esc("Four weeks of practice with your plan. Opponent prep time goes into install.")}</p><button class="btn ghost" data-a="practice">Practice plan</button></section>`}
     <section class="panel"><h3>Your coach</h3><p>${CAREER.xp || 0} XP to spend on ratings and perks.</p><button class="btn ghost" data-a="coach">Spend XP</button></section>
     <button class="btn" data-a="nextyear">Start the ${SEASON.year + 1} preseason</button>`;
@@ -208,4 +210,90 @@ function cutdownPanel() {
   const C = SEASON.cutdown;
   if (!C || SEASON.week > 1 || inCamp()) return "";
   return `<section class="panel"><h3>Cutdown day</h3><p>${esc(`Your staff kept the best ${PRO_ACTIVE} and put ${C.ps} on the practice squad. ${C.cut.length ? `Let go: ${plural(C.cut.length, "player")}${C.dead ? `, with ${bigMoney(C.dead)} of dead money` : ""}.` : ""}${C.freed.length ? ` Released to get under the cap: ${andList(C.freed)}.` : ""}`)}</p>${C.cut.length ? `<details><summary>Who was let go</summary><ul class="hlist">${C.cut.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>` : ""}</section>`;
+}
+
+/* ---------- The general manager, or your front office ---------- */
+// "General manager Dana Moss, a good one, builds through the draft. He listens to you."
+function gmLine() {
+  const J = CAREER.job, gm = proGM(mySchool());
+  if (!J || J.lvl !== "pro") return "";
+  if (J.ctl) return "You have control of the roster: the draft, free agency, trades and cuts are yours, and your staff handles what you hand it.";
+  myReq();
+  return `General manager ${gm.first} ${gm.last}, ${gmWord(gm.rt)}, ${GM_PHIL[gm.ph]}. ${standingWord(J.gms)} Your requests before re-signing, cutdown day, the draft and free agency: ${reqSummary()}.`;
+}
+function reqSummary() {
+  const R = myReq(), s = mySchool(), nm = id => { const p = playerById(s, id); return p ? fullName(p) : "a player who's gone"; }, bits = [];
+  if (R.needs.length) bits.push(`needs: ${R.needs.map(posName).join(", ")}`);
+  if (R.keep.length) bits.push(`keep ${andList(R.keep.map(nm))}`);
+  if (R.go.length) bits.push(`let go ${andList(R.go.map(nm))}`);
+  if (R.want) bits.push(`go after ${R.want.name}`);
+  return bits.length ? bits.join("; ") : "none yet";
+}
+const STAFF_JOBS = [["cut", "Cutdown day", "Your staff cuts to 53 at the end of camp."], ["board", "The draft board", "Your staff ranks the prospects, and you can move anyone."],
+  ["late", "Late-round picks", "Your staff makes the picks from round 4 on."], ["udfa", "Undrafted free agents", "Your staff signs them after the draft."], ["trades", "Trade offers", "Your staff answers offers from other teams."]];
+function vGM() {
+  const s = mySchool(), J = CAREER.job, gm = proGM(s), R = myReq(), log = J.log || [];
+  const nm = id => { const p = playerById(s, id); return p ? `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}` : "a player who's gone"; };
+  const reqList = (k, label) => `<p class="sechead" role="heading" aria-level="4">${label}</p>${R[k].length ? `<ul class="hlist">${R[k].map(id => `<li class="xprow"><span>${esc(nm(id))}</span><button class="btn ghost slim" data-a="gmdrop" data-t="${k}" data-v="${id}">Drop the request</button></li>`).join("")}</ul>` : `<p class="muted">None. Ask from a player's screen on your roster.</p>`}`;
+  const body = J.ctl
+    ? `<section class="panel"><h3>What your staff handles</h3><p class="muted">Anything big still waits for you.</p>${STAFF_JOBS.map(([k, name, desc]) => `<div class="xprow"><span>${esc(`${name}: ${desc}`)}</span><button class="btn ghost slim" data-a="staffjob" data-v="${k}" aria-pressed="${!!J.staff[k]}">${J.staff[k] ? "Staff handles it" : "You handle it"}</button></div>`).join("")}</section>`
+    : `<section class="panel"><h3>Your needs</h3><p class="muted">Up to three positions, most important first, for the draft and free agency.</p><div class="seg wrap" role="group" aria-label="Needs">${POS_IDS.map(pos => `<button data-a="gmneed" data-v="${pos}" aria-pressed="${R.needs.includes(pos)}">${capFirst(posName(pos))}${R.needs.includes(pos) ? ` (${R.needs.indexOf(pos) + 1})` : ""}</button>`).join("")}</div></section>
+      <section class="panel"><h3>Players</h3>${reqList("keep", "Keep")}${reqList("go", "Let go")}</section>`;
+  return `
+    <div class="masthead" style="--team:${s.color}">
+      <p class="eyebrow">${esc(nameOf(s.id))}</p>
+      <h2 data-focus tabindex="-1">${J.ctl ? "Your front office" : "Your general manager"}</h2>
+      <p class="muted">${esc(J.ctl ? gmLine() : `${gm.first} ${gm.last}, ${gmWord(gm.rt)} (rated ${gm.rt}), ${GM_PHIL[gm.ph]}. He runs the draft, free agency, re-signing, trades and cuts. ${standingWord(J.gms)} Your standing with him is ${Math.round(J.gms)} of 100: it rises when you win and when moves you backed work out.`)}</p>
+    </div>
+    ${body}
+    ${log.length ? `<section class="panel"><h3>His answers</h3><ul class="hlist">${log.map(x => `<li>${esc(x.t)}.</li>`).join("")}</ul></section>` : ""}
+    <button class="btn ghost" data-a="back">Back</button>`;
+}
+// A player's buttons in the pros, on your own roster: requests for the GM, or with control your moves
+function proPlayerActions(tm, p) {
+  const J = CAREER && CAREER.job;
+  if (!inPros() || !J || J.lvl !== "pro" || tm.id !== SEASON.myId) return "";
+  if (!J.ctl) {
+    const R = myReq(), k = R.keep.includes(p.id), g = R.go.includes(p.id);
+    return `<div class="choices"><button class="btn ghost" data-a="gmkeep" data-v="${p.id}" aria-pressed="${k}">${k ? "Asked the GM to keep him" : "Ask the GM to keep him"}</button><button class="btn ghost" data-a="gmgo" data-v="${p.id}" aria-pressed="${g}">${g ? "Asked the GM to let him go" : "Ask the GM to let him go"}</button></div>`;
+  }
+  const onPS = teamPS(tm).some(q => q.id === p.id), btns = [];
+  if (onPS) btns.push(`<button class="btn ghost" data-a="tor" data-v="${p.id}">Promote him to the roster</button>`);
+  else if (!p.ir && psEligible(tm, p) && teamPS(tm).length < PS_MAX) btns.push(`<button class="btn ghost" data-a="tops" data-v="${p.id}">Move him to the practice squad</button>`);
+  btns.push(`<button class="btn ghost" data-a="release" data-v="${p.id}">${confirming === "release" ? `Tap again to release him${p.ct && p.ct.g ? ` (${bigMoney(p.ct.g)} of dead money)` : ""}` : "Release him"}</button>`);
+  return `<div class="choices">${btns.join("")}</div>`;
+}
+function proAct(a, ds) {
+  if (!inPros() || !SEASON.myId) return false;
+  const J = CAREER && CAREER.job, s = mySchool();
+  if (!J || J.lvl !== "pro") return false;
+  switch (a) {
+    case "gm": APP.gmBack = APP.screen; APP.screen = "gm"; scrollTop(); return true;
+    case "gmneed": {
+      const R = myReq(), i = R.needs.indexOf(ds.v);
+      if (!POS_INFO[ds.v]) return true;
+      if (i >= 0) R.needs.splice(i, 1); else if (R.needs.length < GM_REQ_MAX) R.needs.push(ds.v); else { announce(`Three needs at most. Drop one first.`); return true; }
+      announce(R.needs.length ? `Needs: ${R.needs.map(posName).join(", ")}.` : "No needs."); return true;
+    }
+    case "gmkeep": case "gmgo": {
+      const R = myReq(), k = a === "gmkeep" ? "keep" : "go", o = k === "keep" ? "go" : "keep", p = playerById(s, ds.v);
+      if (!p) return true;
+      if (R[k].includes(p.id)) { R[k] = R[k].filter(x => x !== p.id); announce("Request dropped."); return true; }
+      if (R[k].length >= GM_REQ_MAX) { announce(`Three players at most. Drop one first.`); return true; }
+      R[o] = R[o].filter(x => x !== p.id); R[k].push(p.id);
+      announce(k === "keep" ? `You asked the GM to keep ${fullName(p)}.` : `You asked the GM to let ${fullName(p)} go.`); return true;
+    }
+    case "gmdrop": { const R = myReq(); if (R[ds.t]) R[ds.t] = R[ds.t].filter(x => x !== ds.v); announce("Request dropped."); return true; }
+    case "staffjob": if (J.ctl && J.staff && ds.v in J.staff) { J.staff[ds.v] = !J.staff[ds.v]; announce(J.staff[ds.v] ? "Your staff handles it." : "You handle it."); } return true;
+    case "release": {
+      if (!J.ctl || !confirmed("release")) return true;
+      const r = releasePlayer(s, ds.v);
+      if (r) { APP.screen = "roster"; announce(`${fullName(r.p)} released.${r.dead ? ` ${bigMoney(r.dead)} of dead money.` : ""} ${onActive(s).length} on the roster.`); }
+      return true;
+    }
+    case "tops": if (J.ctl && toPracticeSquad(s, ds.v)) { APP.screen = "roster"; announce(`Moved to the practice squad. ${onActive(s).length} on the roster, ${teamPS(s).length} on the practice squad.`); } return true;
+    case "tor": if (J.ctl) { if (toRoster(s, ds.v)) { APP.screen = "roster"; announce(`Promoted to the roster. ${onActive(s).length} on the roster.`); } else announce(`The roster is full at ${PRO_ACTIVE}. Release or move someone first.`); } return true;
+    case "staffcut": if (inCamp() && cutWait()) { J.staff.cut = true; const r = campNext(); J.staff.cut = false; APP.screen = "season"; announce(r ? "Your staff cut to 53. Camp is over: week 1 is next." : "Your staff cut to 53."); } return true;
+  }
+  return false;
 }
