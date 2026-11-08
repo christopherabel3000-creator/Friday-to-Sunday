@@ -75,8 +75,9 @@ function saveSummary(d) {
 // The game to put in a save code or the cloud. It leaves out this device's cloud save code, so sharing
 // a save code never shares the cloud save (a cloud load brings the code with it).
 const portableSave = () => Object.assign(currentSave(), { app: Object.assign({}, APP, { cloud: null }) });
-function keepBackup() { try { localStorage.setItem(BACKUP_KEY, JSON.stringify(currentSave())); } catch (e) { /* backups are best-effort */ } }
-function readBackup() { try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || "null"); } catch (e) { return null; } }
+// Kept in IndexedDB and localStorage like the save itself (store.js)
+function keepBackup() { try { const t = JSON.stringify(currentSave()); idbLoaded.backup = t; storeText(BACKUP_KEY, t); } catch (e) { /* backups are best-effort */ } }
+function readBackup() { let ls = null; try { ls = localStorage.getItem(BACKUP_KEY); } catch (e) { /* none */ } try { return JSON.parse(newerSave(ls, idbLoaded.backup) || "null"); } catch (e) { return null; } }
 const dateText = t => new Date(t).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
 /* ---------- Cloud saves ---------- */

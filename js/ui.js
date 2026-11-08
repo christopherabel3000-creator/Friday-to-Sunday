@@ -56,10 +56,26 @@ const liveSeasonGame = () => liveGame() && !!S.season;
 // The whole app saves on the device after every tap: the season, and the game in progress
 // other: the world next to yours (the college world while you coach high school, and the other way);
 // third: the world left (the pro league, or the high school state while you coach in the pros)
-const currentSave = () => ({ v: 1, build: BUILD, app: APP, game: S, season: SEASON, career: CAREER, other: OTHER, third: THIRD, names: NAMES });
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(currentSave())); } catch (e) {} }
+// at: when it was saved, so loading can take the newer of the two copies (store.js). It comes right
+// after v, near the start of the text, where newerSave() looks for it.
+const currentSave = () => ({ v: 1, at: Date.now(), build: BUILD, app: APP, game: S, season: SEASON, career: CAREER, other: OTHER, third: THIRD, names: NAMES });
+function save() {
+  let text;
+  try { text = JSON.stringify(currentSave()); } catch (e) { return; }
+  storeText(SAVE_KEY, text, saveFailed);
+}
+// Neither IndexedDB nor localStorage took the save: say so once, and keep a warning on every screen
+// (render) until a save works again
+function saveFailed() {
+  if (typeof document === "undefined") return;
+  render();
+  if (!storeState.warned) { storeState.warned = true; announce("Warning: this device couldn't save your game. Make a save code or a cloud save now, from Cloud saves and save codes on the main menu."); }
+}
 function loadSaved() {
-  try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); return s && s.v === 1 && s.app && s.app.ex ? upgradeSave(s) : null; } catch (e) { return null; }
+  let ls = null;
+  try { ls = localStorage.getItem(SAVE_KEY); } catch (e) { /* none */ }
+  const text = newerSave(ls, idbLoaded.save);
+  try { const s = JSON.parse(text || "null"); return s && s.v === 1 && s.app && s.app.ex ? upgradeSave(s) : null; } catch (e) { return null; }
 }
 // A save from an older version gets what's new since then
 function upgradeSave(s) {
@@ -482,7 +498,8 @@ function render() {
   const homeBtn = APP.screen !== "home" && APP.screen !== "simming" && !helpOpen ? `<button class="soundbtn" data-a="gohome">Home</button>` : "";
   const top = `<div class="topbar">${homeBtn}<button class="soundbtn" data-a="help" aria-expanded="${helpOpen}">${helpOpen ? "Close How to play" : "How to play"}</button><button class="soundbtn" data-a="mute" aria-pressed="${on}">${icon}Sound ${on ? "on" : "off"}</button></div>`;
   const key = screenKey(view), prev = focusSig(app);
-  app.innerHTML = top + (APP.screen === "game" && !helpOpen && S && S.teams ? keyPanel() : "") + view() + (APP.screen === "game" && !helpOpen ? vExtras() : "");
+  const warn = saveTrouble() ? `<section class="panel savewarn"><h2 class="h2small">Your game isn't saving</h2><p>This device couldn't save your game, so leaving or reloading the page would lose what you've done since the last save that worked. Make a save code or a cloud save now.</p><button class="btn" data-a="saves">Cloud saves and save codes</button></section>` : "";
+  app.innerHTML = top + warn + (APP.screen === "game" && !helpOpen && S && S.teams ? keyPanel() : "") + view() + (APP.screen === "game" && !helpOpen ? vExtras() : "");
   placeFocus(app, key, prev);
 }
 
@@ -829,7 +846,18 @@ function startScreen() {
   if (["season", "standings", "schedule"].includes(sc)) return season ? sc : "home";
   return SCREENS[sc] ? sc : "home";
 }
+// The page reads what IndexedDB holds first (store.js), then starts. An error while starting is
+// passed to the start-up check in index.html, as if it had happened outside the promise.
 function start() {
+  if (typeof indexedDB === "undefined" || !indexedDB) { startNow(); return; }
+  idbLoadAll().then(() => {
+    try { startNow(); } catch (e) {
+      const m = /(https?:[^\s)]*\/js\/[^\s):]+):(\d+)/.exec(String(e && e.stack || ""));
+      try { window.dispatchEvent(new ErrorEvent("error", { message: String(e && e.message || e), error: e, filename: m ? m[1] : location.origin + location.pathname.replace(/[^/]*$/, "") + "js/ui.js", lineno: m ? +m[2] : 0 })); } catch (e2) { /* nothing more to do */ }
+    }
+  });
+}
+function startNow() {
   const saved = loadSaved();
   loadNames();
   if (saved) { APP = saved.app; S = saved.game && saved.game.teams ? saved.game : null; SEASON = saved.season || null; CAREER = saved.career || null; OTHER = saved.other || null; THIRD = saved.third || null; adoptNames(saved.names); }

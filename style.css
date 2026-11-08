@@ -286,3 +286,7 @@ tr.me th, tr.me td, li.me { font-weight: 700; }
 .xprow { display: grid; gap: 6px; }
 .xprow .btn.slim { justify-self: start; margin-top: 0; }
 .nmgroup { display: grid; gap: 8px; margin: 14px 0; }
+
+/* The warning when this device can't save the game (store.js) */
+.savewarn { border: 2px solid var(--warn, #b3261e); }
+.savewarn p { margin: 6px 0 12px; }
