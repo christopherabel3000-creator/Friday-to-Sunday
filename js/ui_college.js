@@ -7,7 +7,8 @@
 function colStatus() {
   const me = SEASON.myId, s = mySchool(), r = colRecord(me), n = weeksDone(), ranks = colRanks(n), dv = divOf(s);
   const conf = s.conf ? `, ${r.cw}-${r.cl} in the ${confName(me)}` : "";
-  const rank = ranks[me] <= 25 ? ` No. ${ranks[me]} in the ${DIVS[dv].name}.` : "";
+  // "in the FBS", but "in Division II"
+  const rank = ranks[me] <= 25 ? ` No. ${ranks[me]} in ${/^Division/.test(DIVS[dv].name) ? "" : "the "}${DIVS[dv].name}.` : "";
   if (SEASON.phase === "preseason") return `Camp, then 12 games in the ${confName(me)}${COL_LEVELS[s.cls].title && s.conf ? ", a title game for the top two" : ""}, and the postseason.${rank}`;
   if (!n) return `12 games, then the postseason.${rank}`;
   let tail = "";
