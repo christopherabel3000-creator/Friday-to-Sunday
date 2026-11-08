@@ -234,6 +234,8 @@ function plain(g, extra) {
   const back = g(`(() => { const s = mySchool(), p = playerById(s, "${ir.id}"); delete p.inj; const early = proIR(s, 5).back.length; const r = proIR(s, 7); return { early, back: r.back.length, act: onActive(s).length, ir: !!p.ir }; })()`);
   ok(back.early === 0 && back.back === 1 && back.act === 53 && !back.ir, "he comes back after four games, and the player who took his spot goes back");
   // The season, then a year on
+  g(`simSeason(12)`);
+  ok(/Continue the season/.test(g("vHome()")) && g("vHome()").includes(g("proStatus()")), "the main menu, in the middle of a pro season, says where you stand");
   g(`simSeason()`);
   g(`act("offseason")`);
   let k = 0; while (g("APP.screen") !== "offseason" && k++ < 8) { const s = g("APP.screen"); g(s === "review" ? `act("carousel")` : s === "carousel" ? `act("market")` : s === "market" ? (g("SEASON.review.fired") ? `act("market")` : `act("stay")`) : `act("offseason")`); }

@@ -417,6 +417,7 @@ function plain(g, extra) {
   g(`APP.view = { ctx: "season", team: SEASON.myId, player: mySchool().players[0].id }; APP.screen = "player"`);
   ok(/Paid \$[\d,]+ a year/.test(g("vPlayer()")) && /Fair pay here/.test(g("vPlayer()")), "a player's screen says what he's paid and what's fair");
   g(`APP.screen = "season"; (() => { const r = SEASON.rec, p = onBoard(r).find(q => myAsk(q) > 0); if (p) setNil(r, p.id, myAsk(p)); })(); simSeason(13)`);
+  ok(/Continue the season/.test(g("vHome()")) && g("vHome()").includes(g("colStatus()")), "the main menu, late in a college season, says where you stand");
   ok(g(`SEASON.rec.cls.filter(p => !p.walkOn).every(p => p.pay === (recById(SEASON.rec, p.id) || recById(SEASON.rec, "r" + p.id.replace(/c$/, "")) || { nil: p.pay }).nil)`), "recruits bring their NIL offers as their pay");
   g(`simSeason(); act("offseason"); SEASON.review.fired = false; act("carousel"); act("market"); act("stay")`);
   ok(g("APP.screen") === "offseason" && /The transfer portal/.test(g("vCOffseason()")), "the offseason opens the transfer portal");

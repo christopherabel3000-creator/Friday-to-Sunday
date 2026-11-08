@@ -159,7 +159,7 @@ function vHome() {
   if (me) season = `<section class="panel teamcard" style="--team:${me.color}">
       <span class="eyebrow">${esc(coachFullName(c))} · ${when}</span>
       <h2 class="h2small">${esc(nameOf(me.id))}</h2>
-      <p class="muted">${esc(ph === "offseason" ? (marketClosed() ? "The seniors are graduating. The next season starts with camp." : "The job market is open.") : ph === "preseason" ? `Camp week ${SEASON.camp} of ${SEASON.pre}. No games yet.` : seasonStatus())}</p>
+      <p class="muted">${esc(ph === "offseason" ? (marketClosed() ? "The seniors are graduating. The next season starts with camp." : "The job market is open.") : ph === "preseason" ? `Camp week ${SEASON.camp} of ${SEASON.pre}. No games yet.` : SEASON.lvl === "col" ? colStatus() : inPros() ? proStatus() : seasonStatus())}</p>
       <button class="btn" data-a="${go[0]}">${go[1]}</button>
       <div class="choices"><button class="btn ghost" data-a="coach">Your coach</button>${restart}</div>
     </section>`;
