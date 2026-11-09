@@ -53,6 +53,7 @@ function lastSeasonText(id) {
   const r = SEASON.results && SEASON.results[id], e = SEASON.exp && SEASON.exp[id];
   if (!r) return "";
   if (isPro(SEASON.schools[id].cls)) return `Last season: ${proRecText(r)}${r.ch ? `, ${PRO_BOWL} champions` : r.pw ? `, ${plural(r.pw, "playoff win")}` : r.po ? ", lost in the playoff" : ""}${e ? `, expected ${expectWords(e)}` : ""}.`;
+  if (isCollege(SEASON.schools[id].cls)) return `Last season: ${r.w}-${r.l}${r.ch ? ", national champions" : r.dt ? ", conference champions" : r.pw ? `, ${plural(r.pw, "postseason win")}` : r.po ? ", lost in the postseason" : ""}${e ? `, expected ${expectWords(e)}` : ""}.`;
   return `Last season: ${r.w}-${r.l}${r.ch ? ", state champions" : r.pw ? `, ${plural(r.pw, "playoff win")}` : r.po ? ", lost in the first round" : ""}${e ? `, expected ${expectWords(e)}` : ""}.`;
 }
 const whyOpen = id => ({ retired: "Its coach retired.", fired: "Its coach was fired.", left: "Its coach left." })[(jobWorld(id) || SEASON).review.why[id]] || "";
@@ -140,7 +141,7 @@ function jobLookHtml(id, M, canPursue, isOffer, interest) {
     </div>
     <section class="panel"><h3>The playbook</h3><p>${esc(`The last coach ran the ${schemeText(sum)}. The team knows ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense well. Whatever it doesn't know, you install in practice.`)}</p></section>
     <section class="panel"><h3>Coming back next season</h3>
-      <p>${esc(`${plural(back.length, "player")} coming back, after ${plural(s.players.length - back.length, "senior")} graduate. Its returning starters rate about ${ro} on offense and ${rd} on defense. This season's ${isCollege(s.cls) ? levelName(s.cls) : `Class ${s.cls}`} starters averaged about ${avgR}. Freshmen come out before next season, too.`)}</p>
+      <p>${esc(`${plural(back.length, "player")} coming back, after ${plural(s.players.length - back.length, "senior")} graduate. Its returning starters rate about ${ro} on offense and ${rd} on defense. This season's ${isCollege(s.cls) ? levelName(s.cls) : `Class ${s.cls}`} starters averaged about ${avgR}. ${isPro(s.cls) ? "Free agency and the draft come before next season, too." : isCollege(s.cls) ? "A recruiting class and the transfer portal come before next season, too." : "Freshmen come out before next season, too."}`)}</p>
       ${order.map(gname => `<p class="sechead" role="heading" aria-level="4">${esc(gname)}</p><ul class="hlist">${groups[gname].map(p => `<li>${esc(playerLine(p, s.level))}</li>`).join("")}</ul>`).join("")}
     </section>
     <div class="choices">${canPursue ? `<button class="btn" data-a="pursue" data-v="${id}">Pursue the ${esc(sum.mascot)} job</button>` : ""}${isOffer ? `<button class="btn" data-a="accept">Take the job</button>` : ""}<button class="btn ghost" data-a="back">Back to the job market</button></div>`;
@@ -201,7 +202,7 @@ function vTurning() {
     <div class="masthead">
       <p class="eyebrow">${esc(jobName(SEASON.myId))}</p>
       <h2 data-focus tabindex="-1">On to ${SEASON.year + 1}</h2>
-      <p class="muted">Every school in the state graduates its seniors and brings in its freshmen…</p>
+      <p class="muted">${inPros() ? "Every team's players get a year older, and the new league year begins…" : SEASON.lvl === "col" ? "Every program's seniors move on and its recruiting class arrives…" : "Every school in the state graduates its seniors and brings in its freshmen…"}</p>
     </div>`;
 }
 // Where the offseason stands: the review, the coaching changes, the market, or the offseason program

@@ -578,6 +578,25 @@ function seasonRoster(id) {
 const seasonScreen = () => !SEASON ? "home" : SEASON.phase === "pick" ? "pick" : SEASON.phase === "offseason" ? offseasonScreen() : "season";
 // The offseason program waits for the job market to close
 const marketClosed = () => !SEASON.market || SEASON.market.done;
+// A button that hits an error says so, instead of doing nothing: what went wrong, and where, to send
+// to the developer.
+function tapAct(a, ds) {
+  try { act(a, ds); } catch (e) { actFailed(a, e); }
+}
+function actFailed(a, e) {
+  if (typeof console !== "undefined") console.error(e);
+  const at = String((e && e.stack) || "").split("\n").map(l => (l.match(/js\/([a-z_]+\.js)[^:]*:(\d+)/) || [])).find(m => m[1]);
+  const what = `${(e && e.message) || e} (button ${a}${at ? `, ${at[1]} line ${at[2]}` : ""})`;
+  try { render(); } catch (e2) { /* keep what's on screen */ }
+  const app = typeof document !== "undefined" && document.getElementById("app");
+  if (!app) return;
+  const old = document.getElementById("acterr"); if (old) old.remove();
+  const p = document.createElement("p");
+  p.id = "acterr"; p.className = "banner"; p.tabIndex = -1;
+  p.textContent = `That button hit an error and couldn't finish. Please send this to the developer: ${what}`;
+  app.prepend(p);
+  try { p.focus(); } catch (e3) { /* fine */ }
+}
 function act(a, ds) {
   ds = ds || {};
   const pre = preSnap(a);
@@ -876,7 +895,7 @@ function startNow() {
 }
 
 if (typeof document !== "undefined") {
-  document.addEventListener("click", e => { const b = e.target.closest("[data-a]"); if (b && !b.disabled) act(b.dataset.a, b.dataset); });
+  document.addEventListener("click", e => { const b = e.target.closest("[data-a]"); if (b && !b.disabled) tapAct(b.dataset.a, b.dataset); });
   // Text boxes keep what's typed without redrawing. Return moves on to the next box, or does the
   // box's action (data-enter).
   document.addEventListener("input", e => { const el = e.target; if (el && el.dataset && el.dataset.in) typed(el.dataset.in, el.value); });
@@ -884,7 +903,7 @@ if (typeof document !== "undefined") {
     const el = e.target;
     if (e.key !== "Enter" || !el || !el.dataset || el.tagName === "TEXTAREA") return;
     if (el.dataset.next) { const n = document.getElementById(el.dataset.next); if (n) { e.preventDefault(); n.focus(); } }
-    else if (el.dataset.enter) { e.preventDefault(); act(el.dataset.enter, el.dataset); }
+    else if (el.dataset.enter) { e.preventDefault(); tapAct(el.dataset.enter, el.dataset); }
   });
   document.addEventListener("change", e => { const el = e.target; if (el && el.id === "importfile" && el.files && el.files[0]) openSaveFile(el.files[0]); });
   start();

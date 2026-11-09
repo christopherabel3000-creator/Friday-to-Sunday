@@ -168,17 +168,23 @@ function jobPanel() {
 function xpPanel(entries, title) {
   const list = xpBreakdown(entries), tot = list.reduce((t, [, n]) => t + n, 0);
   if (!tot) return "";
-  return `<section class="panel"><h3>${title}: ${tot}</h3><ul class="hlist">${list.map(([k, n]) => `<li>${n} for ${esc(XP_WHY[k] || k)}</li>`).join("")}</ul></section>`;
+  return `<section class="panel"><h3>${title}: ${tot}</h3><ul class="hlist">${list.map(([k, n]) => `<li>${n} for ${esc(xpWhy(k))}</li>`).join("")}</ul></section>`;
 }
 // The week's XP in a line: "XP: 10 for a win, 6 for snaps your calls won."
 function xpLine(n) {
   const list = xpBreakdown((SEASON.xp || []).filter(e => e.w === n));
-  return list.length ? `XP: ${list.map(([k, v]) => `${v} for ${XP_WHY[k] || k}`).join(", ")}.` : "";
+  return list.length ? `XP: ${list.map(([k, v]) => `${v} for ${xpWhy(k)}`).join(", ")}.` : "";
 }
 
 /* ---------- The season summary ---------- */
 // 1,084
 const numText = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+// What the offseason holds, at each level
+function whatsNextText() {
+  if (inPros()) return "The offseason: the owner's review, coaching changes around the league and the job market, then re-signing your players, free agency, the draft and trades, before camp opens. Or start over with a new coach.";
+  if (SEASON.lvl === "col") return "The offseason: the athletic director's review, coaching changes and the job market, then the transfer portal and spring practice. Your seniors move on, some of your best juniors and seniors may leave for the pros, and your recruiting class arrives before fall camp. Or start over with a new coach.";
+  return "The offseason: the athletic director's review, coaching changes around the state and the job market, then your seniors graduate, the rest of the team gets a summer older, and a new class of freshmen comes out. Or start over with a new coach.";
+}
 function vSummary() {
   const me = SEASON.myId, s = mySchool(), x = seasonSummary(), c = s.coach, n = Math.max(1, x.games.length);
   const list = arr => `<ul class="hlist">${arr.map(t => `<li>${esc(t)}</li>`).join("")}</ul>`;
@@ -219,7 +225,7 @@ function vSummary() {
       <button class="btn ghost" data-a="coach">Your coach</button></section>
     <section class="panel">
       <h3>What's next</h3>
-      <p class="muted">The offseason: the athletic director's review, coaching changes around the state and the job market, then your seniors graduate, the rest of the team gets a summer older, and a new class of freshmen comes out. Or start over with a new coach.</p>
+      <p class="muted">${esc(whatsNextText())}</p>
       <button class="btn" data-a="${SEASON.phase === "offseason" ? "season" : "offseason"}">${SEASON.phase === "offseason" ? "Back to the offseason" : "On to the offseason"}</button>
       <button class="btn ghost" data-a="newcareer">${confirming === "newcareer" ? "Tap again to start over" : "Start a new career"}</button>
     </section>

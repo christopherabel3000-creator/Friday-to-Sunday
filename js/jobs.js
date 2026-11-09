@@ -111,9 +111,11 @@ function gradeMySeason(entry) {
 }
 // What the grade was made of: "Expected about 6-4 and a playoff spot; you won 8 games and 1 playoff game, and the district title."
 function gradeWhy(r, e) {
+  const col = SEASON && SEASON.lvl === "col", pro = inPros();
   const bits = [`won ${plural(r.rw, "regular-season game")}`];
-  if (r.pw) bits.push(plural(r.pw, "playoff game"));
-  const titles = [r.dt ? "the district title" : "", r.ch ? "the state title" : ""].filter(Boolean);
+  if (r.pw) bits.push(plural(r.pw, col ? "postseason game" : "playoff game"));
+  const titles = [r.dt ? (pro ? "the division title" : col ? "the conference title" : "the district title") : "",
+    r.ch ? (pro ? `the ${PRO_BOWL}` : col ? "the national title" : "the state title") : ""].filter(Boolean);
   return `Expected ${expectWords(e)}. You ${andList(bits)}${titles.length ? `, and ${andList(titles)}` : ""}.`;
 }
 
@@ -230,7 +232,10 @@ function yearEndReview() {
   }
   for (const id in SEASON.schools) {
     if (id === me) continue;
-    const s = SEASON.schools[id], c = coachCareer(s.coach, s), r = res[id], g = r ? r.g || 0 : 0;
+    const s = SEASON.schools[id];
+    // (your coach is only ever your own school's: anywhere else, the school has a new coach)
+    if (isYou(s.coach)) s.coach = outsideCoach(s);
+    const c = coachCareer(s.coach, s), r = res[id], g = r ? r.g || 0 : 0;
     c.rep = newRep(c.rep, g, s.cls); c.age++; c.yrs++;
     if (c.yrs <= COACH_GROWTH_YEARS) growCoach(c);
     const J = c.job; J.ten++; if (J.tg.length < 2) J.tg.push(g);

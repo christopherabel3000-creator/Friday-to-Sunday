@@ -18,6 +18,23 @@ function legacyCoach() {
 }
 function relinkCareer() {
   if (CAREER && SEASON && SEASON.myId && SEASON.schools[SEASON.myId]) SEASON.schools[SEASON.myId].coach = CAREER.coach;
+  dropStaleYou();
+}
+// Your coach belongs to one school only. A save from before November 2026 could leave him as the
+// coach of a school you'd left (in the world you left), which stopped the offseason; that school
+// gets a new coach.
+function dropStaleYou() {
+  if (typeof OTHER === "undefined") return;
+  [SEASON, OTHER, THIRD].forEach(W => {
+    if (!W || !W.schools) return;
+    for (const id in W.schools) {
+      const s = W.schools[id];
+      if (id !== W.myId && s && isYou(s.coach)) {
+        s.coach = inWorld(W, () => outsideCoach(s));
+        if (s.rating && s.rating.c != null) s.rating.c = Math.round((s.coach.off + s.coach.def) / 2);
+      }
+    }
+  });
 }
 const NAME_MAX = 20;
 // Names as typed, without extra spaces, at most 20 characters
@@ -105,6 +122,17 @@ const careerLine = (x, i) => `${x.year || `Season ${i + 1}`}: ${x.school}${x.cls
 const XP = { win: 10, pwin: 20, upset: 15, snaps: 4, playoffs: 15, district: 40, state: 60 };
 const XP_WHY = { win: "a win", pwin: "a playoff win", upset: "an upset", snaps: "snaps your calls won", playoffs: "making the playoffs",
   district: "the district title", state: "the state title", growth: "your players getting better" };
+// The same reasons in college and the pros: the conference or division title, the national title or
+// the league's championship, the postseason, and postseason wins
+function xpWhy(k) {
+  const col = SEASON && SEASON.lvl === "col", pro = inPros();
+  if (col || pro) {
+    const w = { district: pro ? "the division title" : "the conference title", state: pro ? `winning the ${PRO_BOWL}` : "the national title",
+      playoffs: pro ? "making the playoffs" : "making the postseason", pwin: pro ? "a playoff win" : "a postseason win" }[k];
+    if (w) return w;
+  }
+  return XP_WHY[k] || k;
+}
 function giveXP(n, why, week) {
   n = Math.round(n);
   if (!CAREER || !SEASON || n <= 0) return 0;
@@ -136,8 +164,10 @@ function bracketXP(n) {
 function seasonEndXP(n) {
   if (SEASON.xpDone) return;
   SEASON.xpDone = true;
-  if (SEASON.champion === SEASON.myId) giveXP(XP.state, "state", n);
-  giveXP(mySchool().players.reduce((t, p) => t + Math.max(0, ovr(p, p.pos) - (p.o0 != null ? p.o0 : ovr(p, p.pos))), 0), "growth", n);
+  const me = SEASON.myId, s = mySchool();
+  const champ = SEASON.lvl === "col" ? !!(SEASON.post && SEASON.post[divOf(s)] && SEASON.post[divOf(s)].champ === me) : SEASON.champion === me;
+  if (champ) giveXP(XP.state, "state", n);
+  giveXP(s.players.reduce((t, p) => t + Math.max(0, ovr(p, p.pos) - (p.o0 != null ? p.o0 : ovr(p, p.pos))), 0), "growth", n);
 }
 // XP by reason, most first: [[why, n]]
 function xpBreakdown(entries) {

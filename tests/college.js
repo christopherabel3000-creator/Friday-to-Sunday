@@ -333,6 +333,15 @@ function plain(g, extra) {
   g(`act("stay"); act("nextyear")`);
   ok(g("SEASON.lvl") === "col" && g("SEASON.year") === 2028 && g("APP.screen") === "newyear" && g("OTHER.year") === 2028, "staying: another season, and both worlds move on");
   ok(g("CAREER.job.yrs") >= 1 && g("CAREER.job.ten") === 1, "a year off the contract");
+  // A save from before November 2026 could leave your coach at the high school you'd left; loading it
+  // gives that school a new coach, and the offseason goes on
+  {
+    const left = g(`(() => { const id = Object.keys(OTHER.schools)[5]; OTHER.schools[id].coach = clone(CAREER.coach); relinkCareer(); return id; })()`);
+    ok(!g(`isYou(OTHER.schools["${left}"].coach)`) && g(`Object.keys(OTHER.schools).every(id => !isYou(OTHER.schools[id].coach))`), "your coach left behind at an old school is replaced when the save loads");
+    g(`OTHER.schools["${left}"].coach = clone(CAREER.coach); simCamp(); simSeason(); SEASON.review = null; OTHER.review = null; act("offseason")`);
+    ok(g("SEASON.phase") === "offseason" && g(`!isYou(OTHER.schools["${left}"].coach)`), "and if it's still there at the end of the season, the offseason goes on anyway");
+    g(`(() => { const M = SEASON.market; if (M && !M.done) { act("stay"); } act("nextyear"); })()`);
+  }
   // Units: salaries, buyouts, counteroffers
   ok(g(`colSalary({ cls: "P4", trad: 90 }, 80)`) > g(`colSalary({ cls: "P4", trad: 30 }, 10)`) && g(`colSalary({ cls: "P4", trad: 50 }, 50)`) >= 4000000 && g(`colSalary({ cls: "D3", trad: 50 }, 50)`) <= 110000, "salaries in real dollars, by level, tradition and reputation");
   g(`simSeason(); CAREER.job.ten = 3; CAREER.job.sec = 1; CAREER.job.yrs = 3; act("offseason")`);

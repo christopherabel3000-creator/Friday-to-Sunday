@@ -1120,6 +1120,8 @@ How it's built (step 5):
 - Loading a save, or starting a new career, keeps the game it replaces as a backup that can be switched back to.
 - A save from a newer version of the game asks for a reload instead of loading.
 - Upgrading a save only touches the world each step is for: the six-class upgrade runs on a high school season only (November 2026: it used to run on any season, which put the state's high schools into a college world and stopped a college save from loading), and a save with high schools mixed into a college or pro world is repaired when it loads.
+- Your coach belongs to one school only (November 2026): an older save could leave him as the coach of the high school he'd left for college, and the offseason stopped on it. Loading a save gives any such school a new coach, and the year-end review does the same if one turns up.
+- A button that hits an error says so (November 2026), instead of doing nothing: a message at the top of the screen, with focus on it, naming the error, the button and the file and line, to send along.
 - Updates: every script and the stylesheet in index.html carry the same ?v= version, changed with each update, so a browser fetches an update's files together. If one of the game's own scripts still fails as the page starts (a mix of old and new files), the page loads itself once more, fresh, and if that fails too it says the game couldn't start, that saves are safe, and which error, by name and file, to send along. Errors from anything else, such as a browser extension, are left alone, and none of this steps in once the game has started.
 
 ## Accessibility
