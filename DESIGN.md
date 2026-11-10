@@ -711,7 +711,7 @@ Milestone 5 is done when:
 
 ### The pro job
 
-- The way in: pro jobs appear in your college job market once you're the head coach at a power-conference program with a college reputation of 75 or more. The best openings want more.
+- The way in: pro jobs appear in your college job market once you're the head coach at a power-conference program with a college reputation of 75 or more. The best openings want more. A coach who qualifies always has one to go after (November 2026): about one year in nine no pro team fired its coach and none retired, and the market listed no pro jobs without a word, so in such a year the owner whose coach's job is least safe makes a change. The market's Class filter has a Pros button, and when no pro jobs are listed the market says why in a sentence: your reputation is under 75, you're outside the power conferences, or the teams you went after said no.
 - The pros have their own reputation, 0 to 100, with the same words. A coach who arrives from college starts at 20, plus a little for a college legend. A bigger stage means more change, and the pros are the biggest one.
 - Pro head coaching contracts, in real dollars: about $4 million to $20 million a year, 4 to 6 years, more for proud teams and bigger reputations. A fired coach is paid what's left on his contract, less what his next job pays.
 - Personnel control: each offer and each extension says whether it comes with control of the roster. A first-time pro coach rarely gets it. Later it's more likely the bigger your pro reputation, the worse the team was the year before, and the more the owner wants you. You can turn down an offer that doesn't include it.

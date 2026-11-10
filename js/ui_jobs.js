@@ -88,7 +88,8 @@ function offerPanel() {
 }
 function vMarket() {
   const R = yearEndReview(), M = SEASON.market, me = mySchool(), jobs = sortedJobs(), all = marketJobs();
-  const classes = CLASSES.concat(COL_CLASSES).filter(c => all.some(id => jobSchool(id).cls === c));
+  const classes = CLASSES.concat(COL_CLASSES, ["PRO"]).filter(c => all.some(id => jobSchool(id).cls === c));
+  const proNote = proMarketNote();
   const sort = APP.jobSort || "interest", cls = APP.jobCls || "all";
   const card = id => {
     const s = jobSchool(id);
@@ -107,8 +108,9 @@ function vMarket() {
       <p class="muted">${esc(R.fired ? "You were fired, so you need a new job. " : "")}Only schools that are interested in you are listed. Pursue one job at a time, and the school answers right away. A school that says no is off the list.</p>
     </div>
     ${marketMsg ? `<p class="panel" id="mktmsg" tabindex="-1">${esc(marketMsg)}</p>` : ""}
+    ${proNote ? `<p class="panel">${esc(proNote)}</p>` : ""}
     ${M.offer ? offerPanel() : ""}
-    ${all.length > 1 ? `<section class="panel">${seg("jobsort", JOB_SORTS, sort, "Sort by")}${classes.length > 1 ? seg("jobcls", [["all", "All"]].concat(classes.map(c => [c, c])), classes.includes(cls) ? cls : "all", "Class") : ""}</section>` : ""}
+    ${all.length > 1 ? `<section class="panel">${seg("jobsort", JOB_SORTS, sort, "Sort by")}${classes.length > 1 ? seg("jobcls", [["all", "All"]].concat(classes.map(c => [c, c === "PRO" ? "Pros" : c])), classes.includes(cls) ? cls : "all", "Class") : ""}</section>` : ""}
     ${jobs.length ? jobs.map(card).join("") : `<section class="panel"><p>${esc(all.length ? "No jobs in that class. Pick All to see the rest." : M.offer ? "No other schools are interested right now." : "No other schools are interested in you right now.")}</p></section>`}
     ${R.fired || M.offer ? "" : `<button class="btn${jobs.length ? " ghost" : ""}" data-a="stay">Stay at ${esc(jobName(me.id))}</button>`}
     <button class="btn ghost" data-a="coach">Your coach</button>`;
@@ -155,7 +157,7 @@ function jobsAct(a, ds) {
     case "carousel": if (!open) return true; M.stage = M.stage === "review" || M.stage === "signing" ? "news" : M.stage; APP.screen = "carousel"; scrollTop(); return true;
     case "market": if (!open) return true; M.stage = "jobs"; marketMsg = ""; APP.screen = "market"; scrollTop(); return true;
     case "jobsort": if (JOB_SORTS.some(x => x[0] === ds.v)) { APP.jobSort = ds.v; announce(`Sorted by ${JOB_SORTS.find(x => x[0] === ds.v)[1].toLowerCase()}.`); } return true;
-    case "jobcls": if (ds.v === "all" || CLASSES.includes(ds.v) || COL_CLASSES.includes(ds.v)) { APP.jobCls = ds.v; announce(ds.v === "all" ? `Every class: ${plural(sortedJobs().length, "job")}.` : `Class ${ds.v}: ${plural(sortedJobs().length, "job")}.`); } return true;
+    case "jobcls": if (ds.v === "all" || ds.v === "PRO" || CLASSES.includes(ds.v) || COL_CLASSES.includes(ds.v)) { APP.jobCls = ds.v; announce(ds.v === "all" ? `Every class: ${plural(sortedJobs().length, "job")}.` : ds.v === "PRO" ? `Pros: ${plural(sortedJobs().length, "job")}.` : `Class ${ds.v}: ${plural(sortedJobs().length, "job")}.`); } return true;
     case "joblook": if (open && marketJobs().includes(ds.v) || (M && M.offer === ds.v)) { APP.jobLook = ds.v; APP.screen = "joblook"; scrollTop(); } return true;
     case "pursue": {
       if (!open) return true;

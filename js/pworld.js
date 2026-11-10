@@ -658,6 +658,35 @@ const gmWord = r => r >= 80 ? "one of the league's best" : r >= 65 ? "a good one
 // Pro jobs come to a power-conference head coach with a college reputation of 75 or more, the best
 // openings wanting a little more
 const COL_TO_PRO = 75;
+// Whether pro teams look at you from college: a power-conference head coach with that reputation
+const proQualified = () => !!(CAREER && inCollege() && SEASON.myId && mySchool().cls === "P4" && (CAREER.crep || 0) >= COL_TO_PRO);
+// A coach who qualifies always has a pro job to go after (November 2026): in a year when no pro team
+// let its coach go and none retired, the owner closest to making a change makes one. Called with
+// your year-end review, and again from the job market, so an offseason already under way gets one too.
+function proOpeningForYou() {
+  const W = proWorld(), M = SEASON && SEASON.market;
+  if (WORLD_FROM || !W || W === SEASON || !W.review || W.review.filled || (M && M.done) || !proQualified()) return;
+  const R = W.review;
+  if (R.open.some(id => R.why[id] !== "taken")) return;
+  inWorld(W, () => {
+    const sec = s => { const c = coachCareer(s.coach, s); return c && c.job ? c.job.sec : 100; };
+    const s = Object.values(SEASON.schools).filter(x => x.coach && !isYou(x.coach) && !R.why[x.id]).sort((a, b) => sec(a) - sec(b) || (a.id < b.id ? -1 : 1))[0];
+    if (!s) return;
+    R.open.push(s.id); R.why[s.id] = "fired";
+    R.news = carouselNews();
+  });
+}
+// Why the job market lists no pro jobs, for a college coach: one sentence, or nothing
+function proMarketNote() {
+  if (!inCollege() || !SEASON.myId || !CAREER) return "";
+  const M = SEASON.market || { tried: {} }, W = proWorld(), R = W && W.review;
+  if (marketJobs().some(id => isPro(jobSchool(id).cls)) || (M.offer && isPro(jobSchool(M.offer).cls))) return "";
+  const rep = Math.round(CAREER.crep || 0);
+  if (mySchool().cls !== "P4") return rep >= COL_TO_PRO ? "Pro teams only hire head coaches from the power conferences." : "";
+  if (rep < COL_TO_PRO) return `Pro teams look at power-conference head coaches with a college reputation of ${COL_TO_PRO} or more. Yours is ${rep}.`;
+  if (R && R.open.some(id => M.tried[id])) return "No other pro team is looking for a coach this year.";
+  return "No pro team changed coaches this year.";
+}
 // Whether an offer comes with control of the roster: more likely the bigger your pro reputation, the
 // worse the team was last season and the more the owner wants you. A first-time pro coach rarely
 // gets it. (Rolled once a season for each job, so it never changes.)

@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 15;
+const BUILD = 16;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -365,7 +365,7 @@ function vHelp() {
       "Any school, conference, bowl or pro team, and the pro league itself, can be renamed from the main menu, along with each team's scoreboard abbreviation."
     ]))}
     ${sec("The pros", ul([
-      "Win big at a power-conference program and pro teams call: 32 teams in the Sunday League, in two conferences of four divisions. A season is camp and three preseason weeks of practice (no games to play), cutdown day, 17 games over 18 weeks with a bye, and a 14-team playoff to the Sunday Bowl. All of it can be renamed.",
+      "Win big at a power-conference program and pro teams call, once your college reputation is 75 or more: there's always at least one pro job to go after in your job market then, and its Class filter has a Pros button. The league is 32 teams in the Sunday League, in two conferences of four divisions. A season is camp and three preseason weeks of practice (no games to play), cutdown day, 17 games over 18 weeks with a bye, and a 14-team playoff to the Sunday Bowl. All of it can be renamed.",
       "Pro rules: the NFL's, as of 2026, with the dynamic kickoff, extra points from the 15 and two-point tries the defense can return. A regular-season game tied after four quarters gets one 10-minute overtime, with two timeouts each, and can end in a tie. Playoff games go until someone wins.",
       "Players have ages instead of class years: they grow to a peak, then decline, earlier at running back and later at quarterback and kicker, and retire. Rosters are 90 in camp, 53 after cutdown day, with a practice squad of 16 and 48 dressed on game day. A player on injured reserve misses at least four games.",
       "The salary cap is real money: about $301 million in 2026, growing each year. A contract has a cap hit each year and guaranteed money, which becomes dead money if you cut him. Rookies are paid by where they were drafted.",

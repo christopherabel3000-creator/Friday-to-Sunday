@@ -201,7 +201,7 @@ function applyCoach(s) {
 // SEASON.market: { stage: "review", "news", "jobs" or "done", tried: { id: "no" or "declined" },
 //   offer, fallback, took, from, transfers: [names], done }
 function yearEndReview() {
-  if (SEASON.review) return SEASON.review;
+  if (SEASON.review) { proOpeningForYou(); return SEASON.review; }
   // The other world's season is played out on paper too, and its coaching changes are in (cjobs.js)
   otherWorldReview();
   const res = finishState(), me = SEASON.myId, R = { open: [], why: {}, fired: false, news: [], moves: [], filled: false };
@@ -259,6 +259,8 @@ function yearEndReview() {
   checkFallback();
   // The pros: re-signing and free agency come next (pfa.js)
   if (inPros()) proOffseasonStart(SEASON);
+  // A college coach the pros would hire always has a pro job to go after (pworld.js)
+  proOpeningForYou();
   return R;
 }
 // Who the news is about: your district, and the notable changes in your class (a firing at a proud
@@ -337,7 +339,7 @@ const INTEREST_ODDS = { high: .85, medium: .55, low: .25 };
 function interestIn(s) {
   // The pros: from a power-conference head coaching job only (pworld.js), and from the pros, college
   // jobs but no high school ones
-  if (isPro(s.cls) && !inPros() && !(inCollege() && SEASON.myId && mySchool().cls === "P4" && (CAREER.crep || 0) >= COL_TO_PRO)) return "";
+  if (isPro(s.cls) && !inPros() && !proQualified()) return "";
   if (inPros() && !isPro(s.cls) && !isCollege(s.cls)) return "";
   if (isCollege(s.cls) && !inCollege() && !inPros() && (!HS_TO_COL_LEVELS.has(s.cls) || ((CAREER && CAREER.rep) || 0) < HS_TO_COL)) return "";
   const d = jobRepFor(s) - jobBarFor(s); return d >= 10 ? "high" : d >= 0 ? "medium" : d >= -8 ? "low" : "";

@@ -264,8 +264,23 @@ function plain(g, extra) {
   h(`simSeason(); act("offseason")`);
   let k = 0; while (h("APP.screen") !== "market" && k++ < 6) { const s = h("APP.screen"); h(s === "signing" ? `act("adreview")` : s === "review" ? `act("carousel")` : `act("market")`); }
   h("CAREER.crep = 95");
-  // (some years no pro coach is let go; then one is, for the test)
-  h(`(() => { const R = THIRD.review; if (!R.open.some(id => R.why[id] !== "taken")) { R.open.push("p5"); R.why.p5 = "fired"; } })()`);
+  // In a year when no pro coach is let go, one is, for a coach who qualifies (November 2026)
+  ok(h(`THIRD.review.open.some(id => THIRD.review.why[id] !== "taken")`), "a coach who qualifies always finds a pro job open");
+  h(`(() => { const R = THIRD.review; R.open = []; R.why = {}; })()`);
+  ok(h(`marketJobs().filter(id => isPro(jobSchool(id).cls)).length`) === 0 && h("proMarketNote()") === "No pro team changed coaches this year.", "with none open, the market would say so");
+  h("CAREER.crep = 70; proOpeningForYou()");
+  ok(h("THIRD.review.open.length") === 0 && /reputation of 75 or more. Yours is 70/.test(h("proMarketNote()")), "under 75 no job is opened, and the market says what the pros want");
+  h(`CAREER.crep = 95; const keepCls = mySchool().cls; mySchool().cls = "G5"; proOpeningForYou()`);
+  ok(h("THIRD.review.open.length") === 0 && /power conferences/.test(h("proMarketNote()")), "outside the power conferences, the same");
+  h(`mySchool().cls = "P4"; yearEndReview()`);
+  ok(h("THIRD.review.open.length") === 1 && h("THIRD.review.why[THIRD.review.open[0]]") === "fired" && h("proMarketNote()") === "", "an offseason already under way gets its opening when the market is opened");
+  ok(h(`(() => { const R = THIRD.review, id = R.open[0], sec = s => coachCareer(s.coach, s).job.sec; return Object.values(THIRD.schools).every(s => sec(s) >= sec(THIRD.schools[id])); })()`), "it's the coach whose job was least safe");
+  h("yearEndReview(); proOpeningForYou()");
+  ok(h("THIRD.review.open.length") === 1, "and only one");
+  ok(/data-v="PRO"[^>]*>Pros</.test(h("vMarket()")), "the market's Class filter has a Pros button");
+  h(`act("jobcls", { v: "PRO" })`);
+  ok(h("APP.jobCls") === "PRO" && h(`sortedJobs().length`) === 1 && h(`sortedJobs().every(id => isPro(jobSchool(id).cls))`), "which lists only the pro jobs");
+  h(`act("jobcls", { v: "all" })`);
   const pros = h(`marketJobs().filter(id => isPro(jobSchool(id).cls))`);
   ok(pros.length > 0, `a power-conference coach with a big college reputation gets pro jobs in his market (${pros.length})`);
   h("CAREER.crep = 70");
@@ -279,6 +294,8 @@ function plain(g, extra) {
     ok(typeof h("SEASON.market.ctl") === "boolean" && /control of the roster/.test(h("offerPanel()")), "a pro offer says whether it comes with control of the roster");
     const ctl = h("SEASON.market.ctl");
     h(`act("accept")`);
+    // (your college may counter first: take the pro job anyway)
+    if (h("!!SEASON.market.counter")) h(`act("accept")`);
     ok(h("CAREER.next.lvl") === "pro" && h("CAREER.next.id") === got, "taking it: it starts next season");
     h(`act("nextyear")`);
     ok(h("SEASON.lvl") === "pro" && h("SEASON.myId") === got && h("OTHER.lvl") === "col" && !h("THIRD.lvl"), "the next season: you coach in the pros, with college next door and the state on paper");
