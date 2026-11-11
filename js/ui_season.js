@@ -112,12 +112,12 @@ function vSeason() {
       <div class="choices"><button class="btn" data-a="playgame">${confirming === "playgame" ? "Tap again to leave the exhibition" : "Play the game"}</button><button class="btn ghost" data-a="keygame">${confirming === "keygame" ? "Tap again to leave the exhibition" : "Key moments"}</button><button class="btn ghost" data-a="simgame">${confirming === "simgame" ? "Tap again to leave the exhibition" : "Sim the game"}</button></div>
       <div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="sroster" data-t="${r}">${esc(opp.mascot)} roster</button></div>
     </section>
-    ${practicePanel()}
+    ${coordRole() ? practicePanel() + coordSchemes(me) : `${practicePanel()}
     <section class="panel">
       <h3>Your schemes</h3>
       ${styleSegs(me.off, me.def)}
       <p class="muted styledesc">${esc(knownLine(me))}</p>
-    </section>`;
+    </section>`}`;
   } else if (gm && played(gm)) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · Final</p><h3>${esc(resultText(gm, id))}</h3><button class="btn" data-a="weekdone">${weekName(n)} results</button></section>`;
   else if (SEASON.phase === "playoffs") main = `<section class="panel"><p class="eyebrow">${weekName(n)}</p>
       <p>${inPlayoffs(id) ? "You're out of the playoffs." : "You're not in the playoffs."} The rest of the bracket plays on.</p>
@@ -145,10 +145,11 @@ function vSeason() {
       <p class="eyebrow">${eyebrow}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
       <p class="muted">${esc(seasonStatus())}</p>
+      ${coordMast()}
       ${SEASON.phase !== "over" ? `<p class="muted">${esc(expectText(expectOf(id)))}</p>` : ""}
     </div>
     ${main}
-    ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(me.off, me.def)}<p class="muted styledesc">${esc(knownLine(me))}</p></section>` : ""}
+    ${camp ? (coordRole() ? coordSchemes(me) : `<section class="panel"><h3>Your schemes</h3>${styleSegs(me.off, me.def)}<p class="muted styledesc">${esc(knownLine(me))}</p></section>`) : ""}
     ${lastPanel}
     <section class="panel">
       <h3>District ${SEASON.district}</h3>
@@ -178,6 +179,7 @@ function campPanel() {
 }
 // This week's practice: the plan or the report, and who's hurt
 function practicePanel() {
+  if (coordRole()) return coordPracticePanel();
   const done = practiced(), P = SEASON.practice, plan = SEASON.plan, pre = presetOf(plan), hurt = mySchool().players.filter(p => p.inj);
   const planText = `${pre ? PRESETS[pre].name : "Your own"} plan, in ${CONTACT[plan.contact].name.toLowerCase()}`;
   return `<section class="panel">

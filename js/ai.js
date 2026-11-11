@@ -328,19 +328,20 @@ function simToEnd() {
 // it was written, lines: sentences to read }
 const coordTeam = () => (S && S.teams ? [0, 1].findIndex(t => roleOf(t)) : -1);
 const gameSecs = () => (noClock() ? 0 : (S.quarter <= 4 ? (4 - S.quarter) * S.cfg.qLen : 0) + S.clock);
-function coordMark() { return { yds: [S.teams[0].st.yds, S.teams[1].st.yds], plays: [S.teams[0].st.plays, S.teams[1].st.plays], secs: gameSecs(), q: S.quarter }; }
+// Where the game stood before a snap: taken by cont() (and at kickoff) in a coordinator's game, so each
+// skipped play can be measured against it
+function coordMark() { return { yds: [S.teams[0].st.yds, S.teams[1].st.yds], plays: [S.teams[0].st.plays, S.teams[1].st.plays], secs: gameSecs(), q: S.quarter, score: [S.teams[0].score, S.teams[1].score] }; }
 function coordRun() {
   if (!S || !S.teams || coordTeam() < 0 || S.everyPlay) return false;
-  const rows = [], scores = S.cscore || [S.teams[0].score, S.teams[1].score];
-  let mark = S.cmark || coordMark();
+  const rows = [];
+  let scores = null;
   for (let i = 0; i < 600 && S.phase === "result" && !S.youCalled; i++) {
-    const r = S.last, now = coordMark(), t = r.team;
+    const r = S.last, now = coordMark(), t = r.team, mark = S.cpre || now;
+    scores = scores || mark.score;
     rows.push({ t, id: r.offId, scrim: !!OFFP[r.offId] || r.offId === "kneel" || r.offId === "spike", head: r.head, text: r.text, sub: r.sub || "", inj: r.injNote || "",
       yds: now.yds[t] - mark.yds[t], plays: now.plays[t] - mark.plays[t], secs: now.q === mark.q || now.q <= 4 ? Math.max(0, mark.secs - now.secs) : 0 });
-    mark = now;
     cont();
   }
-  S.cmark = coordMark(); S.cscore = [S.teams[0].score, S.teams[1].score];
   if (!rows.length) return false;
   const lines = driveLines(rows, scores);
   // (the head coach's answer to "go for it", when he said no)

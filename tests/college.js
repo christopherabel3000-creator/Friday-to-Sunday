@@ -303,12 +303,12 @@ function plain(g, extra) {
   // No college jobs under 80
   g(`CAREER.rep = 70; simSeason(); act("offseason"); if (APP.screen === "signing") act("adreview"); act("carousel"); act("market")`);
   ok(g("OTHER.review && OTHER.review.open.length") > 10, "the college world's coaching changes happen with yours");
-  ok(g(`marketJobs().every(id => !isCollege(jobSchool(id).cls))`), "under a reputation of 80, no college jobs");
+  ok(g(`hcJobs().every(id => !isCollege(jobSchool(id).cls))`), "under a reputation of 80, no college jobs");
   // At 80 and up: Division III and Division II jobs only
   g(`CAREER.rep = 90`);
-  const jobs = g(`marketJobs().filter(id => isCollege(jobSchool(id).cls)).map(id => jobSchool(id).cls)`);
+  const jobs = g(`hcJobs().filter(id => isCollege(jobSchool(id).cls)).map(id => jobSchool(id).cls)`);
   ok(jobs.length > 0 && jobs.every(c => c === "D3" || c === "D2"), `at 80 and up, Division III and Division II jobs (${jobs.length})`);
-  const cid = g(`marketJobs().find(id => isCollege(jobSchool(id).cls))`);
+  const cid = g(`hcJobs().find(id => isCollege(jobSchool(id).cls))`);
   ok(/Salary about \$[\d,]+ a year/.test(g(`jobText("${cid}")`)) && /Division I/.test(g(`jobPlace("${cid}")`)), "a college job says its salary, its level and its conference");
   ok(/A closer look/.test(g(`(() => { APP.jobLook = "${cid}"; return vJobLook(); })()`)), "and has a closer look, from the other world");
   g(`SEASON.market.offer = "${cid}"; act("accept")`);
@@ -326,10 +326,10 @@ function plain(g, extra) {
   ok(g("APP.screen") === "review" && /Your contract/.test(g("vReview()")) && /Season grade/.test(g("vReview()")), "the college review: your grade and your contract");
   ok(g("CAREER.seasons.length") === 2 && g("CAREER.seasons[1].lvl") === "col" && /in the conference/.test(g("careerLine(CAREER.seasons[1], 1)")), "the season goes into your career");
   g(`act("carousel"); act("market")`);
-  const lv = g(`marketJobs().map(id => jobSchool(id).cls)`);
+  const lv = g(`hcJobs().map(id => jobSchool(id).cls)`);
   const isCol = c => ["D3", "D2", "FCS", "G5", "P4"].includes(c);
   ok(lv.some(c => isCol(c)) && lv.some(c => !isCol(c)), "the college market lists college jobs and, on your high school reputation, high school ones");
-  ok(g(`marketJobs().filter(id => isCollege(jobSchool(id).cls)).every(id => jobRepFor(jobSchool(id)) - jobBarFor(jobSchool(id)) >= -8)`), "college jobs go by your college reputation");
+  ok(g(`hcJobs().filter(id => isCollege(jobSchool(id).cls)).every(id => jobRepFor(jobSchool(id)) - jobBarFor(jobSchool(id)) >= -8)`), "college jobs go by your college reputation");
   g(`act("stay"); act("nextyear")`);
   ok(g("SEASON.lvl") === "col" && g("SEASON.year") === 2028 && g("APP.screen") === "newyear" && g("OTHER.year") === 2028, "staying: another season, and both worlds move on");
   ok(g("CAREER.job.yrs") >= 1 && g("CAREER.job.ten") === 1, "a year off the contract");

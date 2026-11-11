@@ -30,6 +30,14 @@ function depthTeam(ref) {
   return s;
 }
 const canEdit = ref => isMine(ref) && (!inGameView() || !S.teams[ref].cpu);
+// A coordinator's role on the team a roster screen shows ("" for a head coach), and whether a
+// position is his to set: his side's are, and the rest are the head coach's
+function viewRole(ref) {
+  if (!isMine(ref)) return "";
+  const c = viewCtx();
+  return c === "game" ? (S.teams[ref].role || "") : c === "season" ? coordRole() : exRole();
+}
+const canEditPos = (ref, pos) => canEdit(ref) && (!viewRole(ref) || COORD_POS[viewRole(ref)].includes(pos));
 // Stores an edited depth chart where it belongs
 function setDepth(ref, depth) {
   if (inGameView()) { S.teams[ref].depth = depth; S.teams[ref].dver = (S.teams[ref].dver || 0) + 1; return; }
@@ -141,7 +149,7 @@ function vRoster() {
     return `<p class="sechead" role="heading" aria-level="4">${slotGroup(pos)}</p><ol class="roster">${ids.map(id => {
       const p = playerById(tm, id); if (!p) return "";
       return `<li><button class="rowbtn" data-a="player" data-v="${p.id}">${esc(slotLine(tm, p, pos, healthy.indexOf(id) >= 0 && healthy.indexOf(id) < STARTERS[pos], level))}</button></li>`;
-    }).join("")}</ol>${edit ? `<button class="btn ghost slim" data-a="dedit" data-v="${pos}">Change ${slotGroup(pos).toLowerCase()}</button>` : ""}`;
+    }).join("")}</ol>${canEditPos(i, pos) ? `<button class="btn ghost slim" data-a="dedit" data-v="${pos}">Change ${slotGroup(pos).toLowerCase()}</button>` : ""}`;
   }).join("")}</section>`;
   const intro = game ? `${plural(tm.players.length, "player")}, with how fresh each one is.` : `${plural(tm.players.length, "player")}. Starters first, then the backups in order. Tap a player for all of his ratings.`;
   const back = game ? "Back to the game" : "Back";
@@ -152,7 +160,7 @@ function vRoster() {
       <p class="muted">${intro}</p>
     </div>
     <div class="choices"><button class="btn ghost" data-a="back">${back}</button>${other != null ? `<button class="btn ghost" data-a="rteam" data-t="${other}">${esc(teamMascot(depthTeam(other)))} roster</button>` : ""}</div>
-    ${edit ? rosterControls(i) : ""}
+    ${edit && viewRole(i) ? `<p class="panel">${esc(`Your ${COORD_SIDE[viewRole(i)]}'s positions are yours to set. The head coach sets the rest, and the rotation.`)}</p>` : edit ? rosterControls(i) : ""}
     ${DEPTH_GROUPS.map(sec).join("")}
     ${!game && isPro(tm.cls) ? proRosterExtras(tm) : ""}
     <button class="btn ghost" data-a="back">${back}</button>`;

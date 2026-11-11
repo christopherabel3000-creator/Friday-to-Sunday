@@ -7,7 +7,7 @@
 // preseason, and until then nothing at the school you're leaving is yours to run. XP still is.
 const leavingSchool = () => !!(CAREER && CAREER.next);
 // "You take over the ... when the 2028 preseason starts."
-const newJobPanel = () => `<section class="panel"><h3>Your new job</h3><p>${esc(`You take over the ${jobName(CAREER.next.id)} (${jobPlace(CAREER.next.id)}) when the ${SEASON.year + 1} preseason starts. Your players here stay behind.`)}</p></section>`;
+const newJobPanel = () => `<section class="panel"><h3>Your new job</h3><p>${esc(`You ${CAREER.next.role ? `join the ${jobName(CAREER.next.id)} as ${COORD_ROLES[CAREER.next.role].toLowerCase()}` : `take over the ${jobName(CAREER.next.id)}`} (${jobPlace(CAREER.next.id)}) when the ${SEASON.year + 1} preseason starts. Your players here stay behind.`)}</p></section>`;
 // A season's stats so far, with this season's added in (career totals are kept when the season ends)
 function statsWithThisSeason(p) {
   const out = Object.assign({}, p.cs || {}), st = SEASON.stats[p.id] || {};
@@ -29,8 +29,16 @@ function vOffseason() {
   const H = hallsNow(), yes = H.players.filter(p => H.said[p.id] === "yes").length, left = pitchesLeft();
   const line = p => { const st = careerStatLine(statsWithThisSeason(p)); return `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}${st ? `: ${st}` : ""}.${p.sign != null ? ` Signed with ${collegeText(p.sign)}.` : ""}`; };
   const champ = movedSchools() ? null : SEASON.champion, M = SEASON.market, R = SEASON.review;
-  const gone = leavingSchool(), newJob = gone ? newJobPanel() : M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new head coach of the ${nameOf(s.id)}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
-      <p>${esc(M.transfers.length ? `Following you from the ${nameOf(M.from)}: ${andList(M.transfers)}.` : `None of your players from the ${nameOf(M.from)} followed you.`)}</p></section>` : "";
+  const gone = leavingSchool(), role = coordRole(), newJob = gone ? newJobPanel() : M && M.took ? `<section class="panel"><h3>Your new job</h3><p>${esc(`You're the new ${role ? `${COORD_ROLES[role].toLowerCase()} of the ${nameOf(s.id)}, under ${hcName()}` : `head coach of the ${nameOf(s.id)}`}, in Class ${s.cls}, District ${s.district}. Stipend: ${moneyText(CAREER.job.pay)}.`)}</p>
+      ${M.from && !role && !M.promoted ? `<p>${esc(M.transfers.length ? `Following you from the ${nameOf(M.from)}: ${andList(M.transfers)}.` : `None of your players from the ${nameOf(M.from)} followed you.`)}</p>` : ""}</section>` : "";
+  // A coordinator has no program to run: the head coach runs the summer, the hallways and the fund
+  const coordProgram = () => `
+    <section class="panel">
+      <h3>Coming back</h3>
+      <p>${plural(back.length, "player")}, ${returning} of them starters. About ${plural(expected, "freshman", "freshmen")} should come out for football.</p>
+      <p class="muted">${esc(`${hcName()} runs the summer program, the hallways and the program fund.`)}</p>
+      <button class="btn ghost" data-a="sroster" data-t="${s.id}">Roster and depth chart</button>
+    </section>`;
   // The school's offseason program: only while it's still your school
   const program = () => `
     <section class="panel">
@@ -67,7 +75,7 @@ function vOffseason() {
       <h3>Graduating</h3>
       ${seniors.length ? `<p>${plural(seniors.length, "senior")}:</p>${list(seniors.map(line))}` : "<p>No seniors this year.</p>"}
     </section>
-    ${gone ? "" : program()}
+    ${gone ? "" : role ? coordProgram() : program()}
     <section class="panel">
       <h3>Your coach</h3>
       <p>${CAREER.xp || 0} XP to spend on ratings and perks.${CAREER.job && !gone ? ` Your stipend next season: ${moneyText(CAREER.job.pay)}.` : ""}</p>

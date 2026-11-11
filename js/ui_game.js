@@ -613,7 +613,7 @@ function vExtras() {
     ${S.season && SEASON && SEASON.practice && SEASON.practice.film && SEASON.practice.week === S.season.week ? `<button class="linkbtn" data-a="scout">Scouting report</button>` : ""}
     ${live ? `<button class="linkbtn ${confirming === "sim" ? "warn" : ""}" data-a="sim">${confirming === "sim" ? "Tap again to sim to the end" : "Sim to the end"}</button>` : ""}
     ${live && !S.season ? `<button class="linkbtn ${confirming === "end" ? "warn" : ""}" data-a="end">${confirming === "end" ? "Tap again to end this game" : "End game"}</button>` : ""}
-    ${live && coordTeam() >= 0 ? `<button class="linkbtn" data-a="everyplay" aria-pressed="${!!S.everyPlay}">The other side: ${S.everyPlay ? "every play" : "drive summaries"}</button>` : ""}
+    ${live && coordTeam() >= 0 ? `<button class="linkbtn" data-a="everyplay" aria-pressed="${!!S.everyPlay}">Hear every play</button>` : ""}
     ${live && shortenOK() ? `<button class="linkbtn" data-a="shorten" aria-expanded="${!!shortenOpen}">Shorten the game</button>` : ""}
   </div>`;
   return box + players + log + foot + (live ? shortenPanel() : "");

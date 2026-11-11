@@ -256,7 +256,7 @@ function plain(g, extra) {
   g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]);`);
   g(`CAREER.rep = 95; simSeason(); act("offseason"); if (APP.screen === "signing") act("adreview"); act("carousel"); act("market")`);
   ok(!!g("THIRD.review && THIRD.review.news.length"), "the pro league's coaching changes happen with yours");
-  ok(g(`marketJobs().every(id => !isPro(jobSchool(id).cls))`), "a high school coach never gets pro offers");
+  ok(g(`hcJobs().every(id => !isPro(jobSchool(id).cls))`), "a high school coach never gets pro offers");
   // A power-conference coach
   const sb2 = load(), h = sb2.__get;
   h(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
@@ -267,7 +267,7 @@ function plain(g, extra) {
   // In a year when no pro coach is let go, one is, for a coach who qualifies (November 2026)
   ok(h(`THIRD.review.open.some(id => THIRD.review.why[id] !== "taken")`), "a coach who qualifies always finds a pro job open");
   h(`(() => { const R = THIRD.review; R.open = []; R.why = {}; })()`);
-  ok(h(`marketJobs().filter(id => isPro(jobSchool(id).cls)).length`) === 0 && h("proMarketNote()") === "No pro team changed coaches this year.", "with none open, the market would say so");
+  ok(h(`hcJobs().filter(id => isPro(jobSchool(id).cls)).length`) === 0 && h("proMarketNote()") === "No pro team changed coaches this year.", "with none open, the market would say so");
   h("CAREER.crep = 70; proOpeningForYou()");
   ok(h("THIRD.review.open.length") === 0 && /reputation of 75 or more. Yours is 70/.test(h("proMarketNote()")), "under 75 no job is opened, and the market says what the pros want");
   h(`CAREER.crep = 95; const keepCls = mySchool().cls; mySchool().cls = "G5"; proOpeningForYou()`);
@@ -279,12 +279,12 @@ function plain(g, extra) {
   ok(h("THIRD.review.open.length") === 1, "and only one");
   ok(/data-v="PRO"[^>]*>Pros</.test(h("vMarket()")), "the market's Class filter has a Pros button");
   h(`act("jobcls", { v: "PRO" })`);
-  ok(h("APP.jobCls") === "PRO" && h(`sortedJobs().length`) === 1 && h(`sortedJobs().every(id => isPro(jobSchool(id).cls))`), "which lists only the pro jobs");
+  ok(h("APP.jobCls") === "PRO" && h(`sortedJobs().filter(id => !jobRole(id)).length`) === 1 && h(`sortedJobs().every(id => isPro(jobSchool(id).cls))`), "which lists only the pro jobs");
   h(`act("jobcls", { v: "all" })`);
-  const pros = h(`marketJobs().filter(id => isPro(jobSchool(id).cls))`);
+  const pros = h(`hcJobs().filter(id => isPro(jobSchool(id).cls))`);
   ok(pros.length > 0, `a power-conference coach with a big college reputation gets pro jobs in his market (${pros.length})`);
   h("CAREER.crep = 70");
-  ok(h(`marketJobs().filter(id => isPro(jobSchool(id).cls)).length`) === 0, "under 75, none");
+  ok(h(`hcJobs().filter(id => isPro(jobSchool(id).cls)).length`) === 0, "under 75, none");
   h("CAREER.crep = 95");
   ok(/The Sunday League/.test(h(`jobPlace("${pros[0]}")`)) && /Salary about \$[\d.]+ million/.test(h(`jobText("${pros[0]}")`)) && /General manager/.test(h(`jobText("${pros[0]}")`)) && /Owner/.test(h(`jobText("${pros[0]}")`)), "a pro job says its division, salary, owner and general manager");
   ok(/Under contract next season/.test(h(`(() => { APP.jobLook = "${pros[0]}"; return vJobLook(); })()`)), "and has a closer look: who's signed and the money");

@@ -190,9 +190,11 @@ const homeEdge = o => S && S.teams && !S.neutral ? (o === 0 ? HOME_EDGE : -HOME_
 // or ahead by 8 or less), a team plays to its coach's Motivation: about +0.03 at a 50, +0.11 at a 70,
 // and a little worse than usual under a coach below 42
 const MOT_K = .004;
-function motEdge(t) {
+// (side: "off" or "def", for a coordinator's team, where each side plays to its own coach: coach.js)
+function motEdge(t, side) {
   if (!S || !S.teams || S.quarter < 4 || S.teams[t].score - S.teams[1 - t].score > 8) return 0;
-  return (((S.teams[t].coach && S.teams[t].coach.mot) || 42) - 42) * MOT_K + (hasPerk(t, "motv") ? PERK_EDGE.motv : 0);
+  const c = S.teams[t].coach || {}, mot = c.sideMot ? c.sideMot[side] : c.mot, motv = c.sideMotv ? c.sideMotv[side] : hasPerk(t, "motv");
+  return ((mot || 42) - 42) * MOT_K + (motv ? PERK_EDGE.motv : 0);
 }
 // Perks (coach.js): an edge on the snap for the offense (o), from either coach's perks
 const hasPerk = (t, k) => !!(S && S.teams && coachHas(S.teams[t].coach, k));
@@ -206,10 +208,11 @@ function perkEdge(o, off, def) {
   if (hasPerk(d, "blitz") && BLITZ_IDS.includes(def)) e -= PERK_EDGE.blitz;
   return e;
 }
-const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o) + motEdge(o) - motEdge(1 - o) : 0;
+const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o) + motEdge(o, "off") - motEdge(1 - o, "def") : 0;
 // A coach's specialty: a former lineman's teams run the ball, and stop it, a little better
 const SPEC_RUN = .05;
-const specEdge = (o, off) => OFFP[off] && OFFP[off].kind === "run" ? ((S.teams[o].coach || {}).spec === "run" ? SPEC_RUN : 0) - ((S.teams[1 - o].coach || {}).spec === "run" ? SPEC_RUN : 0) : 0;
+const specOf = (t, side) => { const c = S.teams[t].coach || {}; return c.sideSpec ? c.sideSpec[side] : c.spec; };
+const specEdge = (o, off) => OFFP[off] && OFFP[off].kind === "run" ? (specOf(o, "off") === "run" ? SPEC_RUN : 0) - (specOf(1 - o, "def") === "run" ? SPEC_RUN : 0) : 0;
 // Special teams: how far a coach's Special teams rating is from a typical small-school coach's
 const stOf = t => (((S.teams[t].coach && S.teams[t].coach.st) || 42) - 42);
 // Sharpen or flatten a set of play-call weights, by the coach making the call
@@ -250,7 +253,6 @@ const bothHuman = () => !S.teams[0].cpu && !S.teams[1].cpu;
 // Who calls what (Milestone 6). A team is the computer's (cpu), or yours; and yours as its head coach,
 // or as a coordinator (role "oc" or "dc"), who calls one side for a computer head coach. The head
 // coach's calls are the toss, kicks, tries, timeouts, penalties and special teams.
-const COORD_ROLES = { oc: "Offensive coordinator", dc: "Defensive coordinator" };
 const roleOf = t => (!S.teams[t].cpu && COORD_ROLES[S.teams[t].role] ? S.teams[t].role : "");
 const youCallOff = t => !S.teams[t].cpu && roleOf(t) !== "dc";
 const youCallDef = t => !S.teams[t].cpu && roleOf(t) !== "oc";
@@ -291,7 +293,7 @@ const newTeamStats = () => ({ plays: 0, yds: 0, rush: 0, pass: 0, fd: 0, to: 0, 
 // styles: { off, def } to change the scheme for this game only.
 function gameTeam(s, cpu, styles, role) {
   styles = styles || {};
-  return { id: s.id, name: s.mascot, school: s.town, abbr: s.abbr, color: s.color, level: s.level, cpu: !!cpu, role: !cpu && COORD_ROLES[role] ? role : "",
+  return { id: s.id, name: s.mascot, school: s.town, abbr: s.abbr, color: s.color, level: s.level, cpu: !!cpu, role: !cpu && COORD_ROLES[role] ? role : "", trust: s.trust,
     off: resolveStyle(styles.off || s.off, OFF_STYLE_IDS), def: resolveStyle(styles.def || s.def, DEF_STYLE_IDS),
     coach: clone(s.coach), cp: coachParams(s.coach), players: clone(s.players), depth: clone(s.depth), dver: 0,
     mastery: s.mastery ? clone(s.mastery) : null, score: 0, st: newTeamStats(), injk: typeof eqInj === "function" ? eqInj(s) : 1 };
@@ -316,6 +318,7 @@ function initGame(cfg, schools) {
     needPAT: false, patTeam: 0, periodOver: false, gameOver: false, runClock: false,
     tos: [Rl.timeouts, Rl.timeouts], clockRunning: false, oobRestart: false, spikeNext: false, toNote: "" };
   if (typeof APP !== "undefined" && APP && APP.everyPlay) S.everyPlay = true;
+  if (t0.role || t1.role) S.cpre = coordMark();
   startToss(false, matchupLine());
   tossNext();
 }
@@ -924,6 +927,7 @@ function betweenPlays() {
 }
 function cont() {
   S.youCalled = false;
+  if (S.teams[0].role || S.teams[1].role) S.cpre = coordMark();
   S.nhLock = null; // set again by startPlay when the next snap is a no-huddle snap
   if (S.tryChoice) {
     const c = S.tryChoice; S.patTeam = c.team;

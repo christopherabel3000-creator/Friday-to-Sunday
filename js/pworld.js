@@ -659,7 +659,8 @@ const gmWord = r => r >= 80 ? "one of the league's best" : r >= 65 ? "a good one
 // openings wanting a little more
 const COL_TO_PRO = 75;
 // Whether pro teams look at you from college: a power-conference head coach with that reputation
-const proQualified = () => !!(CAREER && inCollege() && SEASON.myId && mySchool().cls === "P4" && (CAREER.crep || 0) >= COL_TO_PRO);
+// (a head coach: a coordinator's way to the pros is a pro coordinator's job, coord.js)
+const proQualified = () => !!(CAREER && inCollege() && SEASON.myId && iRun() && mySchool().cls === "P4" && (CAREER.crep || 0) >= COL_TO_PRO);
 // A coach who qualifies always has a pro job to go after (November 2026): in a year when no pro team
 // let its coach go and none retired, the owner closest to making a change makes one. Called with
 // your year-end review, and again from the job market, so an offseason already under way gets one too.
@@ -680,7 +681,7 @@ function proOpeningForYou() {
 function proMarketNote() {
   if (!inCollege() || !SEASON.myId || !CAREER) return "";
   const M = SEASON.market || { tried: {} }, W = proWorld(), R = W && W.review;
-  if (marketJobs().some(id => isPro(jobSchool(id).cls)) || (M.offer && isPro(jobSchool(M.offer).cls))) return "";
+  if (hcJobs().some(id => isPro(jobSchool(id).cls)) || (M.offer && isPro(jobSchool(M.offer).cls)) || coordRole()) return "";
   const rep = Math.round(CAREER.crep || 0);
   if (mySchool().cls !== "P4") return rep >= COL_TO_PRO ? "Pro teams only hire head coaches from the power conferences." : "";
   if (rep < COL_TO_PRO) return `Pro teams look at power-conference head coaches with a college reputation of ${COL_TO_PRO} or more. Yours is ${rep}.`;

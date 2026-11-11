@@ -102,6 +102,7 @@ function vCoach() {
       <p class="muted">Changes save as you type.</p>
     </section>
     ${CAREER.seasons.length ? `<section class="panel"><h3>Career by school</h3><ul class="hlist">${careerBySchool().map(st => `<li>${esc(stintLine(st))}</li>`).join("")}</ul>
+      ${coordCareerLine() ? `<p>${esc(coordCareerLine())}</p>` : ""}
       ${CAREER.job ? `<p>${esc(`Your ${CAREER.job.yrs ? "salary" : "stipend"} this season: ${moneyText(CAREER.job.pay)}. Career earnings: ${moneyText(CAREER.earned || 0)}${CAREER.spent ? `, ${moneyText(myCash())} of it unspent` : ""}. ${SEASON && SEASON.lvl === "col" ? "In the offseason, your own money pays for clinics and consultants, for XP, and can go to the NIL collective, on the offseason screen." : SEASON && SEASON.lvl === "pro" ? "In the offseason, your own money pays for clinics and consultants, for XP, on the offseason screen." : "In the offseason, your own money pays for coaching clinics, on the program fund screen."}`)}</p>` : ""}
       <p>${esc(sentText())}</p></section>
     <section class="panel"><h3>Season by season</h3><ul class="hlist">${CAREER.seasons.map((x, i) => `<li>${esc(careerLine(x, i))}</li>`).join("")}</ul></section>` : ""}
@@ -133,6 +134,7 @@ function repPanel() {
 function gradePanel() {
   const r = SEASON.results && SEASON.results[SEASON.myId], last = CAREER && CAREER.seasons.find(x => x.seed === SEASON.seed);
   if (!r || !last || last.g == null) return "";
+  if (last.role) return coordGradePanel(last);
   return `<section class="panel"><h3>Season grade: ${esc(capFirst(gradeWord(last.g)))} (${signed(last.g)})</h3>
     <p>${esc(gradeWhy(r, expectOf(SEASON.myId)))}</p>
     <p>${esc(`${repText(last.rep)} That's ${last.drep >= 0 ? "up" : "down"} ${Math.abs(last.drep).toFixed(1)}.`)}</p></section>`;
@@ -152,6 +154,7 @@ function xpSpendPanel() {
 function jobPanel() {
   const J = CAREER.job;
   if (!J || !SEASON) return "";
+  if (coordRole()) return coordJobPanel();
   const boss = bossWord(), here = SEASON.myId === J.id && !movedSchools();
   if (!here) return `<section class="panel"><h3>Your job: ${esc(jobName(J.id))}</h3><p>${esc(`Your new job starts at the preseason. ${J.yrs ? capFirst(contractText(J)) + "." : ""}`)}</p></section>`;
   const done = ["over", "offseason"].includes(SEASON.phase), e = expectOf(J.id);

@@ -18,6 +18,7 @@ const masteryLine = (s, id) => { const v = Math.round(s.mastery[id]); return `${
 
 /* ---------- The practice plan ---------- */
 function vPractice() {
+  if (coordRole()) return vCoordPractice();
   const plan = SEASON.plan, b = blocksOf(planNow()), pre = presetOf(plan), done = practiced(), n = practiceSlot(), camp = inCamp();
   const seg = (a, list, cur, label, extra) => `<div style="display:grid;gap:6px" role="group" aria-label="${label}"><span class="eyebrow" aria-hidden="true">${label}${extra || ""}</span><div class="seg${list.length > 3 ? " grid2" : ""}">
     ${list.map(([v, l]) => `<button data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div></div>`;
@@ -72,7 +73,7 @@ function vInstall() {
       <h2 data-focus tabindex="-1">Install focus</h2>
       <p class="muted">Pick up to three plays. They get most of the install time, and the rest of the playbook gets a little. With none picked, it's spread over everything. ${focus.length ? `Picked: ${esc(andList(focus.map(playName)))}.` : ""}</p>
     </div>
-    ${sec("Offense", OFF_IDS)}${sec("Defense", DEF_IDS)}${sec("Special plays", ["qs", "hm", "te"])}
+    ${coordRole() === "dc" ? "" : sec("Offense", OFF_IDS)}${coordRole() === "oc" ? "" : sec("Defense", DEF_IDS)}${coordRole() === "dc" ? "" : sec("Special plays", ["qs", "hm", "te"])}
     <button class="btn" data-a="back">Done</button>`;
 }
 

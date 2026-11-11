@@ -132,7 +132,7 @@ const career = (g, seed) => g(`APP = { v: 1, screen: "home", ex: null, view: nul
   const R = g("yearEndReview()");
   ok(R.fired && R.open.includes(g("SEASON.myId")), "a bad season on the hot seat: fired");
   ok(!g("stayPut()"), "a fired coach can't stay");
-  const old = g("SEASON.myId"), jobs = g("marketJobs()");
+  const old = g("SEASON.myId"), jobs = g("hcJobs()");
   ok(!jobs.includes(old) && jobs.every(id => R.open.includes(id) && g(`interestIn(SEASON.schools["${id}"])`) !== ""), "the market lists only open jobs interested in you, never your old one");
   ok(g(`interestIn({ cls: "2A", trad: 50 })`) === "medium" && g(`interestIn({ cls: "2A", trad: 90 })`) === "low" && g(`interestIn({ cls: "1A", trad: 50 })`) === "high" && g(`interestIn({ cls: "4A", trad: 50 })`) === "", "interest: your reputation against each school's bar");
   if (jobs.length) {
@@ -140,8 +140,8 @@ const career = (g, seed) => g(`APP = { v: 1, screen: "home", ex: null, view: nul
     ok(r === "offer" || r === "no", `pursuing a job gets an answer (${r})`);
     if (r === "offer") {
       ok(jobs.length < 2 || g(`pursueJob("${jobs[1]}")`) === "", "an offer has to be answered before pursuing another job");
-      ok(g("answerOffer(false)") === "declined" && !g("marketJobs()").includes(jobs[0]), "turning it down takes it off the list");
-    } else ok(!g("marketJobs()").includes(jobs[0]) && g(`pursueJob("${jobs[0]}")`) === "", "a no takes it off the list for good");
+      ok(g("answerOffer(false)") === "declined" && !g("hcJobs()").includes(jobs[0]), "turning it down takes it off the list");
+    } else ok(!g("hcJobs()").includes(jobs[0]) && g(`pursueJob("${jobs[0]}")`) === "", "a no takes it off the list for good");
   }
   // Everybody says no: the weakest 1A roster takes you
   g(`marketJobs().forEach(id => { SEASON.market.tried[id] = "no"; }); if (SEASON.market.offer && SEASON.market.offer !== SEASON.market.fallback) { SEASON.market.tried[SEASON.market.offer] = "declined"; SEASON.market.offer = null; } checkFallback();`);

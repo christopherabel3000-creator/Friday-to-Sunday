@@ -16,8 +16,21 @@ function legacyCoach() {
   COACH_RATINGS.forEach(([k]) => { c[k] = COACH_LEVEL["1A"]; });
   return c;
 }
+/* ---------- A coordinator's job (Milestone 6) ---------- */
+// CAREER.job.role is "oc" or "dc" while you're a coordinator. The school you work at is still
+// SEASON.myId (its roster, schedule and games are yours to see), but its coach is the computer head
+// coach, who runs the program; your coach is CAREER.coach alone.
+const coordRole = () => (CAREER && CAREER.job && COORD_ROLES[CAREER.job.role] && SEASON && SEASON.myId && SEASON.schools[SEASON.myId] ? CAREER.job.role : "");
+// You run the program: the head coach of your school
+const iRun = () => !!(SEASON && SEASON.myId && !coordRole());
+// The school whose program you run, for the code that tells yours from the computer's
+const progId = () => (iRun() ? SEASON.myId : null);
+const headCoach = () => mySchool().coach;
+const coordSideWord = () => COORD_SIDE[coordRole()] || "";
+// "Coach Marsh", your head coach
+const hcName = () => { const c = headCoach(); return c && c.last ? `Coach ${c.last}` : "The head coach"; };
 function relinkCareer() {
-  if (CAREER && SEASON && SEASON.myId && SEASON.schools[SEASON.myId]) SEASON.schools[SEASON.myId].coach = CAREER.coach;
+  if (CAREER && SEASON && SEASON.myId && SEASON.schools[SEASON.myId] && !coordRole()) SEASON.schools[SEASON.myId].coach = CAREER.coach;
   dropStaleYou();
 }
 // Your coach belongs to one school only. A save from before November 2026 could leave him as the
@@ -167,7 +180,9 @@ function seasonEndXP(n) {
   const me = SEASON.myId, s = mySchool();
   const champ = SEASON.lvl === "col" ? !!(SEASON.post && SEASON.post[divOf(s)] && SEASON.post[divOf(s)].champ === me) : SEASON.champion === me;
   if (champ) giveXP(XP.state, "state", n);
-  giveXP(s.players.reduce((t, p) => t + Math.max(0, ovr(p, p.pos) - (p.o0 != null ? p.o0 : ovr(p, p.pos))), 0), "growth", n);
+  // (a coordinator's players are his side's)
+  const role = coordRole(), mine = role ? s.players.filter(p => COORD_POS[role].includes(p.pos)) : s.players;
+  giveXP(mine.reduce((t, p) => t + Math.max(0, ovr(p, p.pos) - (p.o0 != null ? p.o0 : ovr(p, p.pos))), 0), "growth", n);
 }
 // XP by reason, most first: [[why, n]]
 function xpBreakdown(entries) {

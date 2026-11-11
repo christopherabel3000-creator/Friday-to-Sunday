@@ -44,7 +44,7 @@ function vCSeason() {
       <div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="sroster" data-t="${oid}">${esc(opp.mascot)} roster</button></div>
     </section>
     ${practicePanel()}
-    <section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>`;
+    ${schemesPanel(s)}`;
   } else if (gm && played(gm)) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · Final</p><h3>${esc(resultText(gm, id))}</h3><button class="btn" data-a="weekdone">${weekName(n)} results</button></section>`;
   else if (SEASON.phase === "over") {
     const ch = DIV_IDS.map(dv => `${DIVS[dv].name}: ${nameOf(SEASON.post[dv].champ)}`);
@@ -61,10 +61,11 @@ function vCSeason() {
       <p class="eyebrow">${esc(`${SEASON.year} · ${levelName(s.cls)} · ${confName(id)}`)}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
       <p class="muted">${esc(colStatus())}</p>
+      ${coordMast()}
       ${SEASON.phase !== "over" ? `<p class="muted">${esc(expectText(expectOf(id)))}</p>` : ""}
     </div>
     ${main}
-    ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>` : ""}
+    ${camp ? `${schemesPanel(s)}` : ""}
     ${lastPanel}
     ${SEASON.phase === "over" ? "" : recPanel()}
     ${s.conf ? `<section class="panel"><h3>${esc(confName(id))}</h3>${confTable(s.conf, Math.min(last, COL_REG), true)}</section>` : ""}
@@ -190,6 +191,7 @@ function vCSchedule() {
 /* ---------- The offseason ---------- */
 // Who's moving on, who might leave early, and spring practice ahead
 function vCOffseason() {
+  if (coordRole()) return vCoordOffseason();
   const s = mySchool(), list = arr => `<ul class="hlist">${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
   const line = p => `${fullName(p)}, ${posName(p.pos)} ${ovr(p, p.pos)}.`;
   const seniors = s.players.filter(lastYearNow).sort((a, b) => ovr(b, b.pos) - ovr(a, a.pos));

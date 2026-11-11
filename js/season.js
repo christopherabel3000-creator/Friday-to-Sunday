@@ -304,7 +304,7 @@ const weekName = n => inPros() ? proWeekName(n) : SEASON && SEASON.lvl === "col"
 // Practice weeks are numbered with the games: camp weeks come before week 1 (0, -1 and -2 for three
 // weeks of camp)
 const practiceSlot = () => SEASON.phase === "preseason" ? SEASON.camp - SEASON.pre : SEASON.week;
-const practiceWeekName = n => n <= 0 ? `Camp week ${n + (SEASON.pre || PRESEASON_WEEKS)}` : weekName(n);
+const practiceWeekName = n => n <= 0 ? `Camp week ${n + (SEASON.pre || PRESEASON_WEEKS)}` : SEASON.phase === "offseason" && worldy() ? (inPros() ? "The offseason program" : "Spring practice") : weekName(n);
 const inCamp = () => !!(SEASON && SEASON.phase === "preseason");
 // A week's games: the schedule, or a playoff round
 function weekGames(n) {
@@ -519,13 +519,24 @@ function holdPractice() {
   const n = practiceSlot();
   if (practiced()) return SEASON.practice;
   cpuPractice(n);
-  const camp = inCamp(), me = mySchool(), rep = practiceSchool(me, planNow(), rand), gm = camp ? null : myGameIn(n);
+  const camp = inCamp(), me = mySchool(), role = coordRole();
+  // A coordinator's head coach keeps the other side's depth chart (and the kickers) himself
+  // (and his side's expectation is set from where the ratings stand at the first practice: coord.js)
+  if (role) { coordDepth(me); unitExpect(); }
+  const rep = practiceSchool(me, planNow(), rand, role ? { coord: { role, me: CAREER.coach, hc: camp ? CPU_CAMP : CPU_PLAN } } : null), gm = camp ? null : myGameIn(n);
   Object.assign(rep, { week: n, focus: (SEASON.plan.focus || []).slice(), camp });
   // Opponent prep: film study of this week's opponent
   if (gm && !played(gm)) { rep.opp = opponentIn(gm, me.id); rep.film = filmStudy(seasonSchool(rep.opp), me); }
   me.rating = schoolRating(me);
   SEASON.practice = rep;
   return rep;
+}
+// On a coordinator's team, the positions that aren't his go by the automatic depth chart
+function coordDepth(s) {
+  const role = coordRole();
+  if (!role || !s.depth) return;
+  const d = autoDepth(s);
+  for (const pos in d) if (!COORD_POS[role].includes(pos)) s.depth[pos] = d[pos];
 }
 function cpuPractice(n) {
   if (SEASON.cpuWeek >= n) return;
@@ -658,7 +669,8 @@ function playOthers(n) {
 const isMyGame = () => !!(S && S.teams && S.season && SEASON && S.season.seed === SEASON.seed && S.season.week === SEASON.week);
 function myGameConfig(gm) {
   const mine = i => [gm.h, gm.a][i] === SEASON.myId, nd = SEASON.nextDepth, fresh = practiced() ? SEASON.practice.fresh : 100;
-  return { level: gameLevel(), post: !!gm.post, cpu: [!mine(0), !mine(1)], rot: [mine(0) ? SEASON.rot : "normal", mine(1) ? SEASON.rot : "normal"],
+  const role = coordRole();
+  return { level: gameLevel(), post: !!gm.post, cpu: [!mine(0), !mine(1)], role: [mine(0) ? role : "", mine(1) ? role : ""], rot: [mine(0) ? SEASON.rot : "normal", mine(1) ? SEASON.rot : "normal"],
     depth: [mine(0) && nd ? nd.depth : null, mine(1) && nd ? nd.depth : null], title: !!gm.title, neutral: !!gm.neutral,
     fresh: [mine(0) ? fresh : 100, mine(1) ? fresh : 100] };
 }
@@ -669,15 +681,27 @@ function startMyGame() {
   if (!gm || played(gm) || inCamp()) return false;
   holdPractice();
   // (a pro team dresses 48: pcap.js)
-  initGame(myGameConfig(gm), [gameDay(seasonSchool(gm.h)), gameDay(seasonSchool(gm.a))]);
+  // A coordinator's team plays to both coaches: his side to him, the rest to the head coach, who
+  // trusts him as far as his job is safe (coach.js)
+  const role = coordRole(), sides = [gm.h, gm.a].map(id => {
+    const s = gameDay(seasonSchool(id));
+    return role && id === SEASON.myId ? Object.assign({}, s, { coach: gameCoach(s.coach, CAREER.coach, role), trust: clamp((myJob().sec || 0) / 100, 0, 1) }) : s;
+  });
+  initGame(myGameConfig(gm), sides);
   S.season = { seed: SEASON.seed, week: SEASON.week, my: SEASON.myId };
   const me = S.teams.findIndex(t => t.id === SEASON.myId), P = SEASON.practice;
   if (P && P.film && P.opp === S.teams[1 - me].id) {
-    const pr = prepFrom(P.film, P.prep, mySchool().coach.sct);
-    if (pr && coachHas(mySchool().coach, "film")) pr.k *= FILM_JUNKIE;
+    const my = role ? CAREER.coach : mySchool().coach, pr = prepFrom(P.film, P.prep, my.sct);
+    if (pr && coachHas(my, "film")) pr.k *= FILM_JUNKIE;
     // The film room (money.js)
     if (pr) pr.k *= filmMul(mySchool());
-    S.teams[me].prep = pr;
+    // A coordinator studied the side he faces; the head coach's staff studied the other
+    if (role) {
+      const hc = prepFrom(P.film, P.prepHC || 0, mySchool().coach.sct), kh = hc ? hc.k * filmMul(mySchool()) : 0, km = pr ? pr.k : 0;
+      const none = { off: {}, def: {} }, mine = pr || none, his = hc || none;
+      const mix = { k: km, off: (role === "dc" ? mine : his).off, def: (role === "oc" ? mine : his).def, kd: role === "oc" ? km : kh, ko: role === "dc" ? km : kh };
+      S.teams[me].prep = pr || hc ? mix : null;
+    } else S.teams[me].prep = pr;
   }
   seedFilm(me, S.teams[1 - me].coach);
   SEASON.nextDepth = null; SEASON.depthMode = "always";

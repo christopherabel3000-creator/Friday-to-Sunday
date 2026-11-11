@@ -135,14 +135,16 @@ function condition(p, amount, rng, rep) {
 // playbook gets a little. With no focus, it's spread across everything, so the least-known plays
 // gain the most. Smart teams (awareness) and good teachers (Development) learn faster.
 const INSTALL_RATE = 20;
-function learnMul(s) {
+function learnMul(s, coach) {
   const lu = lineupPlayers(lineupFor(s, "p11")).concat(lineupPlayers(lineupFor(s, "base")));
-  return clamp(1 + (avg(lu.map(p => p.r.awr)) - 40) * .015, .7, 1.4) * devMul(s.coach);
+  return clamp(1 + (avg(lu.map(p => p.r.awr)) - 40) * .015, .7, 1.4) * devMul(coach || s.coach);
 }
-function installPlays(s, blocks, focus, rep) {
-  const m = s.mastery, pts = INSTALL_RATE * effBlocks(blocks) * learnMul(s) * (coachHas(s.coach, "inst") ? 1.3 : 1);
+// (coach and role: one side's install, taught by that side's coach, on a coordinator's team)
+function installPlays(s, blocks, focus, rep, coach, role) {
+  coach = coach || s.coach;
+  const m = s.mastery, pts = INSTALL_RATE * effBlocks(blocks) * learnMul(s, coach) * (coachHas(coach, "inst") ? 1.3 : 1);
   if (!m || pts <= 0) return;
-  const ids = INSTALL_IDS.filter(id => m[id] != null), foc = (focus || []).filter(id => ids.includes(id)).slice(0, 3), rest = ids.filter(id => !foc.includes(id));
+  const ids = INSTALL_IDS.filter(id => m[id] != null && (!role || coordPlay(role, id))), foc = (focus || []).filter(id => ids.includes(id)).slice(0, 3), rest = ids.filter(id => !foc.includes(id));
   const share = id => foc.length ? (foc.includes(id) ? .7 / foc.length : .3 / Math.max(1, rest.length)) : 1 / ids.length;
   ids.forEach(id => {
     const before = m[id];
@@ -208,26 +210,38 @@ function injTextNext(inj) {
 /* ---------- A week of practice ---------- */
 // Runs a week of practice for a school with a plan. rng: Math.random for real practices, or a seeded
 // generator for schools rebuilt on paper (opts.noInjuries). Returns the practice report.
+// opts.coord: { role, me: your coach, hc: the head coach's plan }, a coordinator's week (Milestone 6).
+// The head coach sets the contact, conditioning and recovery; the coordinator plans fundamentals,
+// install and opponent prep for his side, taught by him, and the head coach's plan runs the rest.
+function coordPlan(plan, hc) {
+  return { areas: { fund: plan.areas.fund || 0, install: plan.areas.install || 0, prep: plan.areas.prep || 0, cond: hc.areas.cond || 0, rec: hc.areas.rec || 0 }, contact: hc.contact, focus: plan.focus };
+}
 function practiceSchool(s, plan, rng, opts) {
   opts = opts || {};
-  const b = blocksOf(plan), c = CONTACT[plan.contact] || CONTACT.shells, dev = devMul(s.coach);
-  const rep = { blocks: b, contact: plan.contact, grew: {}, mastery: [], hurt: [], fresh: freshOf(b, plan.contact), prep: prepLevelFor(b.prep, s.coach, s) };
+  const co = opts.coord || null, hcPlan = co ? co.hc : plan;
+  if (co) plan = coordPlan(plan, hcPlan);
+  // (bh: the head coach's week, which is the whole week unless you're a coordinator)
+  const b = blocksOf(plan), bh = co ? blocksOf(hcPlan) : b, c = CONTACT[hcPlan.contact] || CONTACT.shells, dev = devMul(s.coach);
+  const mineU = unit => !!co && COORD_UNITS[co.role].includes(unit);
+  const rep = { blocks: b, contact: hcPlan.contact, grew: {}, mastery: [], hurt: [], fresh: freshOf(bh, hcPlan.contact), prep: prepLevelFor(b.prep, co ? co.me : s.coach, s) };
+  if (co) { rep.role = co.role; rep.prepHC = prepLevelFor(bh.prep, s.coach, s); }
   const before = {};
   s.players.forEach(p => { before[p.id] = {}; POS_IDS.forEach(pos => { before[p.id][pos] = ovr(p, pos); }); });
   // Fundamentals, unit by unit
   for (const unit in UNITS) {
-    const eff = effBlocks(unitBlocks(b));
+    const eff = effBlocks(unitBlocks(mineU(unit) ? b : bh));
     if (!eff) continue;
     // A coach's background or perks can speed up a unit (a former quarterback's quarterbacks, say)
-    const bg = unitGrowMul(s.coach, unit);
+    const who = mineU(unit) ? co.me : s.coach, bg = unitGrowMul(who, unit), dv = mineU(unit) ? devMul(who) : dev;
     // Strength grows with the weight room (money.js)
-    unitPlayers(s, unit).forEach(([p, attrs, pos]) => growPlayer(p, strAttrs(attrs, s), pos, GROW_RATE * eff * ethMul(p) * dev * c.grow * bg * (YEAR_GROW[p.yr] || 1), rng, rep));
+    unitPlayers(s, unit).forEach(([p, attrs, pos]) => growPlayer(p, strAttrs(attrs, s), pos, GROW_RATE * eff * ethMul(p) * dv * c.grow * bg * (YEAR_GROW[p.yr] || 1), rng, rep));
   }
   // Conditioning: stamina, and a little strength and speed
-  const ce = effBlocks(b.cond);
+  const ce = effBlocks(bh.cond);
   if (ce) s.players.forEach(p => { if (sitsOut(p)) return; condition(p, .35 * ce * ethMul(p), rng, rep); growPlayer(p, strAttrs({ str: .12, spd: .06 }, s), p.pos, GROW_RATE * ce * ethMul(p) * dev, rng, rep); });
-  installPlays(s, b.install, plan.focus, rep);
-  if (!opts.noInjuries) practiceInjuries(s, b, plan.contact, rng, rep);
+  if (co) { installPlays(s, b.install, plan.focus, rep, co.me, co.role); installPlays(s, bh.install, [], null, s.coach, co.role === "oc" ? "dc" : "oc"); }
+  else installPlays(s, b.install, plan.focus, rep);
+  if (!opts.noInjuries) practiceInjuries(s, bh, hcPlan.contact, rng, rep);
   // Overall ratings that went up, for the report: at his own position, and wherever he starts
   rep.ovr = [];
   s.players.forEach(p => {
@@ -302,7 +316,8 @@ function prepEdge(o, off, def) {
   if (!S || !S.teams) return 0;
   const b = scoutBucket(), po = S.teams[o].prep, pd = S.teams[1 - o].prep;
   let e = 0;
-  if (po && (po.def[b] || []).includes(def)) e += po.k;
-  if (pd && (pd.off[b] || []).includes(off)) e -= pd.k;
+  // (kd, ko: a coordinator's team studies each side with its own coach)
+  if (po && (po.def[b] || []).includes(def)) e += po.kd != null ? po.kd : po.k;
+  if (pd && (pd.off[b] || []).includes(off)) e -= pd.ko != null ? pd.ko : pd.k;
   return e;
 }

@@ -8,6 +8,7 @@ const noNil = () => !REC_LV[mySchool().cls];
 /* ---------- On the season and week screens ---------- */
 // The week ahead: one line on the class and the board's button
 function recPanel() {
+  if (coordRole()) return "";
   const rec = recBoard();
   if (!rec) return "";
   const dec = recDecisions(rec);
@@ -15,6 +16,7 @@ function recPanel() {
 }
 // A week's results: only what changed, and the decisions waiting, each with its button
 function recWeekPanel(n) {
+  if (coordRole()) return "";
   const rec = SEASON.rec;
   if (!rec || rec.year !== SEASON.year + 1 || n > COL_REG) return "";
   const lines = rec.log[n] || [], dec = n === weeksDone() ? recDecisions(rec) : [];
@@ -166,6 +168,7 @@ function boardAct(a, ds) {
 /* ---------- The transfer portal ---------- */
 // In the offseason: who of yours entered, and the button to the portal
 function portalPanel() {
+  if (coordRole()) return "";
   if (CAREER.next || (SEASON.market && SEASON.market.took) || (SEASON.review && SEASON.review.fired)) return "";
   const P = colPortal();
   if (!P) return "";

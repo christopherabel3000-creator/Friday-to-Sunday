@@ -234,7 +234,7 @@ function recBoard() {
 function newRec() {
   const s = mySchool(), year = SEASON.year + 1, spots = classSpots(s), ranks = colRanks(weeksDone());
   payInit(s);
-  const rec = { year, spots, needs: classNeeds(s, spots), budget: roundMoney(payBudget(s) * CLASS_SHARE), staff: { fill: true, visits: true, nil: 0 }, pool: [], vis: {}, log: {}, done: false, cls: null, sum: null, staffNil: 0 };
+  const rec = { year, spots, needs: classNeeds(s, spots), budget: roundMoney(payBudget(s) * CLASS_SHARE), staff: { fill: true, visits: true, nil: coordRole() ? 3 : 0 }, pool: [], vis: {}, log: {}, done: false, cls: null, sum: null, staffNil: 0 };
   rec.pool = inStatePool(s, year).concat(outStatePool(s, year));
   rec.pool.forEach(p => setupProspect(p, s, ranks));
   // What's left of your gift to the collective (cportal.js) goes to this class, then it's used up

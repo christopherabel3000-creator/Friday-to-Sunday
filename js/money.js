@@ -270,6 +270,6 @@ function moneyYearEnd(res) {
   for (const id in SEASON.schools) {
     const s = SEASON.schools[id];
     moveBoosters(s, res[id]);
-    if (id !== SEASON.myId) cpuFacilities(s, SEASON.year);
+    if (id !== progId()) cpuFacilities(s, SEASON.year);
   }
 }

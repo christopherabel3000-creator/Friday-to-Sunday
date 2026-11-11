@@ -58,6 +58,29 @@ function coachParams(c) {
   };
 }
 
+/* ---------- Coordinators (Milestone 6) ---------- */
+// A coordinator calls one side of the ball for a computer head coach. His side: the positions on its
+// depth chart, the practice units he runs, and the perks that work on it.
+const COORD_ROLES = { oc: "Offensive coordinator", dc: "Defensive coordinator" };
+const COORD_SIDE = { oc: "offense", dc: "defense" };
+const COORD_POS = { oc: ["QB", "RB", "WR", "TE", "OL"], dc: ["DL", "LB", "CB", "S"] };
+const COORD_UNITS = { oc: ["qb", "skill", "ol"], dc: ["front", "secondary"] };
+const COORD_PERKS = { oc: ["offg", "disg"], dc: ["defm", "blitz"] };
+const coordPlay = (role, id) => (role === "oc") === !!OFFP[id];
+// The coach a coordinator's team takes into a game: the head coach, with the coordinator's rating,
+// perks, specialty and Motivation on his side of the ball. (Scouting at the line is the offense's.)
+function gameCoach(hc, me, role) {
+  const c = clone(hc), oc = role === "oc", k = oc ? "off" : "def", side = COORD_PERKS[role], other = COORD_PERKS[oc ? "dc" : "oc"];
+  c[k] = me[k];
+  if (oc) c.sct = me.sct;
+  c.perks = (hc.perks || []).filter(p => !side.includes(p)).concat((me.perks || []).filter(p => side.includes(p)));
+  c.sideMot = oc ? { off: me.mot, def: hc.mot } : { off: hc.mot, def: me.mot };
+  c.sideMotv = oc ? { off: coachHas(me, "motv"), def: coachHas(hc, "motv") } : { off: coachHas(hc, "motv"), def: coachHas(me, "motv") };
+  c.sideSpec = oc ? { off: me.spec || "", def: hc.spec || "" } : { off: hc.spec || "", def: me.spec || "" };
+  c.you = false;
+  return c;
+}
+
 /* ---------- Your coach ---------- */
 // A first-year high school head coach starts at 40 in everything, plus what the background brings.
 // grow: faster growth for those practice units (practice.js). spec: a specialty ("run": the run game,

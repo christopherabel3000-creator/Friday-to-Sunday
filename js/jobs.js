@@ -104,6 +104,7 @@ const myRep = () => inPros() ? (CAREER && CAREER.prep != null ? CAREER.prep : PR
 const repText = r => `Reputation ${Math.round(r)}: ${repWord(Math.round(r))}.`;
 // Your season goes into your reputation once, when it's over. Returns the career's entry for it.
 function gradeMySeason(entry) {
+  if (coordRole()) return coordGrade(entry);
   const me = SEASON.myId, r = finishState()[me], e = expectOf(me), g = r.g != null ? r.g : seasonGrade(r, e);
   const lv = gameLevel(), cls = lv !== "hs" ? mySchool().cls : SEASON.cls, before = myRep(), after = newRep(before, g, cls);
   if (lv === "pro") CAREER.prep = after; else if (lv === "col") CAREER.crep = after; else CAREER.rep = after;
@@ -189,7 +190,10 @@ function outsideCoach(s) {
 }
 // A school with a new coach runs his schemes
 function applyCoach(s) {
-  s.off = s.coach.off_style; s.def = s.coach.def_style;
+  // (at the school where you're a coordinator, your side keeps your scheme: coord.js)
+  const role = !WORLD_FROM && SEASON.myId === s.id ? coordRole() : "";
+  if (role !== "oc") s.off = s.coach.off_style;
+  if (role !== "dc") s.def = s.coach.def_style;
   if (s.rating) s.rating.c = Math.round((s.coach.off + s.coach.def) / 2);
 }
 
@@ -205,7 +209,10 @@ function yearEndReview() {
   // The other world's season is played out on paper too, and its coaching changes are in (cjobs.js)
   otherWorldReview();
   const res = finishState(), me = SEASON.myId, R = { open: [], why: {}, fired: false, news: [], moves: [], filled: false };
-  if (CAREER && me) {
+  // A coordinator's review is its own, and his head coach's year is in with every other coach's (coord.js)
+  const coord = !!(CAREER && me && coordRole());
+  if (coord) coordYearEnd(R);
+  else if (CAREER && me) {
     recordCareerSeason();
     const entry = CAREER.seasons.find(x => x.seed === SEASON.seed), J = myJob(), s = mySchool();
     if (entry && entry.g == null) gradeMySeason(entry);
@@ -231,7 +238,7 @@ function yearEndReview() {
     if (R.fired) { R.open.push(me); R.why[me] = "fired"; }
   }
   for (const id in SEASON.schools) {
-    if (id === me) continue;
+    if (id === me && !coord) continue;
     const s = SEASON.schools[id];
     // (your coach is only ever your own school's: anywhere else, the school has a new coach)
     if (isYou(s.coach)) s.coach = outsideCoach(s);
@@ -245,6 +252,7 @@ function yearEndReview() {
   }
   // Boosters move with every school's season, and the computer schools build (money.js). Then the
   // last offers for the seniors, signing day, and the spring offers for the juniors (recruit.js).
+  if (coord) coordAfterReview(R);
   if (!inPros()) moneyYearEnd(res);
   if (CAREER && me && !worldy()) {
     R.post = offerWindow("post");
@@ -270,7 +278,7 @@ const inMyDistrict = id => { const s = SEASON.schools[id]; if (worldy()) { const
 const NEWS_MAX = 8;
 function carouselNews() {
   const R = SEASON.review, res = SEASON.results || {}, out = [];
-  const mine = R.open.filter(id => id !== SEASON.myId), inCls = mine.filter(id => SEASON.schools[id].cls === SEASON.cls);
+  const mine = R.open.filter(id => id !== progId()), inCls = mine.filter(id => SEASON.schools[id].cls === SEASON.cls);
   out.push(inPros() ? `${plural(mine.length, "head coaching job is", "head coaching jobs are")} open in ${PRO_LEAGUE}.` : SEASON.lvl === "col" ? `${plural(mine.length, "head coaching job is", "head coaching jobs are")} open in college football.` : `${plural(mine.length, "head coaching job is", "head coaching jobs are")} open around the state, ${inCls.length} of them in Class ${SEASON.cls}.`);
   const line = id => {
     const s = SEASON.schools[id], c = s.coach, r = res[id];
@@ -294,7 +302,8 @@ function fillJobs() {
   const R = SEASON.review;
   if (!R || R.filled) return;
   R.filled = true;
-  const me = SEASON.myId, hired = new Set(), open = R.open.filter(id => id !== me), moves = [];
+  // (a coordinator's school hires its head coach like any other: coord.js)
+  const me = WORLD_FROM ? SEASON.myId : progId(), hired = new Set(), open = R.open.filter(id => id !== me), moves = [];
   const say = (id, c, from) => {
     if (!inMyDistrict(id) && !(SEASON.schools[id].cls === SEASON.cls && (notable(id) || (from && notable(from))))) return;
     moves.push(from ? `The ${nameOf(id)} hired Coach ${coachName(c)} from the ${nameOf(from)}${SEASON.schools[from].cls !== SEASON.schools[id].cls ? ` (${SEASON.schools[from].cls})` : ""}.` : `The ${nameOf(id)} hired Coach ${coachName(c)}, a newcomer.`);
@@ -304,7 +313,8 @@ function fillJobs() {
     const id = open.shift(), s = SEASON.schools[id], bar = jobBar(s) - 8, v = jobValue(s);
     let best = null;
     for (const x in SEASON.schools) {
-      if (x === me || x === id || R.why[x] || open.includes(x)) continue;
+      // (your head coach isn't hired away after your market closes: his move, if any, came first, coord.js)
+      if (x === me || (!WORLD_FROM && x === SEASON.myId) || x === id || R.why[x] || open.includes(x)) continue;
       const o = SEASON.schools[x], c = o.coach;
       if (!c || isYou(c) || hired.has(c) || c.rep < bar || (c.job && c.job.ten < MOVE_AFTER)) continue;
       if (o.cls === s.cls ? jobValue(o) + MOVE_UP > v : classIndex(o.cls) > classIndex(s.cls)) continue;
@@ -348,7 +358,9 @@ function interestIn(s) {
 function marketJobs() {
   const R = SEASON.review, M = SEASON.market;
   if (!R || !M) return [];
-  return R.open.filter(id => id !== SEASON.myId && id !== (M.from || "") && !M.tried[id] && interestIn(SEASON.schools[id])).concat(otherJobs().filter(id => !M.tried[id]));
+  // (your own school's job, when it offers a coordinator the promotion; and coordinator jobs: coord.js)
+  return R.open.filter(id => (id !== SEASON.myId || (R.promo && coordRole())) && id !== (M.from || "") && !M.tried[id] && interestInJob(id))
+    .concat(otherJobs().filter(id => !M.tried[id]), coordJobs());
 }
 function weakest1A() {
   const str = s => s.rating.off + s.rating.def, low = inPros() ? "PRO" : SEASON.lvl === "col" ? "D3" : "1A";
@@ -363,7 +375,7 @@ function pursueJob(id) {
   const M = SEASON.market;
   if (!M || M.done || M.offer || !marketJobs().includes(id)) return "";
   const roll = seededRandom(hashSeed(`${SEASON.seed}:${id}:offer`))();
-  if (roll < INTEREST_ODDS[interestIn(jobSchool(id))]) { M.offer = id; M.ctl = isPro(jobSchool(id).cls) ? offerHasControl(id) : false; return "offer"; }
+  if (sureThing(id) || roll < INTEREST_ODDS[interestInJob(id)]) { M.offer = id; M.ctl = !jobRole(id) && isPro(jobSchool(id).cls) ? offerHasControl(id) : false; return "offer"; }
   M.tried[id] = "no";
   checkFallback();
   return "no";
@@ -398,7 +410,7 @@ function autoMarket() {
   const rank = { high: 0, medium: 1, low: 2 };
   for (let guard = 0; guard < 400 && !M.done; guard++) {
     if (M.offer) { answerOffer(true); break; }
-    const next = marketJobs().sort((a, b) => rank[interestIn(SEASON.schools[a])] - rank[interestIn(SEASON.schools[b])])[0];
+    const next = marketJobs().sort((a, b) => rank[interestInJob(a)] - rank[interestInJob(b)])[0];
     if (!next) { checkFallback(); if (!M.offer) break; continue; }
     pursueJob(next);
   }
@@ -412,8 +424,8 @@ const movedSchools = () => !!(SEASON && SEASON.market && SEASON.market.took);
 function careerBySchool() {
   const out = [];
   (CAREER.seasons || []).forEach(x => {
-    const key = x.sid || x.school, last = out[out.length - 1];
-    const st = last && last.key === key ? last : (out.push({ key, school: x.school, cls: x.cls || "1A", from: x.year, to: x.year, w: 0, l: 0, pw: 0, pl: 0, dt: 0, ch: 0, pay: 0 }), out[out.length - 1]);
+    const key = (x.sid || x.school) + (x.role || ""), last = out[out.length - 1];
+    const st = last && last.key === key ? last : (out.push({ key, role: x.role || "", school: x.school, cls: x.cls || "1A", from: x.year, to: x.year, w: 0, l: 0, pw: 0, pl: 0, dt: 0, ch: 0, pay: 0 }), out[out.length - 1]);
     st.to = x.year; st.w += x.w; st.l += x.l; st.pw += x.pw || 0; st.pl += x.po && !x.ch ? 1 : 0; st.dt += x.dt ? 1 : 0; st.ch += x.ch ? 1 : 0; if (x.pay) st.pay = x.pay;
   });
   return out;
@@ -424,7 +436,7 @@ function stintLine(st) {
   if (st.pw || st.pl) bits.push(`${st.pw}-${st.pl} in the playoffs`);
   if (st.dt) bits.push(plural(st.dt, "district title"));
   if (st.ch) bits.push(plural(st.ch, "state title"));
-  return `${st.school} (${st.cls}), ${yrs}: ${bits.join(", ")}.${st.pay ? ` Stipend ${moneyText(st.pay)}.` : ""}`;
+  return `${st.school} (${st.cls})${st.role ? `, ${COORD_ROLES[st.role].toLowerCase()}` : ""}, ${yrs}: ${bits.join(", ")}.${st.pay ? ` Stipend ${moneyText(st.pay)}.` : ""}`;
 }
 // A few of your best returning players may follow you: each of your five best (not counting seniors)
 // with a 15 percent chance
@@ -447,14 +459,20 @@ function switchDistrict(cls, d) {
   REBUILT.clear();
 }
 function takeJob(id) {
+  // A move to or from a coordinator's job is its own (coord.js)
+  if (jobRole(id) || coordRole()) { coordTakeJob(id); return; }
   // A job in the other world starts next season; a move within college is its own (cjobs.js)
   if (otherWorldJob(id)) { takeJobAcross(id); return; }
   if (inPros()) { proMoveWithin(id); return; }
   if (SEASON.lvl === "col") { colMoveWithin(id); return; }
+  hsMoveWithin(id);
+}
+function hsMoveWithin(id) {
   const M = SEASON.market, R = SEASON.review, old = SEASON.myId, from = SEASON.schools[old], c = CAREER.coach;
-  const moving = transfersFrom(from, id);
+  // (nobody follows a coordinator, and a coordinator leaves no books behind: coord.js)
+  const moving = MOVE_AS ? [] : transfersFrom(from, id);
   // The money you raised stays with the school, and its next coach keeps the books
-  delete from.fund;
+  if (!(MOVE_AS && MOVE_AS.wasCoord)) delete from.fund;
   from.players = from.players.filter(p => !moving.includes(p));
   if (!R.why[old]) { R.open.push(old); R.why[old] = "left"; }
   const target = SEASON.schools[id];

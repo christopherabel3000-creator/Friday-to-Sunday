@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 17;
+const BUILD = 18;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -386,6 +386,17 @@ function vHelp() {
       "The offseason runs in the NFL's order: re-signing, the franchise tag and fifth-year options; the new league year; five days of free agency; compensatory picks; the draft; and camp.",
       "Trades: players and picks for the next three drafts, from the offseason through the deadline, the Tuesday after week 9. Pick a team, add players and picks from both sides, and their answer reads out as you go: not close, they'd want more, a bit more, or they'd take that. Teams call with offers now and then, and trade with each other."
     ]))}
+    ${sec("Coordinators", ul([
+      "A second way up: take a coordinator job and you call one side of the ball for a computer head coach, at a bigger school or a higher level than would hire you to run the program. Coordinator jobs are in the job market beside head coaching jobs, with a Role filter.",
+      "They open sooner: in high school, 24 points of reputation below the same school's head coaching job. College coordinator jobs open at a high school reputation of 55 for Division III and II, 65 for the FCS and 75 for the rest of FBS. Pro coordinator jobs open at a college reputation of 55 from a power-conference job, or 65 as a head coach in the rest of FBS.",
+      "The cost: a coordinator's seasons move reputation at 0.7 of a head coach's, the head coach makes the big decisions, and he can let you go.",
+      "On game day you call your side. The other side's plays are read as one drive summary when your next call comes up; the Hear every play button at the bottom of the game turns that off. The head coach decides the coin toss, fourth downs, tries after touchdowns, timeouts, penalties and the kicking game.",
+      "As offensive coordinator, when he sends out a kicking unit on fourth and 3 or less, you can ask him to go for it, once a possession. He agrees more often the more he trusts you and the better the odds, and he remembers how it turned out.",
+      "Your week is your side's: fundamentals for your position groups, install and opponent prep in practice, your side's scheme, and your side's positions on the depth chart. The head coach sets the contact, conditioning and recovery, and runs the program: there are no boosters, recruiting or cap for you.",
+      "Your grade is three parts your side's points a game against what was expected, and one part the team's season. It moves your reputation and the head coach's trust in you, which is your job security.",
+      "When the head coach is fired or retires, the school may offer you his job after a good year, the new coach may keep you, or he may bring his own staff, which pays out your contract and isn't a firing. When your head coach takes a bigger job, he may ask you to come with him.",
+      "An exhibition can be played as either coordinator: pick your job on the exhibition screen."
+    ]))}
     ${sec("The offseason", ul([
       "After the job market comes the offseason. Your seniors graduate, and the offseason screen shows who's leaving and who's coming back.",
       "Starting the next season, everyone else gets a summer older: players grow over the summer, a few leave the team, and a new class of freshmen comes out. How many depends on your school's size and tradition.",
@@ -493,8 +504,11 @@ const SCREENS = { cap: vCap, gm: vGM, trade: vTrade, dboard: vDBoard, dprospect:
   schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason, vPOffseason), newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal, names: vNames };
+// The program's screens: the head coach's, so a coordinator never lands on one
+const PROGRAM_SCREENS = new Set(["fund", "halls", "board", "prospect", "rfind", "portal", "cap", "gm", "trade", "dboard", "dprospect", "dfind", "draftroom", "falist", "faplayer"]);
 function currentView() {
   if (helpOpen) return vHelp;
+  if (PROGRAM_SCREENS.has(APP.screen) && SEASON && SEASON.myId && coordRole()) APP.screen = "season";
   if (APP.screen === "game" && S && S.teams) return GAME_VIEWS[S.phase] || vHome;
   return SCREENS[APP.screen] || vHome;
 }
@@ -629,6 +643,8 @@ function act(a, ds) {
       if (!ids.includes(ds.v)) break;
       if (APP.screen === "newcoach") (APP.coachDraft = APP.coachDraft || newDraft())[k] = ds.v;
       // Your schemes are your coach's: they go with him to the next job
+      // (a coordinator changes his own side's only, and his style is his coach's, not the head coach's)
+      else if (APP.screen === "season" && SEASON && SEASON.myId && coordRole()) { if ((coordRole() === "oc") === (k === "off")) { mySchool()[k] = ds.v; CAREER.coach[k + "_style"] = ds.v; } }
       else if (APP.screen === "season" && SEASON && SEASON.myId) { const me = mySchool(); me[k] = ds.v; me.coach[k + "_style"] = ds.v; }
       else APP.ex.styles[k] = ds.v;
       break;
@@ -720,15 +736,17 @@ function act(a, ds) {
     case "parea": {
       const v = +ds.v;
       if (!AREA_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
+      // (conditioning and recovery are the head coach's, on a coordinator's team)
+      if (coordRole() && (ds.t === "cond" || ds.t === "rec")) break;
       SEASON.plan.areas[ds.t] = v;
-      announce(`${AREA_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${blocksText(blocksOf(planNow())[ds.t])}.`); break;
+      announce(`${AREA_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${blocksText(blocksOf(coordRole() ? coordPlan(planNow(), hcPlanNow()) : planNow())[ds.t])}.`); break;
     }
-    case "pcontact": if (CONTACT[ds.v]) { SEASON.plan.contact = ds.v; announce(`${CONTACT[ds.v].name}.`); } break;
-    case "ppreset": if (PRESETS[ds.v]) { SEASON.plan.areas = clone(PRESETS[ds.v].areas); SEASON.plan.contact = PRESETS[ds.v].contact; announce(`${PRESETS[ds.v].name} plan, in ${CONTACT[SEASON.plan.contact].name.toLowerCase()}.`); } break;
+    case "pcontact": if (CONTACT[ds.v] && !coordRole()) { SEASON.plan.contact = ds.v; announce(`${CONTACT[ds.v].name}.`); } break;
+    case "ppreset": if (PRESETS[ds.v] && !coordRole()) { SEASON.plan.areas = clone(PRESETS[ds.v].areas); SEASON.plan.contact = PRESETS[ds.v].contact; announce(`${PRESETS[ds.v].name} plan, in ${CONTACT[SEASON.plan.contact].name.toLowerCase()}.`); } break;
     case "install": APP.screen = "install"; scrollTop(); break;
     case "pfocus": {
       const f = SEASON.plan.focus || (SEASON.plan.focus = []), i = f.indexOf(ds.v);
-      if (!INSTALL_IDS.includes(ds.v)) break;
+      if (!INSTALL_IDS.includes(ds.v) || (coordRole() && !coordPlay(coordRole(), ds.v))) break;
       if (i >= 0) { f.splice(i, 1); announce(`${playName(ds.v)} off the install focus.`); }
       else if (f.length >= 3) announce("Three plays already. Take one off first.");
       else { f.push(ds.v); announce(`${playName(ds.v)} added to the install focus.`); }
@@ -789,15 +807,15 @@ function act(a, ds) {
     case "dmode": if (ds.v === "next" || ds.v === "always") depthHome().depthMode = ds.v; break;
     case "dnextoff": depthHome().nextDepth = null; announce("Next-game changes dropped."); break;
     case "rot": {
-      if (!ROTATION[ds.v] || !canEdit(APP.view.team)) break;
+      if (!ROTATION[ds.v] || !canEdit(APP.view.team) || viewRole(APP.view.team)) break;
       if (inGameView()) { S.teams[APP.view.team].rot = ds.v; } else depthHome().rot = ds.v;
       announce(`Rotation: ${ROTATION[ds.v].name}.`); break;
     }
-    case "dreset": if (canEdit(APP.view.team)) { resetDepth(APP.view.team); announce("The depth chart is back to automatic."); } break;
-    case "dedit": if (canEdit(APP.view.team)) { APP.view.edit = ds.v; APP.view.sel = null; APP.screen = "depth"; scrollTop(); } break;
+    case "dreset": if (canEdit(APP.view.team) && !viewRole(APP.view.team)) { resetDepth(APP.view.team); announce("The depth chart is back to automatic."); } break;
+    case "dedit": if (canEditPos(APP.view.team, ds.v)) { APP.view.edit = ds.v; APP.view.sel = null; APP.screen = "depth"; scrollTop(); } break;
     case "dsel": APP.view.sel = APP.view.sel === ds.v ? null : ds.v; break;
     case "dmove": {
-      if (!canEdit(APP.view.team)) break;
+      if (!canEditPos(APP.view.team, APP.view.edit)) break;
       const said = depthMove(APP.view.team, APP.view.edit, ds.t, ds.v);
       if (said) announce(said);
       focusNext = { a: "dsel", v: ds.t };

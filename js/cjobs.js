@@ -81,10 +81,11 @@ const contractText = J => `${moneyText(J.pay)} a year, ${plural(J.yrs, "year")} 
 
 /* ---------- Jobs in both worlds ---------- */
 // A school from either world, by id (high school ids look like d3s5 or 4Ad3s5, college ids like c123)
-const jobSchool = id => (SEASON.schools[id]) || (OTHER && OTHER.schools[id]) || (THIRD && THIRD.schools[id]) || null;
+// (a coordinator job's id carries its role after the school's: coord.js)
+const jobSchool = jid => { const id = jobSid(jid); return (SEASON.schools[id]) || (OTHER && OTHER.schools[id]) || (THIRD && THIRD.schools[id]) || null; };
 // The world a job is in, when it isn't yours: OTHER or THIRD
-const jobWorld = id => SEASON.schools[id] ? SEASON : OTHER && OTHER.schools[id] ? OTHER : THIRD && THIRD.schools[id] ? THIRD : null;
-const otherWorldJob = id => !SEASON.schools[id] && !!jobWorld(id);
+const jobWorld = jid => { const id = jobSid(jid); return SEASON.schools[id] ? SEASON : OTHER && OTHER.schools[id] ? OTHER : THIRD && THIRD.schools[id] ? THIRD : null; };
+const otherWorldJob = jid => !SEASON.schools[jobSid(jid)] && !!jobWorld(jid);
 // The reputation a school looks at, and its bar: a high school looks at your high school
 // reputation, a college at your college one (or, from high school, your high school one against 80)
 // (a pro team looks at your pro reputation, or from college your college one against 75: pworld.js)
@@ -146,6 +147,8 @@ function switchWorlds() {
   if (!nx) return;
   CAREER.next = null;
   const leaving = SEASON, arriving = [OTHER, THIRD].find(w => w && w.schools[nx.id]);
+  // (arriving as a coordinator, the school keeps its head coach: coord.js)
+  const pre = nx.role ? schoolKeep(arriving.schools[nx.id]) : null;
   // Your old district or program goes back to paper (a pro team as short records)
   leaving.districts.forEach(d => d.ids.forEach(x => { const o = leaving.schools[x]; if (isFull(o)) { const sum = isPro(o.cls) ? proToPaper(o) : schoolSummary(o); if (!isPro(o.cls)) sum.rating = o.lvl === "col" ? colRating(o, leaving.year) : schoolRating(o); leaving.schools[x] = sum; } }));
   leaving.myId = null;
@@ -163,6 +166,7 @@ function switchWorlds() {
     startColJob(nx.id);
     colSetExpectations();
   } else hsTakeOver(nx.id);
+  if (pre) coordArrive(nx.id, nx.role, pre);
   SEASON.yearReport = null;
 }
 // With SEASON set, the other two worlds go where they belong: OTHER is the one whose jobs sit next to

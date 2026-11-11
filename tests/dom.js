@@ -537,7 +537,7 @@ function checkScreen(page, label) {
   tap(p4, "market");
   ok(ev("APP.screen") === "market" && /The job market/.test(heading() || "") && btn(d4, "stay"), "the job market, with the choice to stay");
   checkScreen(p4, "job market");
-  const jobs = ev("marketJobs()");
+  const jobs = ev("hcJobs()");
   if (jobs.length) {
     tap(p4, "joblook", jobs[0]);
     ok(ev("APP.screen") === "joblook" && /Coming back next season/.test(d4.body.textContent) && /The playbook/.test(d4.body.textContent), "a closer look at a job: its returning players and its playbook");
@@ -717,7 +717,7 @@ function checkScreen(page, label) {
   tap(p9, "offseason");
   if (ev9("APP.screen") === "signing") tap(p9, "adreview");
   tap(p9, "carousel"); tap(p9, "market");
-  const colJob = ev9(`marketJobs().find(id => isCollege(jobSchool(id).cls))`);
+  const colJob = ev9(`hcJobs().find(id => isCollege(jobSchool(id).cls))`);
   ok(!!colJob && /Division I/.test(d9.body.textContent), "at a reputation of 80, the job market lists college jobs");
   checkScreen(p9, "job market with college jobs");
   tap(p9, "joblook", colJob);

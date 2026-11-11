@@ -45,7 +45,7 @@ function vPSeason() {
       <div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="sroster" data-t="${oid}">${esc(opp.mascot)} roster</button></div>
     </section>
     ${practicePanel()}
-    <section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>`;
+    ${schemesPanel(s)}`;
   } else if (gm && played(gm)) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · Final</p><h3>${esc(resultText(gm, id))}</h3><button class="btn" data-a="weekdone">${weekName(n)} results</button></section>`;
   else if (SEASON.phase === "over") {
     main = `<section class="panel"><p class="eyebrow">${SEASON.year} season</p><h3>The season is over</h3><p>${esc(`${proFinishText(id)}. ${PRO_BOWL} champions: the ${nameOf(SEASON.post.champ)}.`)}</p>
@@ -61,18 +61,19 @@ function vPSeason() {
       <p class="eyebrow">${esc(`${SEASON.year} · ${PRO_CONF_NAMES[proCf(id)]} · ${proDivName(id)}`)}</p>
       <h2 data-focus tabindex="-1">${esc(nameOf(id))}</h2>
       <p class="muted">${esc(proStatus())}</p>
+      ${coordMast()}
       ${SEASON.phase !== "over" ? `<p class="muted">${esc(expectText(expectOf(id)))}</p>` : ""}
     </div>
     ${cutdownPanel()}
     ${camp && cutWait() ? `<section class="panel"><h3>Cutdown day</h3><p>${esc(`You're ${onActive(s).length - PRO_ACTIVE} over ${PRO_ACTIVE}, and the cuts are yours. Release players or move them to the practice squad from the roster, or let your staff cut to ${PRO_ACTIVE}.`)}</p><div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="staffcut">Let your staff cut to ${PRO_ACTIVE}</button></div></section>` : ""}
     ${main}
-    ${camp ? `<section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>` : ""}
+    ${camp ? `${schemesPanel(s)}` : ""}
     ${lastPanel}
     <section class="panel"><h3>${esc(proDivName(id))}</h3>${proDivTable(s.conf, Math.min(last, PRO_REG), true)}</section>
     <section class="panel"><h3>The season</h3>
       <div class="choices"><button class="btn ghost" data-a="standings">Standings and the playoff picture</button>${SEASON.post ? `<button class="btn ghost" data-a="bracket">The playoff</button>` : ""}</div>
       <div class="choices"><button class="btn ghost" data-a="schedule">Schedule and stats</button>${gm && !played(gm) && !live && !camp ? "" : `<button class="btn ghost" data-a="sroster" data-t="${id}">Roster and depth chart</button>`}<button class="btn ghost" data-a="coach">Your coach</button></div>
-      <div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</button>${CAREER.job && CAREER.job.ctl && tradesOpen(SEASON) ? `<button class="btn ghost" data-a="trade">Trades${SEASON.tradeOffer ? ", an offer waiting" : ""}</button>` : ""}${SEASON.draft ? `<button class="btn ghost" data-a="dboard">The ${SEASON.draft.year} draft board</button>` : ""}</div>
+      ${coordRole() ? "" : `<div class="choices"><button class="btn ghost" data-a="cap">The salary cap: ${esc(bigMoney(capRoom(s)))} of room</button><button class="btn ghost" data-a="gm">${CAREER.job && CAREER.job.ctl ? "Your front office" : "Your general manager"}</button>${CAREER.job && CAREER.job.ctl && tradesOpen(SEASON) ? `<button class="btn ghost" data-a="trade">Trades${SEASON.tradeOffer ? ", an offer waiting" : ""}</button>` : ""}${SEASON.draft ? `<button class="btn ghost" data-a="dboard">The ${SEASON.draft.year} draft board</button>` : ""}</div>`}
     </section>
     ${simBtn && !live ? `<button class="btn ghost" data-a="simseason" data-v="${simBtn[0]}">${confirming === "simseason" ? `Tap again to ${simBtn[1].toLowerCase()}` : simBtn[1]}</button>`
       : camp ? `<button class="btn ghost" data-a="campsim">${confirming === "campsim" ? "Tap again to sim the rest of camp" : "Sim the rest of camp"}</button>` : ""}`;
@@ -173,6 +174,7 @@ function vPSchedule() {
 
 /* ---------- The offseason ---------- */
 function vPOffseason() {
+  if (coordRole()) return vCoordOffseason();
   const s = mySchool(), gone = leavingSchool();
   return `
     <div class="masthead" style="--team:${s.color}">
