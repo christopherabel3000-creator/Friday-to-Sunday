@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone. Since then (November 2026): scoreboard abbreviations you choose, one Fundamentals setting in practice (every position group at once), and fixes for loading saves (see Saves), shortening a blowout (see Rules by level), clinics and consultants for college and pro coaches and gifts to the NIL collective (see Coaching clinics and Money: revenue sharing and NIL), saves that don't fail when the device's storage fills (see Saves), and your coach's page leading with the XP to spend and your job (the expectation this season, job security and the contract), with the expectation on the college and pro season screens too. Next is Milestone 6, the coordinator path.
+Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone. Since then (November 2026): scoreboard abbreviations you choose, one Fundamentals setting in practice (every position group at once), and fixes for loading saves (see Saves), shortening a blowout (see Rules by level), clinics and consultants for college and pro coaches and gifts to the NIL collective (see Coaching clinics and Money: revenue sharing and NIL), saves that don't fail when the device's storage fills (see Saves), and your coach's page leading with the XP to spend and your job (the expectation this season, job security and the contract), with the expectation on the college and pro season screens too. Next is Milestone 6, the coordinator path, which is designed (see Milestone 6) and not yet built.
 
 ## The pitch
 
@@ -776,6 +776,95 @@ When you have control:
 - Measured in step 2 (on a desktop computer; still to check on a phone): see build step 2. Each team's 53 players take about 6 KB as short records.
 - Quick sims in the pros, fit from 300 full-engine games between pro teams: expected points of 9.04 + 1.199 times the offense's starter rating, minus 0.989 times the defense's, plus 1.86 at home, plus 0.149 per point of coaching edge, from 11 drives with a field goal on two scores in five. A regular-season game tied after four quarters goes to overtime, which ends tied about one time in eight.
 
+## Milestone 6: the coordinator path
+
+A second way up. Take a coordinator job and you call one side of the ball for a computer head coach, at a bigger school or a higher level than would hire you to run the whole program. You give up control to get there sooner: he makes the fourth-down calls, runs the program and can fire you. Win with your side and you can move up as a coordinator, take a head coaching job, or get handed the one you're standing next to.
+
+Decisions (Nov 2026; the four marked "to confirm" are in Open questions):
+
+- Two jobs: offensive coordinator and defensive coordinator, at every level. The head coach's ratings run the other side and special teams.
+- Coordinator jobs come through the job market, beside head coaching jobs. A new career still starts as the head coach of a 1A school (to confirm).
+- The trade: a coordinator job is open to you about two steps above the head coaching job you could get, and across levels sooner. A coordinator's seasons move reputation less than a head coach's.
+- One reputation per level, as now. There's no separate coordinator reputation.
+- You're graded on your side: the points your offense scores, or your defense allows, against what was expected of it, with a small share for the team's season.
+- On game day the other side's possessions are read as one drive summary, not play by play, unless you choose to hear every play (to confirm). A coordinator's game takes about half the taps.
+- The head coach decides fourth downs, tries after touchdowns, timeouts and kickoffs. Once a possession you can ask him to go for it (to confirm).
+- You run your side's week: its practice, its playbook and mastery, its depth chart and the film on the side you face. You have no program duties: no boosters or fund, no recruiting, no draft or cap (to confirm for college recruiting).
+- When the head coach leaves, you may be promoted, kept by the new coach, or let go with him.
+
+Not in this milestone: special teams coordinator and position coach jobs, assistant coaches on your own staff when you're the head coach, computer coordinators with careers of their own, a head coach who takes the play calling away from you during a game, and co-coordinators.
+
+### The jobs
+
+- Offensive coordinator: you call every offensive snap, with the audibles, no huddle, spikes and running the clock that go with it. Two-point tries are your call once the head coach decides to go for two.
+- Defensive coordinator: you call every defensive snap, with disguises, including against two-point tries.
+- The head coach: a computer coach like any other, with his own ratings, scheme and career. His Offense or Defense rating calls the side you don't, his Special teams rating runs the kicking game, and his Game management rating makes the decisions below. You can read his page before you take the job.
+- Your scheme: you bring your own style for your side, and mastery starts over as with any new job. The head coach's style runs the other side.
+- Your coach ratings work as they do now, for your side only: Offense or Defense is the execution edge, Scouting is the film and the disguise flags, Development speeds your position groups' growth, and Motivation helps your side late. Game management shows the same odds on your call sheet, though the fourth-down decision is his.
+
+### Getting a coordinator job
+
+Coordinator jobs are listed in the same job market, marked "Offensive coordinator" or "Defensive coordinator", with a Role filter (Head coach, Coordinator) beside Sort and Class. Starting numbers, to be fit with simulated careers:
+
+- In high school: a coordinator job's bar is the school's head coaching bar minus 24, about two classes up. A 1A head coach with a reputation of 20 can be a 3A coordinator (bar 16); a 4A coordinator job wants 28, 5A 40 and 6A 52.
+- High school to college: college coordinator jobs appear in a high school coach's market at a high school reputation of 55 for Division III and Division II, 65 for the FCS and 75 for the rest of FBS. (Head coaching jobs still need 80, and only Division III and II.) Power-conference coordinator jobs need a college reputation.
+- In college: a coordinator job's bar is that level's head coaching bar minus 20: Division III and II 0, the FCS 10, the rest of FBS 25 and the power conferences 45, plus the usual bit for tradition.
+- College to the pros: pro coordinator jobs appear for a power-conference head coach or coordinator at a college reputation of 55, and for a head coach in the rest of FBS at 65. (Pro head coaching jobs still need a power-conference head coach at 75.)
+- In the pros: every team's coordinator jobs are open to a coach already in the league, with a small bar for proud teams.
+- A coach arriving at a new level as a coordinator starts that level's reputation the way a head coach does: 20, plus a little for a legend.
+- Back the other way: a coordinator gets head coaching offers on the same reputation and bars as anyone. So the usual move is two steps up as a coordinator, a couple of good seasons, then a head coaching job a step above the one you left.
+- A fired head coach finds coordinator jobs in his market too, which is the real way back.
+- Where openings come from: when a school changes head coaches, both its coordinator jobs open, and each year about one school in eight loses a coordinator. Both are rolled once from the season's seed. Computer staffs aren't tracked beyond that; jobs you don't take are filled on paper.
+- Pay, in real dollars (to check against current salaries while it's built): a high school coordinator's stipend is about 40 percent of the head coach's. College: Division III about $35,000 to $60,000, Division II about $45,000 to $90,000, the FCS about $80,000 to $250,000, the rest of FBS about $250,000 to $900,000, and the power conferences about $900,000 to $2.5 million. The pros: about $1 million to $6 million. College deals run 1 to 3 years and pro deals 2 to 3. Buyouts and counteroffers work as they do for head coaches.
+
+### Game day
+
+- When your side is on the field, the game is the one you know: the same call sheet, lineup changes between plays, and reports.
+- When the other side is on the field, the head coach calls it and you hear the possession in one sentence: "Their drive: 9 plays, 62 yards, 4 minutes 10. Touchdown, Ridgeline 14, Carver 7." A turnover, a score, an injury to one of your players and the two-minute warning are always in it. A setting on the game's options, "The other side: drive summaries or every play", switches to play by play.
+- Kicks belong to the head coach and are read with the drive they end: the punt, the field goal, the kickoff and its return.
+- The head coach decides: the coin toss, fourth downs (go, punt or kick), one point or two after a touchdown, timeouts, onside kicks, and taking a knee. His Game management rating and the situation decide, by the same rules computer coaches use now.
+- As offensive coordinator you keep the tempo: no huddle, spikes, sideline routes and running the clock with a lead are yours. Timeouts are his, and he uses them the way a computer coach does in a two-minute drive.
+- Asking him: when he sends out the punt or field goal team on fourth and 3 or less, an "Ask to go for it" button is on the screen, once a possession. He agrees more often the more he trusts you (your job security) and the better the odds, and he remembers how it turned out. If you don't ask, nothing extra is read.
+- Sim and key moments still work: the computer calls your side with your ratings, and in key moments you take over when it's close late and your side is on the field.
+- XP: you earn it for your side's snaps won, your side's players improving, wins and titles, at the usual rates.
+
+### The week
+
+- Practice: the head coach sets the week's hours and intensity. You plan your side's share with the same choices as now, for your side: plays to install, fundamentals for your position groups, and opponent prep.
+- Playbook and mastery: your side's only.
+- Film study and scouting reports: on the side you'll face (their defense if you call the offense). Your film is still charted by the other team's coach.
+- Depth chart: your side's is yours, automatic if you want it. The head coach sets the other side and special teams. In high school, where players go both ways, he decides who also plays on the other side, and your side's starters can come to you tired; the depth screen says who's going both ways.
+- Everything else runs the way every computer program runs now: turnout, the summer, boosters and the fund in high school; recruiting, NIL and the portal in college; the general manager in the pros. The season screen shows the roster news that touches your side ("Two receivers signed" or "Your left tackle transferred"), only when something changed.
+- The season screen leads with your side's rank and its expectation: "Offense: 27.4 points a game, 3rd of 8 in the district. Expected about 24."
+
+### The grade, reputation and the job
+
+- Expectation: the same 60 seasons on paper that set the team's expectation also give your side's expected points a game, scored or allowed.
+- The season grade: on the usual scale, three parts your side against its expectation and one part the team's grade. A great offense on a losing team still grades well.
+- Reputation moves as it does for a head coach, at 0.7 of the size. Top units are remembered: finishing first in points in your class, conference or league adds a little, and your coach's page lists them ("Top offense in 5A, 2031").
+- Job security is the head coach's trust in you: the same meter, the same words, moved by your side's grade. A first-year coordinator isn't fired.
+- When the head coach is fired or retires: if your last grade was a B or better and your reputation is within 10 of the school's head coaching bar, the school offers you the job before the market opens. Otherwise the new coach keeps you about half the time, more often after a good grade, or brings his own staff, which pays out your contract and doesn't count against you.
+- When the head coach takes a bigger job, he may ask you to come with him: the same role at his new school, even if its bar is a little above you.
+- Specializing: you can stay a coordinator for a whole career. Pay follows reputation up to the top of the pro range, and the career page counts seasons, top-five units and top units as a coordinator beside your head coaching record.
+
+### Screens
+
+- The job market: coordinator jobs in the list, a Role filter, and the head coach's page from each job's closer look.
+- The season screen for a coordinator: your side's rank and expectation, the week's plan for your side, and the head coach's word on how he thinks it's going.
+- The game: the drive summary, the head coach's decisions in the play report, and the Ask button.
+- Your coach's page: your role, your contract, the head coach's trust, and your units by season.
+- The offseason for a coordinator: the review with the head coach, the staff news, the market and your XP.
+
+### How it's built (Milestone 6)
+
+1. The engine: who controls a team is split by side. Today a team is the computer's or yours (one flag, read in about 35 places). It becomes offense, defense and decisions, each yours or the computer's, behind small helpers, so every existing game reads the same as before. An exhibition can be played as a coordinator, to test with a screen reader before any career work.
+2. The other side as a drive summary, built on the fast-forward that key moments uses, with the option for every play. The head coach's decisions and the Ask button.
+3. The career: a role on the job (head coach, offensive or defensive coordinator). The school you work at is still marked as yours for rosters and schedules, and a new helper says whether you run the program; the program screens are hidden when you don't, and the school runs on the computer's code while keeping its full roster. The week for one side.
+4. Your side's expectation, grade, reputation and job security; what happens when the head coach leaves.
+5. The market: coordinator openings at all three levels and across them, pay and contracts. Simulated careers set the bars so the coordinator path is quicker to each level but not a free pass, and a save upgrade gives every existing career the head coach role.
+
+Tests with each step: a coordinator game played by tapping (a screen reader's view of it), whole coordinator careers through each level change, and saves from before the milestone.
+
 ## The world
 
 - A fictional state with six classes, from 1A (the smallest schools) to 6A (the largest). Bigger schools have more students to draw players from. All six arrive in Milestone 3a.
@@ -1099,7 +1188,7 @@ See Milestone 5 near the top.
 
 ### Milestone 6: the coordinator path
 
-Take a coordinator job and call one side of the ball while a computer head coach calls the other. That needs one engine change: a team that's half yours and half the computer's. Coordinators can move up to head coaching jobs or specialize.
+See Milestone 6 near the top.
 
 ## Saves
 
@@ -1166,4 +1255,9 @@ How it's built (step 5):
 
 ## Open questions
 
-None right now.
+For Milestone 6, each with the choice the design assumes:
+
+- Can a new career start as a coordinator? Assumed no: every career starts as a 1A head coach, and coordinator jobs come through the market.
+- The other side of the ball as drive summaries by default, with every play as an option? Assumed yes.
+- The "Ask to go for it" button on fourth and short? Assumed yes, once a possession.
+- Should a college coordinator recruit for his side? Assumed no for this milestone: the program recruits on paper.
