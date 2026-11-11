@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 16;
+const BUILD = 17;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -34,10 +34,17 @@ function newExhibition(level) {
   const v = genSchool(g, { id: "v", cls, mascot: mascots[1], towns, town: town(), colorsTaken: colors, otherAbbr: h.abbr });
   APP.ex = { seed, level, schools: [h, v], you: 0, styles: { off: h.off, def: h.def } };
 }
+// Your job in an exhibition: the head coach (""), or a coordinator calling one side for a computer head coach
+const exRole = () => (APP.ex && APP.ex.you !== "watch" && COORD_ROLES[APP.ex.role] ? APP.ex.role : "");
+const EX_ROLE_DESC = {
+  oc: "You call the offense. The computer head coach calls the defense and the kicking game, and decides fourth downs, tries after touchdowns and timeouts.",
+  dc: "You call the defense. The computer head coach calls the offense and the kicking game, and decides timeouts and penalties." };
 function startExhibition() {
   const ex = APP.ex, you = ex.you, mine = i => you === i;
   const next = i => mine(i) && ex.nextDepth && ex.nextDepth.team === i ? ex.nextDepth.depth : null;
-  initGame({ level: EX_LEVELS[ex.level] ? ex.level : "hs", cpu: [!mine(0), !mine(1)], styles: [mine(0) ? ex.styles : null, mine(1) ? ex.styles : null],
+  // A coordinator brings his own style for his side; the head coach's style runs the other
+  const role = COORD_ROLES[ex.role] ? ex.role : "", st = role === "oc" ? { off: ex.styles.off } : role === "dc" ? { def: ex.styles.def } : ex.styles;
+  initGame({ level: EX_LEVELS[ex.level] ? ex.level : "hs", cpu: [!mine(0), !mine(1)], role: [mine(0) ? role : "", mine(1) ? role : ""], styles: [mine(0) ? st : null, mine(1) ? st : null],
     rot: [mine(0) ? ex.rot : "normal", mine(1) ? ex.rot : "normal"], depth: [next(0), next(1)] }, ex.schools);
   // A depth chart for the next game only is used up by this game
   ex.nextDepth = null; ex.depthMode = "always";
@@ -267,7 +274,11 @@ function vExhibition() {
       <div style="display:grid;gap:6px" role="group" aria-label="You coach"><span class="eyebrow" aria-hidden="true">You coach</span><div class="seg">
         ${youBtn(0, esc(h.mascot))}${youBtn(1, esc(v.mascot))}${youBtn("watch", "Just watch")}
       </div></div>
-      ${ex.you === "watch" ? `<p class="muted styledesc">Both teams are coached by the computer. Tap through the plays, or sim to the end.</p>` : styleCfgHtml(true) + styleCfgHtml(false)}
+      ${ex.you === "watch" ? `<p class="muted styledesc">Both teams are coached by the computer. Tap through the plays, or sim to the end.</p>` : `
+      <div style="display:grid;gap:6px" role="group" aria-label="Your job"><span class="eyebrow" aria-hidden="true">Your job</span><div class="seg">
+        ${[["", "Head coach"], ["oc", "Offensive coordinator"], ["dc", "Defensive coordinator"]].map(([v, nm]) => `<button data-a="exrole" data-v="${v}" aria-pressed="${exRole() === v}">${nm}</button>`).join("")}
+      </div>${exRole() ? `<p class="muted styledesc">${EX_ROLE_DESC[exRole()]}</p>` : ""}</div>
+      ${exRole() !== "dc" ? styleCfgHtml(true) : ""}${exRole() !== "oc" ? styleCfgHtml(false) : ""}`}
       ${blocked ? `<p>Your season game is in progress. Finish it, or sim it, before you kick off an exhibition.</p><button class="btn" data-a="resume">Back to your season game</button>`
         : `<button class="btn" data-a="kickoff">${live ? "Start a new game" : "Kick off"}</button>`}
       <button class="btn ghost" data-a="newmatch">New matchup</button>
@@ -477,7 +488,7 @@ function vHelp() {
 const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 
 /* ---------- Drawing the screen ---------- */
-const GAME_VIEWS = { call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
+const GAME_VIEWS = { hcask: vHcAsk, call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { cap: vCap, gm: vGM, trade: vTrade, dboard: vDBoard, dprospect: vDProspect, dfind: vDFind, draftroom: vDraftRoom, falist: vFAList, faplayer: vFAPlayer, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
   schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason, vPOffseason), newyear: vNewYear, halls: vHalls,
@@ -499,7 +510,7 @@ function render() {
   const top = `<div class="topbar">${homeBtn}<button class="soundbtn" data-a="help" aria-expanded="${helpOpen}">${helpOpen ? "Close How to play" : "How to play"}</button><button class="soundbtn" data-a="mute" aria-pressed="${on}">${icon}Sound ${on ? "on" : "off"}</button></div>`;
   const key = screenKey(view), prev = focusSig(app);
   const warn = saveTrouble() ? `<section class="panel savewarn"><h2 class="h2small">Your game isn't saving</h2><p>This device couldn't save your game, so leaving or reloading the page would lose what you've done since the last save that worked. Make a save code or a cloud save now.</p><button class="btn" data-a="saves">Cloud saves and save codes</button></section>` : "";
-  app.innerHTML = top + warn + (APP.screen === "game" && !helpOpen && S && S.teams ? keyPanel() : "") + view() + (APP.screen === "game" && !helpOpen ? vExtras() : "");
+  app.innerHTML = top + warn + (APP.screen === "game" && !helpOpen && S && S.teams ? keyPanel() + drivePanel() : "") + view() + (APP.screen === "game" && !helpOpen ? vExtras() : "");
   placeFocus(app, key, prev);
 }
 
@@ -611,6 +622,7 @@ function act(a, ds) {
     // The main menu and the exhibition
     case "gohome": APP.screen = "home"; scrollTop(); break;
     case "exhibition": APP.screen = "exhibition"; scrollTop(); break;
+    case "exrole": if (ds.v === "" || COORD_ROLES[ds.v]) { APP.ex.role = ds.v; announce(ds.v ? `${COORD_ROLES[ds.v]}. ${EX_ROLE_DESC[ds.v]}` : "Head coach. Every call is yours."); } break;
     case "you": { const ex = APP.ex; ex.you = ds.v === "watch" ? "watch" : +ds.v; if (ex.you !== "watch") ex.styles = { off: ex.schools[ex.you].off, def: ex.schools[ex.you].def }; break; }
     case "ostyle": case "dstyle": {
       const ids = a === "ostyle" ? OFF_STYLE_IDS : DEF_STYLE_IDS, k = a === "ostyle" ? "off" : "def";
@@ -810,11 +822,15 @@ function act(a, ds) {
     }
     case "lock": if (inGame && S.phase === "call") { lock(); scrollTop(); } break;
     case "cont": if (inGame && S.phase === "result") { cont(); scrollTop(); } break;
+    // A coordinator and his head coach: asking to go for it, and how the other side's plays are told
+    case "askgo": if (inGame && S.phase === "hcask") { announce(askGo()); scrollTop(); } break;
+    case "asklet": if (inGame && S.phase === "hcask") { askPass(); scrollTop(); } break;
+    case "everyplay": if (inGame && coordTeam() >= 0) { S.everyPlay = !S.everyPlay; APP.everyPlay = S.everyPlay; announce(S.everyPlay ? "Every play: the other side's plays are shown one at a time." : "Drive summaries: the other side's plays are read as one summary."); } break;
     case "pat": if (inGame && S.phase === "pat") { doPAT(ds.v); scrollTop(); } break;
     case "kick": if (inGame && S.phase === "kickchoice") { doKickChoice(ds.v); scrollTop(); } break;
     case "onside": {
       const c = inGame && S.kickChoice;
-      if (c && S.phase === "result" && c.later && !S.teams[c.team].cpu) { c.onside = !c.onside; announce(c.onside ? "Onside kick called." : "Onside kick called off. Kicking deep."); }
+      if (c && S.phase === "result" && c.later && youDecide(c.team)) { c.onside = !c.onside; announce(c.onside ? "Onside kick called." : "Onside kick called off. Kicking deep."); }
       break;
     }
     case "toss": if (inGame && S.phase === "toss" && S.toss) { if (S.toss.step === "call") tossCall(ds.v); else tossChoose(ds.v); tossNext(); scrollTop(); } break;
@@ -832,6 +848,8 @@ function act(a, ds) {
     case "end": if (inGame && !S.season && confirmed("end")) { S = null; APP.screen = "exhibition"; scrollTop(); } break;
     default: if (!collegeAct(a, ds) && !proAct(a, ds) && !tradeAct(a, ds) && !draftAct(a, ds) && !faAct(a, ds) && !boardAct(a, ds) && !portalAct(a, ds) && !namesAct(a, ds) && !jobsAct(a, ds) && !moneyAct(a, ds) && !savesAct(a)) return;
   }
+  // A coordinator's game runs on through the snaps that aren't his to call (ai.js)
+  if (S && S.teams && coordRun()) scrollTop();
   // A season game that just ended goes in the books right away
   if (SEASON && isMyGame() && S.phase === "final") recordMyGame();
   save();

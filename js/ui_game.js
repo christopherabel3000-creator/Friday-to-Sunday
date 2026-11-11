@@ -78,10 +78,8 @@ function onFieldLine(t, pk) {
 // for the distance on third and fourth down (measured over 700 computer games), nudged by your
 // starters against theirs (.0065 a rating point). A coach with Game management 45 or better gets
 // a percentage; below that, a rough idea.
-const CONVERT = [0, .64, .6, .56, .48, .41, .38, .32, .27, .21, .18];
 function fourthDownNote(t) {
-  const c = S.teams[t].coach || {}, gm = c.gm || 42, base = S.toGo <= 10 ? CONVERT[Math.max(1, S.toGo)] : S.toGo <= 15 ? .12 : .07;
-  const p = clamp(base + .0065 * (sideRating(S.teams[t], "off") - sideRating(S.teams[1 - t], "def") + 1), .03, .9);
+  const c = S.teams[t].coach || {}, gm = c.gm || 42, p = convertOdds(t);
   if (gm >= 45) return `Going for it: about ${Math.round(p * 100)} percent to convert from here, by your staff's numbers.`;
   return `Going for it: ${p >= .6 ? "likely to convert" : p >= .45 ? "about even" : p >= .3 ? "a tough ask" : "a long shot"}, by your staff's read.`;
 }
@@ -211,6 +209,7 @@ function vCall() {
         <p class="eyebrow">${esc(tm.name)} · ${isOff ? "Offense" : "Defense"}</p>
         <h2>${S.twoPt ? (isOff ? "Two-point play" : "Stop the two") : isOff ? "Call your play" : "Call your defense"}</h2>
         <p class="muted">${S.twoPt ? `Two-point try from the ${spotText(S.poss, S.spot)}` : `${downText()} at the ${spotText(S.poss, S.spot)}`}${isOff ? "" : `. ${esc(tname(S.poss))} have the ball`}.</p>
+        ${isOff && roleOf(t) === "oc" && S.down === 4 && !S.twoPt && !hsOT() ? `<p>${esc(S.ask && S.ask.pending ? S.ask.note : "The head coach is going for it.")}</p>` : ""}
         <p class="muted idline">${isOff ? `Your ${OFF_STYLES[offStyleOf(t)].name} offense against their ${DEF_STYLES[defStyleOf(1 - t)].name} defense.` : `Your ${DEF_STYLES[defStyleOf(t)].name} defense against their ${OFF_STYLES[offStyleOf(1 - t)].name} offense.`}</p>
       </div>
       ${liveField()}
@@ -240,17 +239,17 @@ function clockBox() {
   } else stat = S.toNote ? S.toNote + " Clock stopped." : "Clock stopped until the next snap.";
   let btns = "";
   if (S.clockRunning) {
-    [0, 1].forEach(i => { if (!t[i].cpu && S.tos[i] > 0 && !S.toUsed) btns += `<button class="btn ghost" data-a="to" data-t="${i}">${esc(t[i].abbr)} timeout (${S.tos[i]})</button>`; });
-    if (!t[o].cpu && burnAvailable()) btns += `<button class="btn ghost" data-a="burn" aria-pressed="${!!S.burnClock}">${S.burnClock ? "Running the clock" : `${esc(t[o].abbr)}: run the clock`}</button>`;
-    if (!t[o].cpu && nhAvailable()) btns += `<button class="btn ghost" data-a="nohuddle" aria-pressed="${!!S.noHuddle}">${S.noHuddle ? "Going no huddle" : `${esc(t[o].abbr)}: no huddle`}</button>`;
-    if (!t[o].cpu && (spikeOK() || S.spikeNext)) btns += `<button class="btn ghost" data-a="spike" aria-pressed="${!!S.spikeNext}">${S.spikeNext ? "Spiking next snap" : `${esc(t[o].abbr)}: spike next snap`}</button>`;
+    [0, 1].forEach(i => { if (youDecide(i) && S.tos[i] > 0 && !S.toUsed) btns += `<button class="btn ghost" data-a="to" data-t="${i}">${esc(t[i].abbr)} timeout (${S.tos[i]})</button>`; });
+    if (youCallOff(o) && burnAvailable()) btns += `<button class="btn ghost" data-a="burn" aria-pressed="${!!S.burnClock}">${S.burnClock ? "Running the clock" : `${esc(t[o].abbr)}: run the clock`}</button>`;
+    if (youCallOff(o) && nhAvailable()) btns += `<button class="btn ghost" data-a="nohuddle" aria-pressed="${!!S.noHuddle}">${S.noHuddle ? "Going no huddle" : `${esc(t[o].abbr)}: no huddle`}</button>`;
+    if (youCallOff(o) && (spikeOK() || S.spikeNext)) btns += `<button class="btn ghost" data-a="spike" aria-pressed="${!!S.spikeNext}">${S.spikeNext ? "Spiking next snap" : `${esc(t[o].abbr)}: spike next snap`}</button>`;
   }
   return `<div class="clockbox"><p class="cstat">${esc(stat)}</p>${btns ? `<div class="clockbtns">${btns}</div>` : ""}</div>`;
 }
 // After a human coach's score, the kickoff waits for the next tap: they can call an onside kick first
 function onsideToggle() {
   const c = S.kickChoice;
-  if (!c || !c.later || S.teams[c.team].cpu) return "";
+  if (!c || !c.later || !youDecide(c.team)) return "";
   return `<button class="btn ghost" data-a="onside" aria-pressed="${!!c.onside}">${c.onside ? "Onside kick called" : `${esc(S.teams[c.team].abbr)}: onside kick`}</button>`;
 }
 function vResult() {
@@ -557,6 +556,29 @@ function keyPanel() {
     ${K.scores.length ? `<p class="sechead" role="heading" aria-level="4">Scoring so far</p><ul class="hlist">${K.scores.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "<p>No scoring so far.</p>"}</section>`;
 }
 
+/* ---------- A coordinator's game (Milestone 6) ---------- */
+// What happened on the snaps that weren't yours to call, read once when your next call comes up
+function drivePanel() {
+  const D = S && S.sum;
+  if (!D || S.log.length !== D.at || S.phase === "result" || !D.lines.length) return "";
+  return `<section class="panel" id="drivesum" data-focus tabindex="-1"><h3>${S.phase === "final" ? "How it ended" : "Since your last call"}</h3>${D.lines.map(l => `<p>${esc(l)}</p>`).join("")}</section>`;
+}
+// Fourth and short, and the head coach is sending out a kicking unit: ask him to go for it, or let him kick
+function vHcAsk() {
+  const t = S.poss, tm = S.teams[t], fg = S.hcKick === "fg";
+  return `${board()}
+    <div style="--team:${tm.color};display:grid;gap:14px">
+      <div class="callhead" data-focus tabindex="-1">
+        <p class="eyebrow">${esc(tm.name)} · Fourth down</p>
+        <h2>The head coach sends out the ${fg ? "field goal team" : "punt team"}</h2>
+        <p class="muted">${downText()} at the ${spotText(S.poss, S.spot)}.${fg ? ` A ${kickDist()}-yard field goal.` : ""} ${fourthDownNote(t)}</p>
+      </div>
+      ${liveField()}
+      <button class="btn team" data-a="askgo">Ask to go for it</button>
+      <button class="btn ghost" data-a="asklet">${fg ? "Let him kick it" : "Let him punt"}</button>
+    </div>`;
+}
+
 /* ---------- Shortening a blowout ---------- */
 // The choice of quarter length, under the footer once "Shorten the game" is opened
 let shortenOpen = false;
@@ -591,6 +613,7 @@ function vExtras() {
     ${S.season && SEASON && SEASON.practice && SEASON.practice.film && SEASON.practice.week === S.season.week ? `<button class="linkbtn" data-a="scout">Scouting report</button>` : ""}
     ${live ? `<button class="linkbtn ${confirming === "sim" ? "warn" : ""}" data-a="sim">${confirming === "sim" ? "Tap again to sim to the end" : "Sim to the end"}</button>` : ""}
     ${live && !S.season ? `<button class="linkbtn ${confirming === "end" ? "warn" : ""}" data-a="end">${confirming === "end" ? "Tap again to end this game" : "End game"}</button>` : ""}
+    ${live && coordTeam() >= 0 ? `<button class="linkbtn" data-a="everyplay" aria-pressed="${!!S.everyPlay}">The other side: ${S.everyPlay ? "every play" : "drive summaries"}</button>` : ""}
     ${live && shortenOK() ? `<button class="linkbtn" data-a="shorten" aria-expanded="${!!shortenOpen}">Shorten the game</button>` : ""}
   </div>`;
   return box + players + log + foot + (live ? shortenPanel() : "");

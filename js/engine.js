@@ -247,6 +247,14 @@ function downText() {
 }
 const fx = (team, spot) => team === 0 ? spot : 100 - spot;
 const bothHuman = () => !S.teams[0].cpu && !S.teams[1].cpu;
+// Who calls what (Milestone 6). A team is the computer's (cpu), or yours; and yours as its head coach,
+// or as a coordinator (role "oc" or "dc"), who calls one side for a computer head coach. The head
+// coach's calls are the toss, kicks, tries, timeouts, penalties and special teams.
+const COORD_ROLES = { oc: "Offensive coordinator", dc: "Defensive coordinator" };
+const roleOf = t => (!S.teams[t].cpu && COORD_ROLES[S.teams[t].role] ? S.teams[t].role : "");
+const youCallOff = t => !S.teams[t].cpu && roleOf(t) !== "dc";
+const youCallDef = t => !S.teams[t].cpu && roleOf(t) !== "oc";
+const youDecide = t => !S.teams[t].cpu && !roleOf(t);
 // One coach on one device: Gridiron Duel's pass-the-phone screens never show
 const passPhone = () => false;
 // High school and college overtime have no clock: each team gets a series, from the 10 in high
@@ -281,21 +289,21 @@ const puntName = k => PUNT_KINDS[k] || "Punt";
 const newTeamStats = () => ({ plays: 0, yds: 0, rush: 0, pass: 0, fd: 0, to: 0, pen: 0, penYds: 0, d3: 0, d3c: 0 });
 // A school in a game: its coach, roster and depth chart, plus the game's own score and stats.
 // styles: { off, def } to change the scheme for this game only.
-function gameTeam(s, cpu, styles) {
+function gameTeam(s, cpu, styles, role) {
   styles = styles || {};
-  return { id: s.id, name: s.mascot, school: s.town, abbr: s.abbr, color: s.color, level: s.level, cpu: !!cpu,
+  return { id: s.id, name: s.mascot, school: s.town, abbr: s.abbr, color: s.color, level: s.level, cpu: !!cpu, role: !cpu && COORD_ROLES[role] ? role : "",
     off: resolveStyle(styles.off || s.off, OFF_STYLE_IDS), def: resolveStyle(styles.def || s.def, DEF_STYLE_IDS),
     coach: clone(s.coach), cp: coachParams(s.coach), players: clone(s.players), depth: clone(s.depth), dver: 0,
     mastery: s.mastery ? clone(s.mastery) : null, score: 0, st: newTeamStats(), injk: typeof eqInj === "function" ? eqInj(s) : 1 };
 }
-// cfg: { level, cpu: [home, away], styles: [home, away], rot: [home, away], depth: [home, away], aud,
+// cfg: { level, cpu: [home, away], role: [home, away] ("oc" or "dc" for a coordinator's team), styles: [home, away], rot: [home, away], depth: [home, away], aud,
 // title, neutral, fresh: [home, away] }. schools[0] is the home team. depth: a depth chart for this
 // game only (or null). fresh: energy at kickoff (100 unless practice wore a team down).
 // title: a state championship game (no running clock). neutral: played at a neutral site.
 // post: a pro playoff game (playoff overtime instead of the regular season's).
 function initGame(cfg, schools) {
   const Rl = RULES[cfg.level] || RULES.hs, qLen = cfg.qLen || Rl.qLen;
-  const t0 = gameTeam(schools[0], cfg.cpu[0], cfg.styles && cfg.styles[0]), t1 = gameTeam(schools[1], cfg.cpu[1], cfg.styles && cfg.styles[1]);
+  const t0 = gameTeam(schools[0], cfg.cpu[0], cfg.styles && cfg.styles[0], cfg.role && cfg.role[0]), t1 = gameTeam(schools[1], cfg.cpu[1], cfg.styles && cfg.styles[1], cfg.role && cfg.role[1]);
   if (t1.abbr === t0.abbr) t1.abbr = schoolAbbr(t1.school, t0.abbr);
   [t0, t1].forEach((t, i) => {
     if (cfg.depth && cfg.depth[i]) t.depth = clone(cfg.depth[i]);
@@ -307,6 +315,7 @@ function initGame(cfg, schools) {
     offCall: null, defCall: null, sel: null, side: "off", phase: "", banner: "", log: [], last: null,
     needPAT: false, patTeam: 0, periodOver: false, gameOver: false, runClock: false,
     tos: [Rl.timeouts, Rl.timeouts], clockRunning: false, oobRestart: false, spikeNext: false, toNote: "" };
+  if (typeof APP !== "undefined" && APP && APP.everyPlay) S.everyPlay = true;
   startToss(false, matchupLine());
   tossNext();
 }
@@ -337,11 +346,11 @@ function kickAfterScore(k) {
   // A score as time runs out in Q2, Q4 or 2OT, 4OT...: no kickoff, since the next period starts with one
   if (S.periodOver && kickoffNext()) return "";
   if (onsideOK(k)) {
-    if (!S.teams[k].cpu) { S.kickChoice = { team: k }; return `${tname(k)} kick off next. Trailing late, they can kick deep or try an onside kick.`; }
+    if (youDecide(k)) { S.kickChoice = { team: k }; return `${tname(k)} kick off next. Trailing late, they can kick deep or try an onside kick.`; }
     if (cpuWantsOnside(k)) return onsideKick(k).text;
   }
   // A human coach's kickoff waits for the next tap, so they can call an onside kick on the result screen
-  if (!S.teams[k].cpu) { S.kickChoice = { team: k, later: true, onside: false }; return `${tname(k)} kick off next.`; }
+  if (youDecide(k)) { S.kickChoice = { team: k, later: true, onside: false }; return `${tname(k)} kick off next.`; }
   const text = kickoff(1 - k, true);
   kickEnded = kickTD && S.gameOver;
   return text;
@@ -658,8 +667,8 @@ function tossChoose(ch) {
 // Lets computer coaches make their toss decisions, then starts play once the toss is settled
 function tossNext() {
   const t = S.toss;
-  if (t && t.step === "call" && S.teams[VISITOR].cpu) tossCall(rand() < .5 ? "heads" : "tails");
-  if (S.toss && S.toss.step === "choose" && S.teams[S.toss.winner].cpu) tossChoose(S.toss.hs ? "defense" : S.toss.ot ? "receive" : "defer");
+  if (t && t.step === "call" && !youDecide(VISITOR)) tossCall(rand() < .5 ? "heads" : "tails");
+  if (S.toss && S.toss.step === "choose" && !youDecide(S.toss.winner)) tossChoose(S.toss.hs ? "defense" : S.toss.ot ? "receive" : "defer");
   if (S.toss) S.phase = "toss"; else startPlay();
 }
 
@@ -685,17 +694,51 @@ function startPlay() {
   // No huddle: both sides stay in the personnel that was on the field for the last snap
   S.nhLock = S.noHuddle && S.last && S.last.team === S.poss && OFF_PKGS[S.last.opk] && S.last.dpk ? { off: S.last.opk, def: S.last.dpk } : null;
   S.noHuddle = false;
-  if (!S.teams[S.poss].cpu) { S.side = "off"; S.pkgSel = S.nhLock ? S.nhLock.off : pkgMem(S.poss).off; S.phase = passPhone() ? "handoff" : "call"; }
-  else {
-    S.offPkg = S.nhLock ? S.nhLock.off : cpuOffPkg(); S.offCall = cpuOff(); S.offSide = cpuSide(S.offCall); S.puntKind = S.offCall === "punt" ? cpuPuntKind() : null;
-    if (stPkgFor(S.offCall)) S.offPkg = stPkgFor(S.offCall); // a kick or a fake needs the special teams unit on the field
-    defStep();
-  }
+  // An offensive coordinator's head coach decides the kicks: when he sends a kicking unit out, it's his
+  // call. On fourth and short the coordinator can ask him to go for it, once a possession.
+  const oc = roleOf(S.poss) === "oc";
+  if (!oc && S.ask) S.ask.used = false;
+  const hc = oc && !S.twoPt ? cpuKickCall() : null, hcKick = hc && stPkgFor(hc) ? hc : null;
+  S.hcKick = hcKick; S.youCalled = false;
+  if (hcKick && askOK(hcKick)) { S.phase = "hcask"; return; }
+  if (youCallOff(S.poss) && !hcKick) offCallPhase(); else cpuSnap(hcKick);
 }
+// Your offensive call is needed
+function offCallPhase() { S.youCalled = true; S.side = "off"; S.pkgSel = S.nhLock ? S.nhLock.off : pkgMem(S.poss).off; S.phase = passPhone() ? "handoff" : "call"; }
+// The computer calls the offense (or the head coach's kick goes ahead), then the defense answers
+function cpuSnap(hcKick) {
+  S.offPkg = S.nhLock ? S.nhLock.off : cpuOffPkg(); S.offCall = hcKick || cpuOff(); S.offSide = cpuSide(S.offCall); S.puntKind = S.offCall === "punt" ? cpuPuntKind() : null;
+  if (stPkgFor(S.offCall)) S.offPkg = stPkgFor(S.offCall); // a kick or a fake needs the special teams unit on the field
+  defStep();
+}
+/* ---------- Asking the head coach to go for it (Milestone 6) ---------- */
+// S.ask: { used: asked on this possession, mem: how his yeses have turned out this game (+1 a
+// conversion, -1 a stop), n, yes, made, pending: the snap he said yes to hasn't been played, note }
+const ASK_TOGO = 3;
+const askOK = call => (call === "punt" || call === "fg") && S.down === 4 && S.toGo <= ASK_TOGO && !hsOT() && !(S.ask && S.ask.used) && !S.teams[S.poss].cpu;
+// How likely he is to agree: more with his trust in you (0 to 1, your job security; an even 0.5 in an
+// exhibition), with better odds of converting, and after earlier yeses worked. Less deep in your own end.
+function askChance() {
+  const t = S.poss, trust = S.teams[t].trust == null ? .5 : S.teams[t].trust, A = S.ask || {};
+  return clamp(.1 + .5 * trust + .9 * (convertOdds(t) - .45) + .1 * (A.mem || 0) - (S.spot < 35 ? .25 : 0) - (S.hcKick === "fg" ? .1 : 0), .04, .9);
+}
+function askGo() {
+  if (S.phase !== "hcask") return "";
+  const A = S.ask = S.ask || { used: false, mem: 0, n: 0, yes: 0, made: 0 };
+  A.used = true; A.n++;
+  const unit = S.hcKick === "fg" ? "field goal team" : "punt team";
+  if (rand() < askChance()) {
+    A.yes++; A.pending = true; S.hcKick = null; A.note = `The head coach waves the ${unit} off. It's your call.`;
+    offCallPhase();
+  } else { A.note = `The head coach shakes his head and sends out the ${unit}.`; S.askSaid = A.note; cpuSnap(S.hcKick); }
+  return A.note;
+}
+// Let him kick
+function askPass() { if (S.phase === "hcask") cpuSnap(S.hcKick); }
 // Packages each side may choose this snap. No huddle locks personnel, but a special teams unit can still
 // run on, and when it does the defense is allowed to substitute too.
 function pkgChoices(isOff) {
-  if (isOff) return (S.nhLock ? [S.nhLock.off] : OFF_PKG_IDS).concat(S.twoPt ? [] : stPkgIds());
+  if (isOff) return (S.nhLock ? [S.nhLock.off] : OFF_PKG_IDS).concat(S.twoPt || roleOf(S.poss) === "oc" ? [] : stPkgIds());
   return S.nhLock && !isST(S.offPkg) ? [S.nhLock.def] : DEF_PKG_IDS;
 }
 // Plays the offense can call from a package: the kick and its fake from a special teams unit, the playbook otherwise
@@ -705,7 +748,8 @@ const offCallsFor = pk => isST(pk) ? ST_PKGS[pk].plays.filter(id => id === "punt
 const defCallsFor = () => DEF_IDS.concat(S.offPkg === "punt" ? ["blk", "ret"] : S.offPkg === "fgu" ? ["blk"] : []);
 function defStep() {
   const locked = S.nhLock && !isST(S.offPkg);
-  if (!S.teams[1 - S.poss].cpu) { S.side = "def"; S.sel = null; S.pkgSel = locked ? S.nhLock.def : pkgMem(1 - S.poss).def; S.phase = passPhone() ? "handoff" : "call"; }
+  // A defensive coordinator's head coach answers a kicking unit himself (the block and return calls)
+  if (youCallDef(1 - S.poss) && !(roleOf(1 - S.poss) === "dc" && isST(S.offPkg))) { S.youCalled = true; S.side = "def"; S.sel = null; S.pkgSel = locked ? S.nhLock.def : pkgMem(1 - S.poss).def; S.phase = passPhone() ? "handoff" : "call"; }
   else { S.defPkg = locked ? S.nhLock.def : cpuDefPkg(); S.defCall = cpuDef(); afterDef(); }
 }
 /* ---------- Audibles ---------- */
@@ -721,7 +765,7 @@ const audIds = () => offIds(S.offPkg).filter(id => id !== S.offCall);
 // a computer defense decides here.
 function makeLook() {
   const d = S.defCall;
-  if (!S.teams[1 - S.poss].cpu) return S.disg && S.disg !== d && LOOKS[S.disg] ? { d: S.disg, fake: true } : { d, fake: false };
+  if (youCallDef(1 - S.poss) && !(roleOf(1 - S.poss) === "dc" && isST(S.offPkg))) return S.disg && S.disg !== d && LOOKS[S.disg] ? { d: S.disg, fake: true } : { d, fake: false };
   return cpuLook(d);
 }
 // Calls a defense may show instead of its real one (special teams units can't hide who ran on)
@@ -755,8 +799,8 @@ function afterDef() {
   S.look = makeLook();
   // A coach with a sharp eye (Scouting 60 and up, or the Disguise detector perk) sometimes spots a disguise
   const sct = ((S.teams[S.poss].coach || {}).sct) || 0, spot = (sct >= 60 ? (sct - 50) / 100 : 0) + (hasPerk(S.poss, "disg") ? DETECT : 0);
-  if (S.look.fake && !S.teams[S.poss].cpu && spot > 0 && rand() < spot) S.look.flag = true;
-  if (S.teams[S.poss].cpu) { cpuAudible(); resolve(); return; }
+  if (S.look.fake && youCallOff(S.poss) && spot > 0 && rand() < spot) S.look.flag = true;
+  if (!youCallOff(S.poss)) { cpuAudible(); resolve(); return; }
   S.audSel = null;
   S.side = "aud"; S.phase = passPhone() ? "handoff" : "los";
 }
@@ -842,7 +886,7 @@ function chartSnap(r) {
   if (r.preSnap || r.accepted || r.s == null || !OFFP[S.offCall] || !DEF_IDS.includes(S.defCall) || !S.snap) return;
   const tg = S.snap.toGo, b = tg <= 3 ? "s" : tg <= 7 ? "m" : "l";
   (S.chart = S.chart || []).push({ o: S.snap.poss, b, off: S.offCall, def: S.defCall, aud: S.aud ? 1 : 0, look: S.look ? 1 : 0, fake: S.look && S.look.fake ? 1 : 0, s: r.s, h: S.snap.q <= 2 ? 1 : 2,
-    hu: (S.teams[0].cpu ? 0 : 1) + (S.teams[1].cpu ? 0 : 2) });
+    hu: [0, 1].reduce((n, t) => n + ((t === S.snap.poss ? youCallOff(t) : youCallDef(t)) ? 1 << t : 0), 0) });
 }
 function finalize(r) {
   if (r.preSnap) { r.penClock = true; finishClock(r, !S.wasRunning); }
@@ -856,6 +900,7 @@ function finalize(r) {
     const st = S.teams[S.snap.poss].st; st.d3++; if (r.fd || r.head === "Touchdown") st.d3c++;
   }
   otTail(r);
+  if (S.ask && S.ask.pending && !r.preSnap && !r.accepted) { S.ask.pending = false; const made = !!(r.fd || r.head === "Touchdown"); S.ask.mem += made ? 1 : -1; if (made) S.ask.made++; }
   chartSnap(r);
   if (S.subNote && S.teams[0].cpu && S.teams[1].cpu) r.subNote = S.subNote;
   S.subNote = "";
@@ -878,10 +923,11 @@ function betweenPlays() {
   return sec;
 }
 function cont() {
+  S.youCalled = false;
   S.nhLock = null; // set again by startPlay when the next snap is a no-huddle snap
   if (S.tryChoice) {
     const c = S.tryChoice; S.patTeam = c.team;
-    if (S.teams[c.team].cpu) { S.tryChoice = null; if (cpuTry(c) === "two") startTwo(c.spot); else doPAT("kick", xpDist(c.spot)); }
+    if (!youDecide(c.team)) { S.tryChoice = null; if (cpuTry(c) === "two") startTwo(c.spot); else doPAT("kick", xpDist(c.spot)); }
     else S.phase = "trychoice";
     return;
   }
@@ -892,7 +938,7 @@ function cont() {
   }
   if (S.needPAT) {
     S.needPAT = false;
-    if (S.teams[S.patTeam].cpu) doPAT(cpuPAT()); else S.phase = "pat";
+    if (!youDecide(S.patTeam)) doPAT(cpuPAT()); else S.phase = "pat";
     return;
   }
   // High school overtime: the next series, or the next period
@@ -949,7 +995,7 @@ function callTimeout(t) {
 function cpuClock() {
   if (!S.clockRunning) return;
   for (const t of [0, 1]) {
-    if (!S.teams[t].cpu || !S.clockRunning || S.tos[t] <= 0 || S.toUsed) continue;
+    if (youDecide(t) || !S.clockRunning || S.tos[t] <= 0 || S.toUsed) continue;
     const diff = S.teams[t].score - S.teams[1 - t].score, onO = t === S.poss;
     // Down by more than four scores late, timeouts don't matter anymore
     if (diff < -24 || S.runClock) continue;
@@ -958,7 +1004,7 @@ function cpuClock() {
     else if (!onO && late4 && diff < 0) callTimeout(t);
   }
   const o = S.poss, diff = S.teams[o].score - S.teams[1 - o].score;
-  if (spikeOK() && S.teams[o].cpu && S.tos[o] === 0 && !S.oobRestart &&
+  if (spikeOK() && !youCallOff(o) && S.tos[o] === 0 && !S.oobRestart &&
       ((S.quarter >= 4 && diff <= 0 && S.clock <= 60) || (S.quarter === 2 && S.clock <= 40 && S.spot >= 55))) S.spikeNext = true;
 }
 // No huddle is only possible after a scrimmage play by the same offense that left the clock running
@@ -977,11 +1023,11 @@ function burnAvailable() {
 }
 // Computer coordinators with the lead in the 4th quarter always run the clock
 function cpuBurn() {
-  if (S.teams[S.poss].cpu && burnAvailable()) { S.burnClock = true; S.noHuddle = false; S.spikeNext = false; }
+  if (!youCallOff(S.poss) && burnAvailable()) { S.burnClock = true; S.noHuddle = false; S.spikeNext = false; }
 }
 function cpuNoHuddle() {
   const o = S.poss;
-  if (!S.teams[o].cpu || S.spikeNext || S.burnClock || !nhAvailable()) return;
+  if (youCallOff(o) || S.spikeNext || S.burnClock || !nhAvailable()) return;
   const diff = S.teams[o].score - S.teams[1 - o].score;
   if ((S.quarter >= 4 && diff < 0 && diff >= -24 && S.clock <= 300) || (S.quarter === 2 && S.clock <= 150 && S.clock > 0)) S.noHuddle = true;
 }

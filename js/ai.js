@@ -288,6 +288,13 @@ function cpuTry(c) {
   return wantTwo && p2 >= .25 ? "two" : "kick";
 }
 
+// The odds of converting a fourth down from here, for team t's offense
+const CONVERT = [0, .64, .6, .56, .48, .41, .38, .32, .27, .21, .18];
+function convertOdds(t) {
+  const base = S.toGo <= 10 ? CONVERT[Math.max(1, S.toGo)] : S.toGo <= 15 ? .12 : .07;
+  return clamp(base + .0065 * (sideRating(S.teams[t], "off") - sideRating(S.teams[1 - t], "def") + 1), .03, .9);
+}
+
 /* ---------- Simming ---------- */
 // One step of a game in which the computer makes every decision (sims, and games nobody watches)
 function autoStep() {
@@ -299,6 +306,7 @@ function autoStep() {
     case "kickchoice": doKickChoice(cpuWantsOnside(S.kickChoice.team) ? "onside" : "deep"); break;
     case "penalty": { const P = S.pen; if (P.two) chooseTwoPenalty(penOf(P.code).on === "off" ? P.good : !P.good); else choosePenalty(stateValue(P.acc, P.chooser) > stateValue(P.post, P.chooser)); break; }
     case "toss": tossNext(); break;
+    case "hcask": askPass(); break;
     case "halftime": startPlay(); break;
     default: cont();
   }
@@ -313,6 +321,65 @@ function simToEnd() {
   S.teams[0].cpu = keep[0]; S.teams[1].cpu = keep[1];
   S.simmed = true;
 }
+/* ---------- A coordinator's game (Milestone 6) ---------- */
+// The snaps a coordinator doesn't call (the other side of the ball, and the head coach's kicks) are
+// played without stopping and read as one summary when his next call comes up, at halftime or at the
+// end. S.everyPlay turns that off: every play is shown. S.sum: { at: the play-by-play's length when
+// it was written, lines: sentences to read }
+const coordTeam = () => (S && S.teams ? [0, 1].findIndex(t => roleOf(t)) : -1);
+const gameSecs = () => (noClock() ? 0 : (S.quarter <= 4 ? (4 - S.quarter) * S.cfg.qLen : 0) + S.clock);
+function coordMark() { return { yds: [S.teams[0].st.yds, S.teams[1].st.yds], plays: [S.teams[0].st.plays, S.teams[1].st.plays], secs: gameSecs(), q: S.quarter }; }
+function coordRun() {
+  if (!S || !S.teams || coordTeam() < 0 || S.everyPlay) return false;
+  const rows = [], scores = S.cscore || [S.teams[0].score, S.teams[1].score];
+  let mark = S.cmark || coordMark();
+  for (let i = 0; i < 600 && S.phase === "result" && !S.youCalled; i++) {
+    const r = S.last, now = coordMark(), t = r.team;
+    rows.push({ t, id: r.offId, scrim: !!OFFP[r.offId] || r.offId === "kneel" || r.offId === "spike", head: r.head, text: r.text, sub: r.sub || "", inj: r.injNote || "",
+      yds: now.yds[t] - mark.yds[t], plays: now.plays[t] - mark.plays[t], secs: now.q === mark.q || now.q <= 4 ? Math.max(0, mark.secs - now.secs) : 0 });
+    mark = now;
+    cont();
+  }
+  S.cmark = coordMark(); S.cscore = [S.teams[0].score, S.teams[1].score];
+  if (!rows.length) return false;
+  const lines = driveLines(rows, scores);
+  // (the head coach's answer to "go for it", when he said no)
+  if (S.askSaid) { lines.unshift(S.askSaid); S.askSaid = ""; }
+  S.sum = { at: S.log.length, lines };
+  return true;
+}
+// One sentence a possession ("Chargers drive: 9 plays, 62 yards, 4:10."), with how it ended when that
+// wasn't a kick, then each kick as the game told it, and the score if it changed
+const SIT_TAIL = /(?:^|\s)(?:[^.!]* ball\. )?\d(?:st|nd|rd|th) & [^.]*\.\s*$/;
+function driveLines(rows, scores) {
+  const me = coordTeam(), lines = [];
+  const kick = r => r && !r.scrim && (r.id === "punt" || r.id === "fg");
+  let d = null;
+  const close = next => {
+    if (!d) return;
+    const len = `${plural(d.n, "play")}, ${d.yds < 0 ? "minus " + -d.yds : d.yds} ${Math.abs(d.yds) === 1 ? "yard" : "yards"}${d.secs ? `, ${fmtClock(d.secs)}` : ""}`;
+    const how = kick(next) && next.t === d.t ? "" : " " + `${d.last.text}${d.last.sub ? " " + d.last.sub : ""}`.replace(SIT_TAIL, "").trim();
+    lines.push(`${d.t === me ? "Your offense" : `${S.teams[d.t].name} drive`}: ${len}.${how}`.trim());
+    d.inj.forEach(x => lines.push(x));
+    d = null;
+  };
+  rows.forEach(r => {
+    if (r.scrim) {
+      if (d && d.t !== r.t) close(r);
+      d = d || { t: r.t, n: 0, yds: 0, secs: 0, inj: [] };
+      d.n += Math.max(1, r.plays); d.yds += r.yds; d.secs += r.secs; d.last = r;
+      if (r.inj) d.inj.push(r.inj);
+    } else {
+      close(r);
+      lines.push(`${r.text}${r.sub ? " " + r.sub : ""}`.replace(SIT_TAIL, "").trim());
+      if (r.inj) lines.push(r.inj);
+    }
+  });
+  close(null);
+  if (scores && (scores[0] !== S.teams[0].score || scores[1] !== S.teams[1].score)) lines.push(`${S.teams[0].name} ${S.teams[0].score}, ${S.teams[1].name} ${S.teams[1].score}.`);
+  return lines;
+}
+
 /* ---------- Key moments ---------- */
 // The computer calls both sides until the game is close late (the fourth quarter or overtime, with
 // the score within 8), then the coach takes over from the next snap to the end. If it never gets

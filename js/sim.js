@@ -587,7 +587,7 @@ function setupPenalty(code, r, pre) {
   const playStop = post.poss !== pre.poss || !sameScore || r.head === "Incomplete" || (!!r.oob && oobWindow());
   r.who = penPlayer(code, r);
   S.pen = { code, offender, chooser, r, pre, post, endOfPlay, playStop, acc: e.s, accDesc: e.desc, accYds: e.yds, periodOver: S.periodOver };
-  if (S.teams[chooser].cpu) choosePenalty(stateValue(e.s, chooser) > stateValue(S.pen.post, chooser));
+  if (!youDecide(chooser)) choosePenalty(stateValue(e.s, chooser) > stateValue(S.pen.post, chooser));
   else S.phase = "penalty";
 }
 function choosePenalty(accept) {
@@ -953,7 +953,7 @@ function resolveTwo() {
     const keep = Object.assign({}, res); delete keep.x;
     S.pen = { two: true, code, team: o, offender, chooser, good, res: keep, text, spot, m, off, def, opk: S.offPkg, dpk: S.defPkg, who: penPlayer(code, fake) };
     // Computer: the defense accepts an offensive foul only if the try was good; the offense accepts a defensive foul only if it failed
-    if (S.teams[chooser].cpu) chooseTwoPenalty(pen.on === "off" ? good : !good);
+    if (!youDecide(chooser)) chooseTwoPenalty(pen.on === "off" ? good : !good);
     else S.phase = "penalty";
     return;
   }
