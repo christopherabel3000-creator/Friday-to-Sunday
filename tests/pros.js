@@ -528,6 +528,21 @@ function plain(g, extra) {
   }
 }
 
+// ---- The GM's trades read from your side, with the player's name ----
+{
+  const sb = load(), g = sb.__get;
+  g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
+  g(`(() => { const P = THIRD; THIRD = SEASON; SEASON = P; arrangeWorlds([OTHER, THIRD]); CAREER.prep = 20; proTakeOver(SEASON.confs[0].ids[1]); startProJob(SEASON.myId, false); proSetExpectations(); })()`);
+  const before = g("[mySchool().players.length, teamPicks(SEASON, SEASON.myId).length]");
+  const news = g(`(() => { const W = SEASON, out = []; W.phase = "regular"; W.news = W.news || {}; for (let n = 1; n <= 8; n++) { W.week = n; tradeWeek(W, n).forEach(x => { if (/^Your GM/.test(x)) out.push(x); }); } return out; })()`);
+  const after = g("[mySchool().players.length, teamPicks(SEASON, SEASON.myId).length]");
+  ok(news.length >= 1 && news.every(x => /^Your GM made a trade with the \w[\w ]*\. You gave up [A-Z][^?]+ \(\w[\w ]* \d+\)\. You got [^?]+\.$/.test(x)), `a trade your GM takes names the player you gave up and what you got (${news[0]})`);
+  ok(after[0] === before[0] - news.length && after[1] > before[1], "and the player left and the picks came in");
+  // His own move: a starter for no more than four picks, even with a full roster
+  const mv = g(`(() => { const W = SEASON, n0 = teamPicks(W, W.myId).length, pos = ["RB", "WR", "OL", "LB", "CB", "S"].find(p => { const t = gmMove(W, p); if (t) W.__t = t; return t; }); return { pos, t: W.__t, gave: n0 - teamPicks(W, W.myId).length, size: onActive(mySchool()).length }; })()`);
+  ok(mv.pos && mv.gave >= 1 && mv.gave <= 4 && /You gave up .+ pick.*\. You got [A-Z][^?]+ \(/.test(mv.t) && mv.size <= 53, `the GM's own move costs four picks at most and keeps the roster legal (${mv.t})`);
+}
+
 // ---- Step 7: trades ----
 {
   const sb = load(), g = sb.__get;

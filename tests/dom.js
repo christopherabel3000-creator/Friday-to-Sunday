@@ -712,8 +712,9 @@ function checkScreen(page, label) {
   checkScreen(p8, "key moments");
 
   // ---- College: from the high school job market to a college season ----
+  // (a reputation of 100 going in: one bad simmed season can cost 11 points, and under 80 no college calls)
   const p9 = await openPage(), d9 = p9.d, w9 = p9.w, ev9 = x => w9.eval(x), head9 = () => (d9.querySelector("[data-focus]") || {}).textContent || "";
-  ev9(`newCareer("Kim", "Lee", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]); CAREER.rep = 90; simSeason(); APP.screen = "summary"; render();`);
+  ev9(`newCareer("Kim", "Lee", "qb", "bal", "bal"); newSeason(78, 2026); pickSchool(SEASON.districts[SEASON.district - 1].ids[1]); CAREER.rep = 100; simSeason(); APP.screen = "summary"; render();`);
   tap(p9, "offseason");
   if (ev9("APP.screen") === "signing") tap(p9, "adreview");
   tap(p9, "carousel"); tap(p9, "market");

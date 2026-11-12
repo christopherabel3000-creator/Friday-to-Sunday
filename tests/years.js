@@ -113,7 +113,7 @@ const nextYear = g => { g("simSeason()"); g(`SEASON.phase = "offseason"`); retur
   ok(Math.abs(avg(0) - avg(1)) < 2, `your district and the rest of the state stay even (${avg(0).toFixed(1)} and ${avg(1).toFixed(1)})`);
   ok(Math.abs(avg(1) - y0[1]) < 2.5 && Math.abs(avg(0) - y0[0]) < 3, `and about where the state began (${y0.map(x => x.toFixed(1)).join(" and ")} in 2026, ${avg(0).toFixed(1)} and ${avg(1).toFixed(1)} later)`);
   ok(g("mySchool().players.length") >= 20 && g("mySchool().players.length") <= 40, `rosters stay a normal size (${g("mySchool().players.length")})`);
-  ok(g(`SEASON.districts[SEASON.district - 1].ids.every(id => { const s = SEASON.schools[id]; return s.players.some(p => p.pos === "QB" || p.pos2 === "QB") && s.depth.K.length && s.depth.QB.length; })`), "every school still has a quarterback and a kicker");
+  ok(g(`SEASON.districts[SEASON.district - 1].ids.every(id => { const s = SEASON.schools[id]; return s.players.some(p => p.pos === "QB" || p.pos2 === "QB" || p.arch === "passer" || p.arch === "dual") && s.players.some(p => p.arch === "kicker") && s.depth.K.length && s.depth.QB.length; })`), "every school still has a quarterback and a kicker");
 }
 
 // ---- Saves from before more seasons ----

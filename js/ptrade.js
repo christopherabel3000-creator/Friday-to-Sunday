@@ -82,7 +82,8 @@ const rosterMax = (W, s) => W.phase === "offseason" || (W.phase === "preseason" 
 const newTrade = id => ({ with: id, give: { players: [], picks: [] }, get: { players: [], picks: [] } });
 // The other team's answer: { ok, ratio, word, why }. It takes a trade that gets it a bit more than it
 // gives, that both teams can fit under the cap, and that leaves both rosters a legal size.
-function tradeAnswer(W, T, from) {
+// (anyRoster: your GM's own move, where a full roster makes room by letting its lowest-rated player go)
+function tradeAnswer(W, T, from, anyRoster) {
   from = from || W.myId;
   const me = W.schools[from], them = W.schools[T.with], A = isFull(me) ? me : proRoster(me), B = isFull(them) ? them : proRoster(them);
   if (!T.give.players.length && !T.give.picks.length && !T.get.players.length && !T.get.picks.length) return { ok: false, ratio: 0, word: "Add something to the trade." };
@@ -92,7 +93,7 @@ function tradeAnswer(W, T, from) {
   const max = rosterMax(W, me);
   if (capIn(B, pin, pout) < 0) return { ok: false, ratio, word: "They can't fit it under the cap." };
   if (capIn(A, pout, pin) < 0) return { ok: false, ratio, word: "You can't fit it under the cap." };
-  if (from === W.myId && onActive(A).length - pin.length + pout.length > max) return { ok: false, ratio, word: `That would put you over ${max} players. Make room first.` };
+  if (from === W.myId && !anyRoster && onActive(A).length - pin.length + pout.length > max) return { ok: false, ratio, word: `That would put you over ${max} players. Make room first.` };
   const word = ratio >= 1.08 ? "They'd take that." : ratio >= .95 ? "They'd want a bit more." : ratio >= .75 ? "They'd want more." : "Not close.";
   return { ok: ratio >= 1.08, ratio, word, recv, give };
 }
@@ -125,6 +126,14 @@ function tradeText(W, T, from) {
   };
   const give = nm(A, T.give, A.id), get = nm(B, T.get, B.id);
   return `The ${B.mascot} get ${give || "nothing"}; the ${A.mascot} get ${get || "nothing"}.`;
+}
+
+// One of your own trades, from your side, so there's no doubt who got what: "You gave up Tyler Ross
+// (receiver 82). You got the Sabers' 2027 second-round pick." Worked out before the trade is made.
+function myTradeText(W, T) {
+  const me = mySchool(), them = W.schools[T.with], B = isFull(them) ? them : proRoster(them);
+  const list = (full, side) => andList(side.players.map(id => { const p = full.players.find(x => x.id === id); return p ? `${fullName(p)} (${posName(p.pos)} ${ovr(p, p.pos)})` : "a player"; }).concat(side.picks.map(k => pickName(W, k))));
+  return `You gave up ${list(me, T.give) || "nothing"}. You got ${list(B, T.get) || "nothing"}.`;
 }
 
 /* ---------- Computer teams' trades ---------- */
@@ -163,7 +172,8 @@ function tradeWeek(W, n) {
       else {
         // Your staff (or your GM) takes it if it gets a good deal back
         const back = sideValue(W, proRoster(W.schools[T.with]), T.get, mySchool()), out = sideValue(W, mySchool(), T.give, mySchool());
-        if (back >= out * 1.1) { doTrade(W, T); news.push(`${J && J.ctl ? "Your staff" : "Your GM"} made a trade: ${tradeText(W, T)}`); }
+        // (the words first: once the trade is made, the players aren't where the trade says to look)
+        if (back >= out * 1.1) { const text = myTradeText(W, T); doTrade(W, T); news.push(`${J && J.ctl ? "Your staff" : "Your GM"} made a trade with the ${W.schools[T.with].mascot}. ${text}`); }
       }
     }
   }
@@ -172,8 +182,8 @@ function tradeWeek(W, n) {
   // The move you asked your GM for, in the week before the deadline
   if (J && !J.ctl && J.req && J.req.move && n === TRADE_DEADLINE) {
     const pos = J.req.move, yes = gmFollows(`move:${W.year}:${pos}`), done = yes ? gmMove(W, pos) : null;
-    (J.log = J.log || []).push({ yes: !!done, t: `Make a move at ${posName(pos)}: ${done ? `done. ${done}` : yes ? "he couldn't find a deal" : "he stood pat"}` });
-    if (done) news.push(`Your GM made a trade: ${done}`);
+    (J.log = J.log || []).push({ yes: !!done, t: `Make a move at ${posName(pos)}: ${done ? `done, with the ${done}` : yes ? "he couldn't find a deal" : "he stood pat"}` });
+    if (done) news.push(`Your GM made a trade with the ${done}`);
     J.req.move = null;
   }
   if (news.length) { if (n) W.news[n] = (W.news[n] || []).concat(news); else if (W.off) W.off.news = W.off.news.concat(news); }
@@ -203,18 +213,21 @@ function cpuCpuTrade(W, rng) {
   }
   return null;
 }
+const GM_MOVE_PICKS = 4;
 // Your GM's move at a position: a starter there from a team with one to spare, for picks
 function gmMove(W, pos) {
   const me = mySchool(), bar = startersAt(me, pos)[(STARTERS[pos] || 1) - 1] || 0;
   for (const b of Object.keys(W.schools).filter(id => id !== W.myId)) {
-    const B = proRoster(W.schools[b]), p = B.players.filter(x => x.pos === pos && ovr(x, x.pos) > bar + 2).sort((x, y) => ovr(y, y.pos) - ovr(x, x.pos))[0];
+    const them = W.schools[b], B = proRoster(them), p = B.players.filter(x => x.pos === pos && ovr(x, x.pos) > bar + 2).sort((x, y) => ovr(y, y.pos) - ovr(x, x.pos))[0];
     if (!p) continue;
     const T = newTrade(b), target = playerTradeValue(p, teamNeeds(B));
     T.get.players.push(p.id);
     let got = 0;
-    teamPicks(W, W.myId).map(k => [k, pickValue(W, k)]).sort((x, y) => y[1] - x[1]).forEach(([k, v]) => { if (got < target * 1.1 && got + v <= target * 1.4) { T.give.picks.push(k); got += v; } });
-    if (!tradeAnswer(W, T).ok) continue;
-    const text = tradeText(W, T);
+    // (no more than four picks: a GM doesn't empty three drafts for one player)
+    teamPicks(W, W.myId).map(k => [k, pickValue(W, k)]).sort((x, y) => y[1] - x[1]).forEach(([k, v]) => { if (T.give.picks.length < GM_MOVE_PICKS && got < target * 1.1 && got + v <= target * 1.4) { T.give.picks.push(k); got += v; } });
+    // (a full roster doesn't stop him: the lowest-rated player is let go to make room, in doTrade)
+    if (!tradeAnswer(W, T, W.myId, true).ok) continue;
+    const text = `${them.mascot}. ${myTradeText(W, T)}`;
     doTrade(W, T);
     return text;
   }

@@ -35,6 +35,14 @@ function classArchs(s, year, n, g) {
   for (let i = every(k / 2, (year + s.seed) % 2 === 0); i > 0; i--) out.push(g.f() < .5 ? "passer" : "dual");
   for (let i = Math.min(1, every(k / 2, (year + Math.floor(s.seed / 2)) % 2 === 0)); i > 0; i--) out.push("kicker");
   while (out.length < n) out.push(g.w(CLASS_POOL));
+  // The state's first new class always has a passer and a kicker (added at the end, so the rest of the
+  // class is who it always was). The schools began with one or two quarterbacks and a kicker, often
+  // seniors: without this, a school whose turn for a passer is a year off plays its first few years
+  // with a linebacker under center. After that, every other year keeps one on the roster.
+  if (SEASON && year === SEASON.year0 + 1 && !isCollege(s.cls) && !isPro(s.cls)) {
+    if (!out.includes("passer") && !out.includes("dual")) out.push("passer");
+    if (!out.includes("kicker")) out.push("kicker");
+  }
   return out;
 }
 // A school's freshmen in a year, the same every time for the same school and year. Their potential is
