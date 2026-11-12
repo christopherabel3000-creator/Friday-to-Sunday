@@ -99,6 +99,11 @@ function upgradeSave(s) {
   const book = sc => { if (sc && sc.players && !sc.mastery) sc.mastery = genMastery(dice(hashSeed(`${sc.seed || 0}:${sc.id}:book`)), (sc.coach && sc.coach.off_style) || sc.off, (sc.coach && sc.coach.def_style) || sc.def); };
   if (s.app.ex) s.app.ex.schools.forEach(book);
   const se = s.season;
+  // There are no report cards in the pros: anyone a pro team lost to one (a bug) plays again
+  if (se && se.lvl === "pro" && se.schools) for (const id in se.schools) {
+    const sc = se.schools[id];
+    if (sc.players) sc.players.forEach(p => { if (p.inj && p.inj.at === "grades") delete p.inj; });
+  }
   if (se && se.schools) {
     Object.values(se.schools).forEach(book);
     if (!se.plan) Object.assign(se, { plan: newPlan(), practice: null, cpuWeek: Math.max(0, (se.week || 1) - 1), film: null, injLog: {} });

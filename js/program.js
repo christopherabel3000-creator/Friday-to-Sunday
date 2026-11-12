@@ -143,6 +143,8 @@ function gradesOf(p) {
 const REPORT_WEEKS = [4, 8];
 function reportCards(s, rng) {
   const out = [];
+  // Nobody hands out report cards in the pros
+  if (isPro(s.cls)) return out;
   s.players.forEach(p => {
     if (p.inj) return;
     const risk = clamp((55 - gradesOf(p)) * .025, 0, .5) * (tutorOn(s) ? TUTOR_CARDS : 1);

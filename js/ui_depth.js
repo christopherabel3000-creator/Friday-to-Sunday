@@ -243,7 +243,7 @@ function vPlayer() {
       ${viewCtx() === "season" ? proPlayerActions(tm, p) : ""}
       ${p.ct && isPro(tm.cls) ? `<p>${esc(`${p.ir ? "On injured reserve. " : teamPS(tm).some(q => q.id === p.id) ? "On the practice squad. " : ""}Contract: ${proContractText(p)}${p.pick ? ` Drafted in round ${p.pick.rd} in ${p.pick.year}, pick ${p.pick.n}.` : ""}`)}</p>` : ""}
       ${mineInSeason && SEASON.lvl === "col" && REC_LV[SEASON.schools[SEASON.myId].cls] ? `<p>${esc(`Paid ${moneyText(p.pay || 0)} a year in revenue sharing and NIL. Fair pay here: about ${moneyText(fairPay(p, SEASON.schools[SEASON.myId]))}.`)}</p>` : ""}
-      <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}, grades ${gradesOf(p)}.</p>
+      <p>${capFirst(POT_BANDS[p.potSeen])} potential, by the staff's estimate. Work ethic ${p.eth}, stamina ${p.sta}, health ${p.hlt}${isPro(tm.cls) ? "" : `, grades ${gradesOf(p)}`}.</p>
       ${p.o0 != null && mineInSeason && ovr(p, p.pos) > p.o0 ? `<p>Up from ${p.o0} at ${slotName(p.pos)} since the start of the season.</p>` : ""}
     </section>
     ${st ? `<section class="panel"><h3>This game</h3>${playerGameLine(st)}</section>` : ""}

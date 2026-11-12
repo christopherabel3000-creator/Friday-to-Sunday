@@ -225,6 +225,9 @@ const text = html => html.replace(/<[^>]*>/g, " ").replace(/&#39;/g, "'").replac
   ok(g("APP.screen") === "game" && g(`S.teams[${me}].role`) === "oc" && g(`S.teams[${1 - me}].role`) === "" && g(`S.teams[${me}].cpu`) === false, "your game is a coordinator's game");
   ok(g(`S.teams[${me}].coach.off`) === g("CAREER.coach.off") && g(`S.teams[${me}].coach.def`) === g("mySchool().coach.def") && g(`S.teams[${me}].coach.gm`) === g("mySchool().coach.gm") && g(`S.teams[${me}].trust`) === g("CAREER.job.sec / 100"), "played with your rating on offense, his on defense and his game management, and his trust in you");
   g(`simToEnd(); recordMyGame(); APP.screen = "season"`);
+  // (the head coach is new in his job here, so he's neither let go nor hired away this year: what
+  // happens to you when he goes is tested further down)
+  g(`(() => { const c = coachCareer(mySchool().coach, mySchool()); c.job.ten = 0; c.job.tg = []; c.job.sec = 100; c.yrs = Math.min(c.yrs, c.span - 5); })()`);
   // The season and the review
   const rep0 = g("CAREER.rep");
   toMarket(g);
@@ -271,15 +274,23 @@ const text = html => html.replace(/<[^>]*>/g, " ").replace(/&#39;/g, "'").replac
 {
   // He's fired after a poor year for you: the new coach keeps you, or brings his own staff
   let kept = 0, let_go = 0;
+  // (the new coach's choice is a seeded roll against 0.2 to 0.9, by your grade. Left to the simmed
+  // seasons, six schools now and then all went one way, so each school's grade is set here: a very
+  // good year or a very bad one, by turns, unless its roll is one that goes
+  // the same way whatever the grade)
+  let n = 0;
   for (const seed of [78, 5, 911, 404, 1234, 77]) {
     const g = career(seed, 45);
     toMarket(g);
     take(g, g(`marketJobs().filter(j => jobRole(j))[0]`));
     g(`act("nextyear"); if (APP.screen === "newyear") act("season");`);
     g(`simSeason(); (() => { const c = coachCareer(mySchool().coach, mySchool()); c.job.ten = 5; c.job.sec = -100; c.job.tg = [-3, -3]; })(); CAREER.rep = 5;`);
+    const roll = g("seededRandom(hashSeed(`${SEASON.seed}:${SEASON.myId}:kept`))()"), good = roll < .2 || (roll < .9 && n++ % 2 === 0);
+    g(`CAREER.seasons[CAREER.seasons.length - 1].g = ${good ? 10 : -10}`);
     toMarket(g);
     const R = JSON.parse(g("JSON.stringify(SEASON.review)"));
     if (!R.hcGone) continue;
+    ok(!R.promo && !!R.kept === good && !!R.letGo === !good, `seed ${seed}: after a ${good ? "very good" : "very bad"} year, the new coach ${good ? "keeps you" : "brings his own staff"}`);
     if (R.kept) {
       kept++;
       const before = g("coachName(mySchool().coach)");

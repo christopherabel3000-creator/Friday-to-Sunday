@@ -261,7 +261,8 @@ function plain(g, extra) {
   const sb2 = load(), h = sb2.__get;
   h(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Pat", "Reyes", "qb", "bal", "bal"); newSeason(78, 2026);`);
   h(`(() => { const C = OTHER; OTHER = SEASON; SEASON = C; arrangeWorlds([OTHER, THIRD]); CAREER.crep = 95; const id = SEASON.confs.find(c => c.cls === "P4").ids[0]; colTakeOver(id); startColJob(id); colSetExpectations(); APP.screen = "season"; })()`);
-  h(`simSeason(); act("offseason")`);
+  // (a reputation of 100 through the review: a bad simmed season can cost 20 points, and under 75 he wouldn't qualify)
+  h(`simSeason(); CAREER.crep = 100; act("offseason")`);
   let k = 0; while (h("APP.screen") !== "market" && k++ < 6) { const s = h("APP.screen"); h(s === "signing" ? `act("adreview")` : s === "review" ? `act("carousel")` : `act("market")`); }
   h("CAREER.crep = 95");
   // In a year when no pro coach is let go, one is, for a coach who qualifies (November 2026)
@@ -538,6 +539,11 @@ function plain(g, extra) {
   const after = g("[mySchool().players.length, teamPicks(SEASON, SEASON.myId).length]");
   ok(news.length >= 1 && news.every(x => /^Your GM made a trade with the \w[\w ]*\. You gave up [A-Z][^?]+ \(\w[\w ]* \d+\)\. You got [^?]+\.$/.test(x)), `a trade your GM takes names the player you gave up and what you got (${news[0]})`);
   ok(after[0] === before[0] - news.length && after[1] > before[1], "and the player left and the picks came in");
+  // No report cards in the pros, however poor a player's grades were in school
+  const cards = g(`(() => { const s = mySchool(); s.players.forEach(p => { if (!p.inj) p.gr = 5; }); const out = []; for (let i = 0; i < 20; i++) out.push(...reportCards(s, Math.random)); return out.length + s.players.filter(p => p.inj && p.inj.at === "grades").length; })()`);
+  ok(cards === 0, "report cards never rule a pro ineligible");
+  const fixed = g(`(() => { const s = mySchool(), p = s.players.find(x => !x.inj); p.inj = { w: 1, at: "grades" }; const sv = upgradeSave({ v: 1, app: { ex: null, view: null, screen: "season" }, season: clone(SEASON) }); return !sv.season.schools[SEASON.myId].players.some(x => x.inj && x.inj.at === "grades") && (delete p.inj); })()`);
+  ok(fixed === true, "and a save with a pro ruled ineligible gets him back");
   // His own move: a starter for no more than four picks, even with a full roster
   const mv = g(`(() => { const W = SEASON, n0 = teamPicks(W, W.myId).length, pos = ["RB", "WR", "OL", "LB", "CB", "S"].find(p => { const t = gmMove(W, p); if (t) W.__t = t; return t; }); return { pos, t: W.__t, gave: n0 - teamPicks(W, W.myId).length, size: onActive(mySchool()).length }; })()`);
   ok(mv.pos && mv.gave >= 1 && mv.gave <= 4 && /You gave up .+ pick.*\. You got [A-Z][^?]+ \(/.test(mv.t) && mv.size <= 53, `the GM's own move costs four picks at most and keeps the roster legal (${mv.t})`);
