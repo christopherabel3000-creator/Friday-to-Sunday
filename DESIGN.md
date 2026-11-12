@@ -1,6 +1,6 @@
 # Friday to Sunday: design
 
-Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone. Since then (November 2026): scoreboard abbreviations you choose, one Fundamentals setting in practice (every position group at once), and fixes for loading saves (see Saves), shortening a blowout (see Rules by level), clinics and consultants for college and pro coaches and gifts to the NIL collective (see Coaching clinics and Money: revenue sharing and NIL), saves that don't fail when the device's storage fills (see Saves), and your coach's page leading with the XP to spend and your job (the expectation this season, job security and the contract), with the expectation on the college and pro season screens too. Milestone 6, the coordinator path, is built too (November 2026).
+Status: Milestones 1 to 4 are done: a career that starts at a 1A school and can climb to 6A, with preseason camp, practice, playbook mastery, scouting reports, growth and injuries, coach XP and perks, the offseason program, expectations and season grades, reputation, job security, a coaching carousel, the job market, boosters, the program fund, facilities, college offers and signing day, and key moments; then college, from Division III to the power conferences, with college rules, the college world and its postseason, college players, contracts, recruiting, NIL money, the transfer portal, and names you choose; then the pros, with the NFL's rules and shape, the salary cap, the GM and personnel control, the draft, free agency and trades. Milestone 5 is built; what's left to check is speed and the save on a phone. Since then (November 2026): scoreboard abbreviations you choose, one Fundamentals setting in practice (every position group at once), and fixes for loading saves (see Saves), shortening a blowout (see Rules by level), clinics and consultants for college and pro coaches and gifts to the NIL collective (see Coaching clinics and Money: revenue sharing and NIL), saves that don't fail when the device's storage fills (see Saves), and your coach's page leading with the XP to spend and your job (the expectation this season, job security and the contract), with the expectation on the college and pro season screens too. Milestone 6, the coordinator path, is built too (November 2026). Milestone 7, playbooks and schemes, is designed and not built yet.
 
 ## The pitch
 
@@ -868,6 +868,127 @@ As built: `coord.js` holds the jobs, the moves and the grade, and `ui_coord.js` 
 
 Tests with each step: a coordinator game played by tapping (a screen reader's view of it), whole coordinator careers through each level change, and saves from before the milestone.
 
+## Milestone 7: playbooks and schemes (planned)
+
+Designed November 2026, not built yet. Every team shares the 8 base plays on each side. Your scheme adds plays only it can call, which have to be installed, and which make the scheme stronger as the team learns them. The play call is the heart of the game, and a career runs hundreds of games: this is what makes a scheme a real choice and moving up a level feel like a new game on the field.
+
+### How a scheme works
+
+Today a scheme is a set of small edges that can be swapped any week at no cost. Four things change:
+
+- Scheme plays: each scheme has plays of its own (see the lists below). Only a team running the scheme can call them.
+- Scheme plays start at mastery 0 in a new scheme and are learned in install practice, like any play. They follow the mastery rules in Playbook and mastery.
+- The scheme's strengths scale with how well it's installed: the edges a scheme gives now (West Coast's on Screen, Quick Game and Mesh, say) are multiplied by the average mastery of its scheme plays, as a share of 100. Its weaknesses apply in full from the first day.
+- There's no new meter. How installed a scheme is, is the mastery of its plays, read with the words the call sheet already uses: new, learning, solid, mastered.
+
+Changing schemes (Christopher's decision, November 2026): a coach can change schemes at any point, in the offseason or in the middle of a season. Nothing is locked. What it costs is the install: the new scheme's plays start at 0, so its strengths are worth nothing until they're learned, and its weaknesses apply at once. A scheme is something you install over the start of a season and stick to because leaving it throws that work away, not because the game forbids it.
+
+Expected pace, to be tuned: three weeks of heavy install in camp gets the scheme plays to learning by week 1, solid around week 5 or 6, and mastered late in the year.
+
+### What makes sticking with it pay
+
+- Year two starts ahead: scheme plays fade each offseason as other plays do, so a returning scheme starts near solid, not at 0.
+- Switching is a restart: the old scheme's plays are shelved at half their mastery and fade by half each year, so going back later is cheaper than starting fresh.
+- Your coach learns schemes: each season you run a scheme adds 4 percent to install speed for it, up to 20 percent. It's on your coach's page and goes with you to new jobs.
+- A new job is a decision: bring your scheme and install it, or keep the one the players already know.
+- Roster fit: the scheme screen rates your roster for each scheme (poor, fair, good, great), for this year and for after graduation. It's advice only. The plays already run on the players' ratings.
+
+### Offensive schemes and their plays
+
+Each scheme has three plays of its own in high school, a fourth in college and a fifth in the pros.
+
+Balanced. It also installs 25 percent faster: the scheme that's easy to teach.
+
+- Trap: a quick inside run. Beats blitzes and fronts that get upfield, loses to Base.
+- Bootleg: the quarterback rolls out off a run fake. Beats Run Blitz and Man, loses to Zone Blitz.
+- Tight End Seam: beats Cover 2 and Cover 3 down the middle, loses to Man.
+- College: RPO Glance, a run or a quick throw off one linebacker.
+- Pros: Dagger, a deep in-breaking route that needs protection.
+
+Air Raid.
+
+- Four Verticals: beats Cover 3 and Cover 2, loses to Prevent and All-Out Blitz.
+- Y-Cross: a deep crossing route. Beats Man and Cover 2, loses to Zone Blitz.
+- Bubble Screen: beats blitzes and soft corners, loses to press Man.
+- College: Shallow Cross.
+- Pros: Dig-Post, built to beat four-deep coverage.
+
+Ground & Pound.
+
+- Power: a pulling guard. A steady gain against most calls, with less to lose against Run Blitz than Inside Run.
+- Counter Trey: misdirection. Beats fast-flowing fronts and stunts, loses to Base.
+- Toss Sweep: beats inside pressure, loses to Corner Blitz.
+- College: Play-Action Shot, with maximum protection.
+- Pros: Leak, a throwback to a tight end slipping across the field.
+
+West Coast.
+
+- Slant-Flat: beats blitzes and Cover 3, loses to Cover 2.
+- Stick: a high-completion throw for third down. Beats zones, loses to Man.
+- Texas: the running back's angle route. Beats Man and All-Out Blitz.
+- College: Drive, a shallow and a dig that beat the underneath zones.
+- Pros: Flood, three receivers at three depths on one sideline.
+
+Option, a new scheme, in high school and college only (Christopher's decision: no option offense in the pros, as in real football, so an option coach has to learn something new to move up).
+
+- Triple Option: beats Man and light boxes, loses to a disciplined Base and to Scrape Exchange. Fumbles more at low mastery.
+- QB Keeper: a quarterback power run up the middle.
+- Option Pass: beats Run Blitz badly, with a low completion rate.
+- College: Zone Read, with a bubble throw attached.
+- It gives dual-threat quarterbacks a real home and makes opponent prep matter more: a defense that hasn't prepared for it gives up more.
+
+### Defensive schemes and their calls
+
+Balanced.
+
+- Quarters: four deep. Beats deep shots and play-action, soft against quick throws.
+- Robber: a safety sits in the middle. Beats Mesh, slants and crossers, loses deep outside.
+- QB Spy: beats keepers, bootlegs and draws, with a weaker rush.
+- College: Simulated Pressure. Pros: Tampa 2.
+
+Blitz-Happy.
+
+- Corner Blitz: beats outside runs and bubble screens, loses to Slant-Flat and deep throws to that side.
+- Double A-Gap: beats inside runs and slow-developing passes, loses to screens and draws.
+- Overload: five rushers from one side with zone behind. A safer pressure that loses to quick throws.
+- College: Cover 0 Bluff (show the blitz, then drop eight). Pros: Green Dog.
+
+No-Fly Zone.
+
+- Bracket: doubles the offense's best receiver. Loses to runs and tight ends.
+- Pattern Match: beats Mesh, Stick and Four Verticals, but is poor until it's well mastered.
+- Trap Corner: jumps short outside throws for interceptions, burned deep.
+- College: Cover 6. Pros: Buzz rotation.
+
+Run Stuffers.
+
+- Bear Front: beats inside runs and sneaks, loses to outside runs and play-action.
+- Line Stunt: beats zone runs, loses to draws and cutbacks.
+- Scrape Exchange: the answer to option football. Loses to Counter Trey and Bootleg.
+- College: Tite Front. Pros: Under Front.
+
+### On the field
+
+- The call sheet: 8 base plays and 3 scheme plays in high school, 12 in all in college and 13 in the pros, on each side. Scheme plays have their own heading, so a screen reader reaches them as one group.
+- Looks before the snap: each new defensive call has a look and a hint. Some share a look on purpose, so reading the defense stays a skill.
+- Scouting: the report names the opponent's schemes and how well they're installed, so you know which of its plays to expect.
+- Computer coaches follow the same rules: their scheme plays are installed in practice and weighted by mastery as their plays are now, and a new coach's scheme starts from 0 at his school.
+- Tempo, in college and the pros: a no-huddle switch. The defense can't change packages or disguise, and both sides tire faster. Built last.
+
+### How it gets built and balanced
+
+- Matchups by tag, not one giant table: each new play has tags (inside run, outside run, option, quick, intermediate, deep, screen, misdirection, play-action), and each call has an edge against each tag, plus a few named exceptions. The 8 by 8 chart for the base plays stays as it is.
+- The target: a scheme play is better than a base play in its best spots and worse outside them. Scoring at each level stays where it is now, checked with the balance report after every step.
+- Saves from before the milestone: your scheme stays, and its new plays start at solid, so no career in progress is set back.
+
+Build steps:
+
+1. Scheme plays, strengths that scale with their mastery, the cost of changing schemes, and the high school plays for the four schemes there are now on each side.
+2. The Option scheme and the calls that answer it, the roster fit reading, and your coach's seasons in a scheme.
+3. The college plays.
+4. The pro plays.
+5. Tempo.
+
 ## The world
 
 - A fictional state with six classes, from 1A (the smallest schools) to 6A (the largest). Bigger schools have more students to draw players from. All six arrive in Milestone 3a.
@@ -1193,6 +1314,10 @@ See Milestone 5 near the top.
 
 See Milestone 6 near the top.
 
+### Milestone 7: playbooks and schemes
+
+Planned. See Milestone 7 near the top.
+
 ## Saves
 
 - A career is one save. It saves on the device after every snap and every menu choice, like Gridiron Duel.
@@ -1255,6 +1380,7 @@ How it's built (step 5):
 - Depth chart: automatic if you want it, with changes for a single game and substitutions during a game.
 - The season: an 8-school district, three non-district games, and a 16-team state playoff for the top two in each district. Games in your district run on the full engine; the rest of the state is quick-simmed from ratings fit to the engine.
 - Difficulty: Normal only to start.
+- Schemes (Milestone 7, planned): a coach can change schemes at any point, but the new scheme's plays have to be installed before it gives any benefit. Three plays of its own for each scheme in high school, a fourth in college and a fifth in the pros. No option offense in the pros.
 
 ## Open questions
 
