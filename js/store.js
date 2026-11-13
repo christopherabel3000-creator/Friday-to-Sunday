@@ -62,6 +62,7 @@ function storeText(key, text, onTrouble) {
     if (key !== BACKUP_KEY) { try { localStorage.removeItem(BACKUP_KEY); localStorage.setItem(key, text); ls = true; } catch (e2) { /* still full */ } }
   }
   if (key === SAVE_KEY) storeState.ls = ls;
+  nativeWrite(key, text);
   idbWrite(key, text, ok => {
     // A copy left in localStorage that this save couldn't replace is out of date: take it away, so
     // it can never be loaded instead of the newer one
@@ -74,11 +75,55 @@ function storeText(key, text, onTrouble) {
 // Neither place could take the last save
 const saveTrouble = () => storeState.ls === false && storeState.idb === false;
 
+/* ---------- The iPhone app's own copy ---------- */
+// In the App Store app (Capacitor), iOS can clear a web view's storage when the phone runs short of
+// space. So the app also keeps each save as a file in its Documents folder, which iOS never clears
+// and which goes into the phone's backups. In a browser there's no such folder and this does nothing.
+// Files are written a moment after the last tap (only the newest text is kept), to a spare name first
+// and then moved into place, so a half-written file is never the one loaded.
+const NATIVE_DIR = "DOCUMENTS";
+function nativeFiles() {
+  try { const C = typeof window !== "undefined" && window.Capacitor; return C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.Filesystem || null; } catch (e) { return null; }
+}
+const nativeQueue = {};
+function nativeWrite(key, text) {
+  const fs = nativeFiles();
+  if (!fs) return;
+  const q = nativeQueue[key] || (nativeQueue[key] = { busy: false, next: null, timer: null });
+  q.next = text;
+  clearTimeout(q.timer);
+  q.timer = setTimeout(() => nativeFlush(key), 800);
+}
+function nativeFlush(key) {
+  const fs = nativeFiles(), q = nativeQueue[key];
+  if (!fs || !q || q.busy || q.next == null) return;
+  const text = q.next, file = key + ".json", spare = key + ".writing.json";
+  q.next = null; q.busy = true;
+  fs.writeFile({ path: spare, data: text, directory: NATIVE_DIR, encoding: "utf8" })
+    .then(() => fs.rename({ from: spare, to: file, directory: NATIVE_DIR, toDirectory: NATIVE_DIR }))
+    .catch(() => { /* IndexedDB and localStorage still have it */ })
+    .then(() => { q.busy = false; if (q.next != null) nativeFlush(key); });
+}
+function nativeRead(key) {
+  const fs = nativeFiles();
+  if (!fs) return Promise.resolve(null);
+  return fs.readFile({ path: key + ".json", directory: NATIVE_DIR, encoding: "utf8" })
+    .then(r => (r && typeof r.data === "string" ? r.data : null), () => null);
+}
+// Leaving the app writes what's waiting right away
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") Object.keys(nativeQueue).forEach(k => { clearTimeout(nativeQueue[k].timer); nativeFlush(k); });
+  });
+}
+
 // At startup: what IndexedDB holds, read before the game starts (or nothing, after a short wait)
 const idbLoaded = { save: null, backup: null };
 function idbLoadAll() {
   if (typeof indexedDB === "undefined" || !indexedDB) return Promise.resolve();
-  const read = Promise.all([idbGet(SAVE_KEY), idbGet(BACKUP_KEY)]).then(([s, b]) => {
+  const read = Promise.all([idbGet(SAVE_KEY).catch(() => null), idbGet(BACKUP_KEY).catch(() => null), nativeRead(SAVE_KEY), nativeRead(BACKUP_KEY)]).then(([s0, b0, sf, bf]) => {
+    // The app's own file counts too, whichever is newer
+    const s = newerSave(s0, sf), b = newerSave(b0, bf);
     idbLoaded.save = s; idbLoaded.backup = b;
     // A backup from before this change is only in localStorage: copy it over, since a full
     // localStorage lets go of it first

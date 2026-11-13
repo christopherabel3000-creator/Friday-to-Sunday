@@ -1,0 +1,10 @@
+/* Friday to Sunday: the game's fonts, kept with the game so it looks right with no internet
+   connection. All three are under the SIL Open Font License 1.1 (fonts/OFL.txt). */
+@font-face { font-family: 'Big Shoulders Display'; font-style: normal; font-weight: 600; font-display: swap; src: url('big-shoulders-display-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Big Shoulders Display'; font-style: normal; font-weight: 800; font-display: swap; src: url('big-shoulders-display-latin-800-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-style: normal; font-weight: 400; font-display: swap; src: url('barlow-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-style: normal; font-weight: 500; font-display: swap; src: url('barlow-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-style: normal; font-weight: 600; font-display: swap; src: url('barlow-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-style: normal; font-weight: 700; font-display: swap; src: url('barlow-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Chivo Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('chivo-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Chivo Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('chivo-mono-latin-500-normal.woff2') format('woff2'); }

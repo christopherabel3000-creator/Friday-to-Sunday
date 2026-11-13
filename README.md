@@ -84,6 +84,14 @@ Milestones 1 to 6 are built (see [DESIGN.md](DESIGN.md)): create your coach, tak
 
 Play it at [christopherabel3000-creator.github.io/Friday-to-Sunday](https://christopherabel3000-creator.github.io/Friday-to-Sunday/). GitHub Pages publishes `main` on every push (`.nojekyll` keeps the files served as they are). To run it yourself, open `index.html` from any web server. The game is plain HTML, CSS and JavaScript with no build step.
 
+The game's fonts are kept in `fonts/` (SIL Open Font License, `fonts/OFL.txt`), so it looks right with no internet connection.
+
+## The iPhone app
+
+The App Store version wraps the same files with [Capacitor](https://capacitorjs.com). Nothing about the game changes: `scripts/build-www.js` copies `index.html`, `style.css`, `js/` and `fonts/` into `www/`, and `npx cap sync ios` puts them in the Xcode project in `ios/`. In the app, each save is also kept as a file in the app's Documents folder (js/store.js), which iOS never clears.
+
+There's no Mac needed: `.github/workflows/ios.yml` builds the app on GitHub's Macs. Every push checks that it still builds; running the workflow by hand (Actions, iPhone app, Run workflow) signs it and sends it to TestFlight. Signing needs four repo secrets, listed at the top of the workflow. The app is `com.playbyear.fridaytosunday`.
+
 ## Cloud saves
 
 Cloud saves use the Firebase Realtime Database project shared with [Gridiron Duel](https://github.com/christopherabel3000-creator/football-call-sheet), [Hidden Ranks](https://github.com/christopherabel3000-creator/Hidden-Ranks) and [Shardkin: Eight Realms](https://github.com/christopherabel3000-creator/Shardkin-Eight-Realms) (call-sheet-football), under `fridayToSundaySaves/<KEY>`. Gridiron Duel's anonymous play counts live under `gridironStats` in the same file. The Firebase library loads only when a cloud save is first used. Save codes and files don't need it.

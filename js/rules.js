@@ -9,7 +9,7 @@
 
 const RULES = {
   hs: {
-    id: "hs", name: "High school", book: "NFHS",
+    id: "hs", name: "High school", book: "High school",
     qLen: 720,                 // 12-minute quarters
     timeouts: 3,               // per half
     twoMinWarning: false,
@@ -67,7 +67,7 @@ const RULES = {
   },
   // College (NCAA), checked against current sources in November 2026 (DESIGN.md: Rules by level)
   col: {
-    id: "col", name: "College", book: "NCAA",
+    id: "col", name: "College", book: "College",
     qLen: 900,                 // 15-minute quarters
     timeouts: 3,
     // The two-minute timeout in each half (since 2024), timed like the NFL's two-minute warning
@@ -116,7 +116,7 @@ const RULES = {
     endOfRun: true
   },
   pro: {
-    id: "pro", name: "Pros", book: "NFL",
+    id: "pro", name: "Pros", book: "Pro",
     qLen: 900, timeouts: 3, twoMinWarning: true,
     // Out of bounds stops the clock until the snap only late in each half
     oob: "late",

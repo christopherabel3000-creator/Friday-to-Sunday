@@ -1,0 +1,10 @@
+{
+  "appId": "com.playbyear.fridaytosunday",
+  "appName": "Friday to Sunday",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#EBEFEA",
+    "limitsNavigationsToAppBoundDomains": false
+  }
+}
