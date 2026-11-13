@@ -1010,6 +1010,41 @@ Christopher's decisions before the build (November 2026): exhibition teams know 
 - Tempo: in college and the pros, a switch on the result screen. While it's on, every snap that can go no huddle does (after an incompletion too, but not after a flag, a timeout, a kick, a score, a change of possession, the two-minute warning or the end of a quarter): personnel locks as no huddle does, the defense can't disguise, and every player on the field tires 40 percent faster. Computer offenses go up-tempo on a share of snaps (Air Raid 40 percent, West Coast 25, Balanced 12, others 5), never with a fourth-quarter lead.
 - Balance (400 computer games each, before and after): high school 37.0 to 37.5 points a game, 5.25 to 5.4 yards a carry, run share 59 to 61 percent; college 53.1 to 51.2; pros 50.8 to 52.3. Completion rates, interceptions, sacks and penalties stayed within noise.
 
+## Milestone 8: the weekly game plan (planned)
+
+Designed November 2026, not built yet. The scouting report shows what the opponent does; the game plan is what you do about it. Each week, after film study, you pick a few plays and calls built for this opponent and a lean for each situation. The team practices the plan that week, so it plays those calls a little sharper, but only when you actually call them.
+
+### The plan screen
+
+One screen, reached from the week screen once practice is held, next to the scouting report:
+
+- Featured plays: up to 4 offensive plays and 4 defensive calls, base or scheme. Each one says which of their favorite calls it beats on the chart.
+- Situation leans: for short, medium and long yardage, a lean on offense (run, pass or balanced) and on defense (pressure, coverage or balanced).
+- What they expect from you: from your film, read as plain sentences ("They'll expect a run on short yardage, 72 percent"). Information only: the other coach already plays against your habits, and this shows where breaking one would catch him. Breaking a habit earns no edge of its own (Christopher's decision, November 2026): the edge from the other coach calling the wrong play is enough.
+- The same toggle buttons as the install focus. Each pick is announced once.
+
+### What it does in a game
+
+- A featured play gets +0.06 on the play-call scale when you call it (Christopher agreed to this size, November 2026; tuned with the balance report so scoring stays flat). It stacks with the film study edge. A play still at "new" gets no featured edge.
+- The call sheet: featured plays get their own "Game plan" heading at the top, so a screen reader can jump straight to them, and the situation lean puts its plays first under that heading.
+- The cost: leaning on featured plays teaches the other coach your habits faster, through the scouting the engine already does. A good scout starts sitting on your favorites by the second half.
+- Halftime: swap up to two featured plays, with the halftime report in hand.
+
+### How it ties into the week
+
+- Film study sets how much you can plan: no opponent prep, no featured plays; a light week 2 a side; a full week 3; a heavy week 4, plus the situation leans.
+- Practice: featured plays become the week's install focus unless you set your own, so a featured play still being learned catches up.
+- Skipping the plan (Christopher's decision, November 2026): the plan stays what you used last week, trimmed to what this week's film study allows (the plays you picked first stay). Before your first game, your staff features the plays your team knows best on each side of the ball.
+- Simmed games and key moments: your coach calls the featured plays more and follows your leans.
+- A coordinator plans his side only.
+- Computer coaches plan too: they feature the plays that beat your habits, as sharply as their Scouting rating allows, so your film study shows you their plan coming.
+
+### How it gets built and balanced
+
+1. The plan: featured plays, the edge, the call sheet heading, last week's plan and the staff's first plan, and the install focus link.
+2. Situation leans, what they expect from you, halftime swaps, and the computer's plans.
+3. Balance: the featured edge against the balance report at each level, with computer coaches planning on both sides.
+
 ## The world
 
 - A fictional state with six classes, from 1A (the smallest schools) to 6A (the largest). Bigger schools have more students to draw players from. All six arrive in Milestone 3a.
@@ -1339,6 +1374,10 @@ See Milestone 6 near the top.
 
 Built November 2026. See Milestone 7 near the top.
 
+### Milestone 8: the weekly game plan
+
+Planned. See Milestone 8 near the top.
+
 ## Saves
 
 - A career is one save. It saves on the device after every snap and every menu choice, like Gridiron Duel.
@@ -1402,6 +1441,7 @@ How it's built (step 5):
 - The season: an 8-school district, three non-district games, and a 16-team state playoff for the top two in each district. Games in your district run on the full engine; the rest of the state is quick-simmed from ratings fit to the engine.
 - Difficulty: Normal only to start.
 - Schemes (Milestone 7): a coach can change schemes at any point, but the new scheme's plays have to be installed before it gives any benefit. Three plays of its own for each scheme in high school, a fourth in college and a fifth in the pros. No option offense in the pros. Exhibition teams know their scheme plays at solid.
+- The game plan (Milestone 8, planned): up to 4 featured plays and calls a side, by how much film was studied, worth +0.06 each when called. A skipped plan keeps last week's; before the first game, the staff features the plays the team knows best. Breaking a tendency earns no edge of its own.
 
 ## Open questions
 
