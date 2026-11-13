@@ -33,6 +33,9 @@ jobs:
   build:
     runs-on: macos-26
     timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash  # stops on a failure even when the output is piped through tail
     env:
       UPLOAD: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
     steps:
