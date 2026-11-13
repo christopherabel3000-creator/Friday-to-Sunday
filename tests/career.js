@@ -328,6 +328,21 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     ok(r.ok && data["fridayToSundaySaves/" + oldKey] && data["fridayToSundaySaves/" + oldKey].ver === 1 && third.g("APP.cloud.ver") === 1, "and saving it moves it into the new project, same code");
     r = await third.g(`cloudFind("${oldKey}")`);
     ok(r.found && r.found.cloud.ver === 1, "after which the new copy is the one found");
+
+    // Deleting a cloud save
+    r = await third.g("cloudDelete()");
+    const dead = data["fridayToSundaySaves/" + oldKey];
+    ok(r.ok && /Deleted the cloud save/.test(r.msg) && third.g("APP.cloud") === null && dead.gone === true && dead.ver === 2 && !("state" in dead) && !("by" in dead), "deleting leaves only a marker: no game, no device");
+    ok(third.g("CAREER.coach.last") === "Ruiz", "and the game on this device stays");
+    ok(/was deleted/.test((await third.g(`cloudFind("${oldKey}")`)).msg), "the code finds nothing now, not even the old project's copy");
+    ok(/doesn't have a cloud save/.test((await third.g("cloudDelete()")).msg), "nothing left to delete");
+    // The other device still thinks it has that save
+    const fourth = fresh({ firebase: fb2 });
+    fourth.g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); newCareer("Lee", "Moss", "qb", "air", "blz"); newSeason(77); pickSchool(SEASON.districts[SEASON.district - 1].ids[0]); APP.cloud = { key: "${oldKey}", ver: 1, at: 1 };`);
+    r = await fourth.g("cloudSave(true)");
+    ok(!r.ok && /was deleted/.test(r.msg) && fourth.g("APP.cloud") === null && data["fridayToSundaySaves/" + oldKey].gone, "a device that had it can't bring it back, even replacing");
+    r = await fourth.g("cloudSave(false)");
+    ok(r.ok && fourth.g("APP.cloud.key") !== oldKey, "it saves under a new code instead");
   }
 
   // ---- Saves from before careers ----

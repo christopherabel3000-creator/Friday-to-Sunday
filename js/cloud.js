@@ -99,7 +99,9 @@ const LEGACY_CONFIG = {
   projectId: "call-sheet-football"
 };
 const FB_LIB = "https://www.gstatic.com/firebasejs/10.12.2/";
-// A save lives at fridayToSundaySaves/KEY as { ver, state, t, by, act }: state is the save code.
+// A save lives at fridayToSundaySaves/KEY as { ver, state, t, by, act }: state is the save code. A
+// deleted save becomes { ver, t, gone: true }: the game is gone, and the marker stops the code from
+// finding an old copy in the shared project, or being reused.
 // Saves are numbered, so the game can tell when the cloud copy was changed from another device since
 // you last saved or loaded it here, and asks before replacing it.
 const CLOUD_PATH = "fridayToSundaySaves/";
@@ -153,13 +155,16 @@ async function cloudSave(force) {
   const C = APP.cloud || {}, fresh = !C.key, key = C.key || randKey(), code = await encodeSave(portableSave());
   let conflict = false, ver = 0, at = 0;
   try {
+    let gone = false;
     const res = await db.ref(CLOUD_PATH + key).transaction(cur => {
-      conflict = false;
+      conflict = false; gone = false;
+      if (cur && cur.gone && !fresh) { gone = true; return; }
       if (cur && (fresh || (!force && cur.ver !== C.ver))) { conflict = true; return; }
       ver = cur ? cur.ver + 1 : 1; at = Date.now();
       return { ver, state: code, t: at, by: deviceId(), act: "save" };
     }, null, false);
     if (!res.committed) {
+      if (gone) { APP.cloud = null; return { msg: `The cloud save ${keyText(key)} was deleted, maybe on another device. Save to the cloud again to get a new code.` }; }
       if (conflict && fresh) return cloudSave(force);
       if (conflict) return { conflict: true, msg: "The cloud save was changed on another device since you last saved or loaded it here. Replace it with the game on this device, or load the cloud save instead." };
       return { msg: CONN_ERR };
@@ -184,10 +189,27 @@ async function cloudFind(text) {
       moved = !!v;
     }
     if (!v) return { msg: `There's no cloud save with the code ${keyText(key)}.` };
+    if (v.gone) return { msg: `The cloud save ${keyText(key)} was deleted.` };
     const r = await decodeSave(v.state);
     if (r.err) return { msg: r.err };
     // A save from the old project starts over at version 1 here; the next cloud save writes it
     return { found: { save: r.save, cloud: { key, ver: moved ? 0 : v.ver, at: v.t } }, msg: `Found a cloud save from ${dateText(v.t)}: ${saveSummary(r.save)}.` };
+  } catch (e) { return { msg: netErr(e) }; }
+}
+
+// Deletes this game's cloud save: the saved game is removed, leaving only a marker that the code was
+// deleted, and when. The game on this device stays. Returns { ok, msg } or { msg }.
+async function cloudDelete() {
+  const C = APP.cloud;
+  if (!C || !C.key) return { msg: "This game doesn't have a cloud save." };
+  const db = await netDb();
+  if (!db) return { msg: CONN_ERR };
+  try {
+    const res = await db.ref(CLOUD_PATH + C.key).transaction(cur => (cur && cur.gone ? undefined : { ver: cur ? cur.ver + 1 : 1, t: Date.now(), gone: true }), null, false);
+    if (!res.committed && !(res.snapshot && res.snapshot.exists())) return { msg: CONN_ERR };
+    const key = C.key;
+    APP.cloud = null;
+    return { ok: true, msg: `Deleted the cloud save ${keyText(key)}. The code won't load anything now. Your game is still saved on this device.` };
   } catch (e) { return { msg: netErr(e) }; }
 }
 

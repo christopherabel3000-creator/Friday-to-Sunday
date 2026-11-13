@@ -286,6 +286,7 @@ function vSaves() {
       <button class="btn" data-a="cloudsave"${dis}>${C && C.key ? "Save to the cloud now" : "Save to the cloud"}</button>
       <div class="form"><label for="cloudkey">Load a cloud save code</label><input type="text" id="cloudkey" class="codein" data-in="cloudkey" data-enter="cloudfind" value="${esc(cloudKeyText)}" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go"></div>
       <button class="btn ghost" data-a="cloudfind"${dis}>Find the cloud save</button>
+      ${C && C.key ? `<button class="btn ghost" data-a="clouddelete"${dis}>${confirming === "clouddelete" ? "Tap again to delete the cloud save" : "Delete the cloud save"}</button>` : ""}
       <p class="muted">What a cloud save sends, and what stays on this device: <a href="privacy.html">privacy policy</a>.</p>
     </section>
     <section class="panel">
@@ -396,6 +397,12 @@ function savesAct(a) {
     case "cloudsave": if (!savesBusy) cloudSaveNow(false); return true;
     case "cloudforce": if (!savesBusy) cloudSaveNow(true); return true;
     case "cloudfind": if (!savesBusy) cloudFindNow(cloudKeyText); return true;
+    case "clouddelete": {
+      if (savesBusy || !APP.cloud || !APP.cloud.key || !confirmed("clouddelete")) return true;
+      savesBusy = true; cloudConflict = false; setSaveMsg("Deleting the cloud save.");
+      cloudDelete().then(r => showSaveMsg(r.msg), () => showSaveMsg(CONN_ERR));
+      return true;
+    }
     case "cloudpull": if (!savesBusy && APP.cloud && APP.cloud.key) cloudFindNow(APP.cloud.key); return true;
     case "persist": askPersist().then(v => showSaveMsg(v ? "Your browser will keep the game's storage." : "Your browser said no for now. Installing the game as an app, or adding it to your Home Screen, usually changes that.")); return true;
   }

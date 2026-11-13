@@ -719,6 +719,13 @@ function checkScreen(page, label) {
   tap(p6, "cloudsave");
   await wait(() => /Saved to the cloud/.test(msg6()));
   ok(cloudData["fridayToSundaySaves/" + key].ver === 4 && ev6("APP.cloud.key") === key, "saving to the cloud then updates the same cloud save");
+  ok(d6.querySelector('a[href="privacy.html"]'), "the cloud save section links to the privacy policy");
+  // Deleting it: tap twice
+  tap(p6, "clouddelete");
+  ok(/Tap again to delete/.test(btn(d6, "clouddelete").textContent) && !cloudData["fridayToSundaySaves/" + key].gone, "delete asks for a second tap");
+  tap(p6, "clouddelete");
+  await wait(() => /Deleted the cloud save/.test(msg6()));
+  ok(cloudData["fridayToSundaySaves/" + key].gone === true && ev6("APP.cloud") === null && !btn(d6, "clouddelete") && focused(d6) === d6.getElementById("savemsg"), "then deletes it, reads that out, and the button goes");
   ok(p6.errors.length === 0 && p7.errors.length === 0, "no script errors with saves: " + p6.errors.concat(p7.errors).slice(0, 2).join(" | "));
 
   // ---- Key moments ----

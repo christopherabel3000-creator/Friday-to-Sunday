@@ -94,7 +94,7 @@ There's no Mac needed: `.github/workflows/ios.yml` builds the app on GitHub's Ma
 
 ## Privacy policy
 
-`privacy.html`, linked from the Cloud saves and save codes screen and served at [christopherabel3000-creator.github.io/Friday-to-Sunday/privacy.html](https://christopherabel3000-creator.github.io/Friday-to-Sunday/privacy.html) (the address for App Store Connect). Update it whenever the game starts handling information differently.
+`privacy.html`, linked from the Cloud saves and save codes screen and served at [christopherabel3000-creator.github.io/Friday-to-Sunday/privacy.html](https://christopherabel3000-creator.github.io/Friday-to-Sunday/privacy.html) (the address for App Store Connect). Update it whenever the game starts handling information differently. Its contact link is a Google Form (Contact Friday to Sunday) in Christopher's Google account; new messages are emailed to him.
 
 ## Cloud saves
 
@@ -104,7 +104,7 @@ The rules are in `database.rules.json` and are published in the Firebase console
 
 Until November 2026 cloud saves lived in the call-sheet-football project shared with the other games. A code from then is still found there, read only, and saving it again moves it to the new project under the same code (js/cloud.js).
 
-The rules only accept well-formed saves, require every save to be exactly one version newer than the last (so a save can't be rewound or wiped), and never allow deleting one. Nobody can list the saves; a save can only be read with its 12-character code.
+Deleting a cloud save (the button on the saves screen) replaces it with `{ ver, t, gone: true }`: the game and device code are gone, and the marker keeps the code from loading an old copy or being reused. The rules only accept well-formed saves, require every save to be exactly one version newer than the last (so a save can't be rewound or wiped), and never allow deleting one. Nobody can list the saves; a save can only be read with its 12-character code.
 
 ## Code
 

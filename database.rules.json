@@ -4,7 +4,7 @@
       "$key": {
         ".read": true,
         ".write": "newData.exists() && ((!data.exists() && newData.child('ver').val() === 1) || (data.exists() && newData.child('ver').val() === data.child('ver').val() + 1))",
-        ".validate": "$key.matches(/^[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]$/) && newData.hasChildren(['ver', 'state', 't'])",
+        ".validate": "$key.matches(/^[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]$/) && newData.hasChildren(['ver', 't']) && (newData.hasChild('state') !== newData.hasChild('gone'))",
         "ver": {
           ".validate": "newData.isNumber()"
         },
@@ -19,6 +19,9 @@
         },
         "act": {
           ".validate": "newData.isString() && newData.val().length < 32"
+        },
+        "gone": {
+          ".validate": "newData.val() === true"
         },
         "$other": {
           ".validate": false
