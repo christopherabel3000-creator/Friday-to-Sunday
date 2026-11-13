@@ -178,6 +178,7 @@ function practicePanel() {
       ${hurt.length ? `<p>Out: ${esc(andList(hurt.map(outLine)))}.</p>` : ""}
       <div class="choices"><button class="btn ghost" data-a="practice">Practice plan</button>${done ? `<button class="btn ghost" data-a="preport">Practice report</button>` : `<button class="btn ghost" data-a="hold">Hold practice</button>`}</div>
       ${done && P.film ? `<button class="btn ghost" data-a="scout">Scouting report</button>` : ""}
+      ${myGameIn(SEASON.week) && !played(myGameIn(SEASON.week)) ? `<p>${esc(planLine())}</p><button class="btn ghost" data-a="gameplan">Game plan</button>` : ""}
     </section>`;
 }
 // Offensive and defensive style buttons. The current one is pressed.

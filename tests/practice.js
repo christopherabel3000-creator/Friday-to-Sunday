@@ -26,7 +26,7 @@ const school = (g, seed) => g(`genSchool(dice(${seed}), { id: "t${seed}", cls: "
 {
   const { g } = fresh();
   g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); APP.ex.you = "watch"; startExhibition();
-     Object.assign(S, { quarter: 1, clock: 600, poss: 0, spot: 40, down: 1, toGo: 10, phase: "", look: null, twoPt: null });`);
+     Object.assign(S, { quarter: 1, clock: 600, poss: 0, spot: 40, down: 1, toGo: 10, phase: "", look: null, twoPt: null }); S.teams.forEach(t => { t.gp = null; });`); // (no game plans: gameplan.js)
   // The same dice, a play known well and one that's brand new: the edge differs by exactly the mastery edge
   const roll = (mo, md) => g(`(() => { S.teams[0].mastery.ir = ${mo}; S.teams[1].mastery.ba = ${md}; setRandom(seededRandom(99)); const r = rollPlay("ir", "ba", "p11", "base"); setRandom(null); return r.m; })()`);
   const known = roll(90, 70), raw = roll(20, 70), want = g("masteryEdge(90) - masteryEdge(20)");

@@ -195,13 +195,14 @@ const exGame = (g, level) => g(`APP = { v: 1, screen: "home", ex: null, view: nu
   ok(!g("S.tempoNow") && !g("tempoLevel()"), "no tempo in high school");
   exGame(g, "col");
   ok(g("tempoLevel()"), "tempo in college");
+  g(`Object.assign(CPU_TEMPO, { air: 1, wc: 1, bal: 1, gnp: 1, opt: 1 })`); // (every computer offense up-tempo, for the check)
   let saw = 0, fake = 0, lockedDef = 0, k = 0;
   while (g("S.phase") !== "final" && k < 6000) {
     F.autoStep(); k++;
     // (a kicking unit can still run on, and then the defense can sub too)
     if (g("S.phase") === "result" && g("S.tempoNow && !!OFFP[S.last.offId]")) { saw++; if (g("S.look && S.look.fake")) fake++; if (g("S.nhLock && S.last.dpk === S.nhLock.def")) lockedDef++; }
   }
-  ok(saw > 5, `computer offenses go up-tempo in college (${saw} snaps)`);
+  ok(saw > 5, `computer offenses can go up-tempo in college (${saw} snaps)`);
   ok(fake === 0 && lockedDef === saw, "on a tempo snap the defense can't disguise or change personnel");
   // Both sides tire faster
   exGame(g, "pro");

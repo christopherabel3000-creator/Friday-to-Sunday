@@ -135,7 +135,9 @@ function vCall() {
   const kickUnit = isOff && isST(pk);
   const allIds = isOff ? (kickUnit ? [] : offIds(pk)) : defBook(t), book = isOff ? OFFP : DEFP;
   // The scheme's own plays have their own heading, so a screen reader reaches them as one group
-  const ids = allIds.filter(id => !isSchemeId(id)), schIds = allIds.filter(isSchemeId);
+  // (and the game plan's featured plays come first, under their own heading: gameplan.js)
+  const gpIds = planFirst(t, isOff ? "off" : "def", allIds), gpLean = gpIds.length ? leanNow(t, isOff ? "off" : "def") : "bal";
+  const ids = allIds.filter(id => !isSchemeId(id) && !gpIds.includes(id)), schIds = allIds.filter(id => isSchemeId(id) && !gpIds.includes(id));
   const schName = isOff ? OFF_STYLES[offStyleOf(t)].name : DEF_STYLES[defStyleOf(t)].name;
   const fitTag = id => (isOff ? fitTagFor(pk, id) : "") + styleTag(isOff, id, t) + masteryTag(t, id);
   const pkgBook = isOff ? { ...OFF_PKGS, ...ST_PKGS } : DEF_PKGS;
@@ -218,6 +220,8 @@ function vCall() {
       ${liveField()}
       ${theirPkg}
       ${pkgPicker}
+      ${gpIds.length ? `<p class="sechead">Game plan</p>${gpLean !== "bal" ? `<p class="muted pkdesc">${esc(`Your lean here: ${GP_LEANS[isOff ? "off" : "def"].find(x => x[0] === gpLean)[1].toLowerCase()}.`)}</p>` : ""}
+      <div class="plays">${gpIds.map(id => card(id, book[id].name, book[id].tag + fitTag(id), book[id].desc)).join("")}</div>` : ""}
       ${ids.length ? `<p class="sechead">${isOff ? "Plays" : "Calls"}</p>
       <div class="plays">${ids.map(id => card(id, book[id].name, book[id].tag + fitTag(id), book[id].desc)).join("")}</div>` : ""}
       ${schIds.length ? `<p class="sechead">${esc(schName)} ${isOff ? "plays" : "calls"}</p>
@@ -504,6 +508,7 @@ function vHalftime() {
         <tbody>${statRow("Total yards", i => st(i).yds)}${statRow("Rushing", i => st(i).rush)}${statRow("Passing", i => st(i).pass)}${statRow("First downs", i => st(i).fd)}${statRow("Turnovers", i => st(i).to)}</tbody></table></div>
     </section>
     ${order.map(teamSec).join("")}
+    ${halfPlanPanel()}
     ${bannerHtml()}
     <button class="btn" data-a="half">Start the second half</button>`;
 }

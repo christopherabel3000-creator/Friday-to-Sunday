@@ -448,6 +448,16 @@ function checkScreen(page, label) {
   ok(ev("APP.screen") === "preport", "back to the practice report");
   tap(p4, "back");
   ok(ev("APP.screen") === "season" && btn(d4, "preport") && !btn(d4, "hold"), "practice is done for the week");
+  // The game plan (Milestone 8)
+  tap(p4, "gameplan");
+  ok(ev("APP.screen") === "gameplan" && /Game plan/.test(heading() || "") && d4.querySelectorAll('[data-a="gpick"][aria-pressed="true"]').length >= 2, "the game plan, with featured plays");
+  const gpOff = ev("myPlan().off[0]");
+  tap(p4, "gpick", gpOff);
+  ok(!ev("myPlan().off").includes(gpOff) && focused(d4) === btn(d4, "gpick", gpOff), "take a play off the plan; focus stays put");
+  tap(p4, "gpick", gpOff);
+  checkScreen(p4, "game plan");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "season", "back to the week");
   // Play week 2 by tapping a little, step away, then sim the rest
   tap(p4, "playgame");
   ok(ev("APP.screen") === "game" && ev("isMyGame()") && ev("S.season.week") === 2, "play your week 2 game");

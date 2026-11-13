@@ -523,8 +523,9 @@ function holdPractice() {
   // A coordinator's head coach keeps the other side's depth chart (and the kickers) himself
   // (and his side's expectation is set from where the ratings stand at the first practice: coord.js)
   if (role) { coordDepth(me); unitExpect(); }
-  const rep = practiceSchool(me, planNow(), rand, role ? { coord: { role, me: CAREER.coach, hc: camp ? CPU_CAMP : CPU_PLAN } } : null), gm = camp ? null : myGameIn(n);
-  Object.assign(rep, { week: n, focus: (SEASON.plan.focus || []).slice(), camp });
+  // (the game plan's featured plays are the install focus, unless you picked your own: gameplan.js)
+  const rep = practiceSchool(me, planWithFocus(planNow()), rand, role ? { coord: { role, me: CAREER.coach, hc: camp ? CPU_CAMP : CPU_PLAN } } : null), gm = camp ? null : myGameIn(n);
+  Object.assign(rep, { week: n, focus: ((SEASON.plan.focus || []).length ? SEASON.plan.focus : camp ? [] : planFocus()).slice(), camp });
   // Opponent prep: film study of this week's opponent
   if (gm && !played(gm)) { rep.opp = opponentIn(gm, me.id); rep.film = filmStudy(seasonSchool(rep.opp), me); }
   me.rating = schoolRating(me);
@@ -649,6 +650,7 @@ function simFullGame(gm) {
   try {
     const hs = seasonSchool(gm.h), as = seasonSchool(gm.a);
     initGame({ level: gameLevel(), cpu: [true, true], title: !!gm.title, neutral: !!gm.neutral, post: !!gm.post }, [gameDay(hs), gameDay(as)]);
+    planBoth(null);
     for (let i = 0; i < 8000 && S.phase !== "final"; i++) autoStep();
     Object.assign(gm, { hs: S.teams[0].score, as: S.teams[1].score, ot: Math.max(0, S.quarter - 4) });
     // Injuries stay with the schools that keep their rosters
@@ -706,6 +708,8 @@ function startMyGame() {
   // How much film your defense studied, against the Option (schemes.js); a computer defense studies about a full week's worth
   S.teams[me].prepLv = P && P.film && P.opp === S.teams[1 - me].id ? (P.prep || 0) : 0;
   seedFilm(me, S.teams[1 - me].coach);
+  // The game plans: yours, as far as this week's film study allows, and theirs against your habits
+  planGame(me);
   SEASON.nextDepth = null; SEASON.depthMode = "always";
   return true;
 }

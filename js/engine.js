@@ -1063,11 +1063,11 @@ function tempoAvailable() {
     !!r && !r.pen && !r.accepted && !r.preSnap && !r.pat && r.team === S.poss && !!OFFP[r.offId] && !!r.opk && !!r.dpk && S.down <= 4 && !noClock();
 }
 // Computer offenses go up-tempo some of the time: the spread schemes most, and never while running out the clock
-const CPU_TEMPO = { air: .4, wc: .25, bal: .12 };
+const CPU_TEMPO = { air: .15, wc: .08, bal: .04 };
 function tempoNext() {
   const o = S.poss;
   S.tempo = S.tempo || [false, false];
-  if (!youCallOff(o) && tempoAvailable() && !S.burnClock && !S.spikeNext) S.tempo[o] = rand() < (CPU_TEMPO[offStyleOf(o)] || .05) * (S.quarter >= 4 && S.teams[o].score > S.teams[1 - o].score ? 0 : 1);
+  if (!youCallOff(o) && tempoAvailable() && !S.burnClock && !S.spikeNext) S.tempo[o] = rand() < (CPU_TEMPO[offStyleOf(o)] || .02) * (S.quarter >= 4 && S.teams[o].score > S.teams[1 - o].score ? 0 : 1);
   if (S.tempo && S.tempo[o] && tempoAvailable() && !S.burnClock && !S.spikeNext) { S.noHuddle = true; S.tempoSnap = true; }
 }
 function endPeriod() {

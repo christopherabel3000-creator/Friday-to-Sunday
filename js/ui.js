@@ -48,6 +48,8 @@ function startExhibition() {
     rot: [mine(0) ? ex.rot : "normal", mine(1) ? ex.rot : "normal"], depth: [next(0), next(1)] }, ex.schools);
   // There's no practice in an exhibition: both teams know their schemes' own plays at solid or better
   S.teams.forEach((t, i) => { if (t.mastery) offBook(i).concat(defBook(i)).forEach(id => { if (isSchemeId(id)) t.mastery[id] = Math.max(t.mastery[id] || 0, SCHEME_SOLID); }); });
+  // Each team's staff plans the game from the plays it knows best (Milestone 8)
+  planBoth(null);
   // A depth chart for the next game only is used up by this game
   ex.nextDepth = null; ex.depthMode = "always";
   APP.screen = "game";
@@ -440,6 +442,13 @@ function vHelp() {
       "Install time raises mastery. Pick up to three plays to focus on, or spread it over the whole playbook. Change your schemes and you'll have new plays to learn.",
       "The other team's coach calls the plays his team knows best, too."
     ]))}
+    ${sec("The game plan", ul([
+      "Each week, feature up to 4 plays and 4 calls for the opponent on the Game plan screen, from the week screen. A featured play is a little sharper when you call it, unless it's still new.",
+      "Film study sets how many count: 2 a side with a light report, 3 with a full one, 4 with a heavy one, which also brings situation leans (run or pass, pressure or coverage, in short, medium and long yardage).",
+      "Featured plays lead the call sheet under their own heading, and get the week's install focus unless you pick your own. Your staff calls them more in a sim.",
+      "The plan stays the same week to week until you change it. At halftime you can swap two featured plays.",
+      "The screen also says what the other coach will expect from you, from your film. Breaking a habit catches him calling the wrong thing. The other coach plans too, against your habits."
+    ]))}
     ${sec("Schemes", ul([
       "Every team shares the 8 base plays on each side. Your scheme adds plays only it can call: three in high school, a fourth in college and a fifth in the pros. They're under their own heading on the call sheet.",
       "A scheme's plays are learned in practice. Every install session teaches them, and faster as a focus. Three weeks of heavy install in camp gets a new scheme to learning by week 1, solid around week 5 or 6, and mastered late in the year.",
@@ -525,7 +534,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { hcask: vHcAsk, call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { cap: vCap, gm: vGM, trade: vTrade, dboard: vDBoard, dprospect: vDProspect, dfind: vDFind, draftroom: vDraftRoom, falist: vFAList, faplayer: vFAPlayer, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
-  schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, schemes: vSchemes, preport: vPReport, scout: vScout,
+  schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, schemes: vSchemes, gameplan: vGamePlan, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason, vPOffseason), newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal, names: vNames };
 // The program's screens: the head coach's, so a coordinator never lands on one
@@ -682,6 +691,19 @@ function act(a, ds) {
       else if (APP.ex && styleAt(ds.v, exLevel())) APP.ex.styles[k] = ds.v;
       break;
     }
+    // The game plan (Milestone 8)
+    case "gameplan": if (SEASON && SEASON.myId && !inCamp()) { APP.planBack = APP.screen; APP.screen = "gameplan"; scrollTop(); } break;
+    case "gpick": if (APP.screen === "gameplan" && ["off", "def"].includes(ds.s)) {
+      const p = myPlan(), list = p[ds.s], i = list.indexOf(ds.v), role = coordRole();
+      if (role && (role === "oc") !== (ds.s === "off")) break;
+      if (!planIds(mySchool(), ds.s, schoolLvl(mySchool())).includes(ds.v)) break;
+      if (i >= 0) { list.splice(i, 1); announce(`${playName(ds.v)} off the game plan.`); }
+      else if (list.length >= GP_MAX) announce(`${GP_MAX} already. Take one off first.`);
+      else { list.push(ds.v); announce(`${playName(ds.v)} featured, ${ordWord(list.length - 1)}.`); }
+      break;
+    }
+    case "glean": if (APP.screen === "gameplan" && GP_LEANS[ds.s] && GP_LEANS[ds.s].some(x => x[0] === ds.v) && ["s", "m", "l"].includes(ds.b)) { myPlan().lean[ds.s][ds.b] = ds.v; } break;
+    case "gpswap": if (inGame && S.phase === "halftime") { const t = [0, 1].find(i => !S.teams[i].cpu && S.teams[i].gp); if (t != null && ["off", "def"].includes(ds.s)) { const m = planSwap(t, ds.s, ds.v); if (m) announce(m); } } break;
     case "schemes": if (SEASON && SEASON.myId) { APP.schemesBack = APP.screen; APP.screen = "schemes"; scrollTop(); } break;
     // A new matchup drops an exhibition game, never your season game
     case "newmatch": newExhibition(APP.ex && APP.ex.level); if (S && !S.season) S = null; APP.screen = "exhibition"; scrollTop(); break;
@@ -814,6 +836,7 @@ function act(a, ds) {
     case "back": {
       if (APP.screen === "player" || APP.screen === "depth") APP.screen = "roster";
       else if (APP.screen === "install") APP.screen = "practice";
+      else if (APP.screen === "gameplan") APP.screen = SCREENS[APP.planBack] && APP.planBack !== "gameplan" ? APP.planBack : seasonScreen();
       else if (APP.screen === "schemes") APP.screen = SCREENS[APP.schemesBack] && APP.schemesBack !== "schemes" ? APP.schemesBack : seasonScreen();
       else if (APP.screen === "scout" && ["game", "preport"].includes(APP.scoutBack)) APP.screen = APP.scoutBack === "game" && !(S && S.teams) ? "season" : APP.scoutBack;
       else if (APP.screen === "roster") { const b = APP.view && APP.view.back; APP.screen = b === "game" && !(S && S.teams) ? "home" : b || "home"; }
@@ -936,6 +959,7 @@ function startScreen() {
   if (sc === "scout") return season && SEASON.practice && SEASON.practice.film ? sc : season ? "season" : "home";
   if (sc === "practice" || sc === "install") return season ? sc : "home";
   if (sc === "schemes") return season && SEASON.myId ? sc : season ? seasonScreen() : "home";
+  if (sc === "gameplan") return season && SEASON.myId && !inCamp() && SEASON.phase !== "offseason" ? sc : season ? seasonScreen() : "home";
   if (["season", "standings", "schedule"].includes(sc)) return season ? sc : "home";
   return SCREENS[sc] ? sc : "home";
 }

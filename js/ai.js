@@ -230,6 +230,7 @@ function cpuOff() {
     if (tp) for (const pk in tp.f) e += tp.conf * tp.f[pk] * clashFor(k, S.offPkg, pk);
     w[k] *= (mul[k] = adaptMul(e, me));
   });
+  planWeights(w, me, "off");
   knownWeights(w, me);
   const call = wpick(sharpen(w, me, true));
   if (td && mul[call] >= 2) {
@@ -273,6 +274,7 @@ function cpuDef() {
     for (const p in t.f) e += t.f[p] * (M[p][d] || 0);
     w[d] = (w[d] + .15) * (mul[d] = adaptMul(-t.conf * e, dt));
   });
+  planWeights(w, dt, "def");
   knownWeights(w, dt);
   const call = wpick(sharpen(w, dt, false));
   if (t && mul[call] >= 2) {

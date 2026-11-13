@@ -1007,12 +1007,12 @@ Christopher's decisions before the build (November 2026): exhibition teams know 
 - Looks: every new call has a look. Many share one with a base call on purpose (Quarters, Tampa 2, Cover 6 and Bracket look like Cover 2; Robber, Pattern Match and Buzz like Cover 3; Double A-Gap like a zone blitz; and so on), and those hints name every call that comes from the look. Overload, Bear Front and Tite Front have looks of their own. A disguise must show a different look.
 - Roster fit: each scheme leans on some unit ratings (the Option on the quarterback's running, the backs and the run blocking; No-Fly Zone on coverage); a scheme's fit is its weighted rating against the average of all the schemes for that roster: great at 2.5 points over, good above even, fair down to 2.5 under, poor below. Next year's fit drops this year's last-year players (in the pros, players 32 and older) and redoes the depth chart.
 - Your coach's seasons: a finished season adds one to each scheme you ran (a coordinator's side only). They're on his page.
-- Tempo: in college and the pros, a switch on the result screen. While it's on, every snap that can go no huddle does (after an incompletion too, but not after a flag, a timeout, a kick, a score, a change of possession, the two-minute warning or the end of a quarter): personnel locks as no huddle does, the defense can't disguise, and every player on the field tires 40 percent faster. Computer offenses go up-tempo on a share of snaps (Air Raid 40 percent, West Coast 25, Balanced 12, others 5), never with a fourth-quarter lead.
-- Balance (400 computer games each, before and after): high school 37.0 to 37.5 points a game, 5.25 to 5.4 yards a carry, run share 59 to 61 percent; college 53.1 to 51.2; pros 50.8 to 52.3. Completion rates, interceptions, sacks and penalties stayed within noise.
+- Tempo: in college and the pros, a switch on the result screen. While it's on, every snap that can go no huddle does (after an incompletion too, but not after a flag, a timeout, a kick, a score, a change of possession, the two-minute warning or the end of a quarter): personnel locks as no huddle does, the defense can't disguise, and every player on the field tires 40 percent faster. Computer offenses go up-tempo on a share of snaps (Air Raid 15 percent, West Coast 8, Balanced 4, others 2; cut from 40, 25, 12 and 5 in Milestone 8, which added too many snaps), never with a fourth-quarter lead.
+- Balance (400 computer games each, before and after, measured before tempo was added): high school 37.0 to 37.5 points a game, 5.25 to 5.4 yards a carry, run share 59 to 61 percent; college 53.1 to 51.2; pros 50.8 to 52.3. Completion rates, interceptions, sacks and penalties stayed within noise. (See Milestone 8 for tempo.)
 
-## Milestone 8: the weekly game plan (planned)
+## Milestone 8: the weekly game plan
 
-Designed November 2026, not built yet. The scouting report shows what the opponent does; the game plan is what you do about it. Each week, after film study, you pick a few plays and calls built for this opponent and a lean for each situation. The team practices the plan that week, so it plays those calls a little sharper, but only when you actually call them.
+Designed and built November 2026. The scouting report shows what the opponent does; the game plan is what you do about it. Each week, after film study, you pick a few plays and calls built for this opponent and a lean for each situation. The team practices the plan that week, so it plays those calls a little sharper, but only when you actually call them.
 
 ### The plan screen
 
@@ -1044,6 +1044,19 @@ One screen, reached from the week screen once practice is held, next to the scou
 1. The plan: featured plays, the edge, the call sheet heading, last week's plan and the staff's first plan, and the install focus link.
 2. Situation leans, what they expect from you, halftime swaps, and the computer's plans.
 3. Balance: the featured edge against the balance report at each level, with computer coaches planning on both sides.
+
+### How it's built (Milestone 8)
+
+- gameplan.js holds the plans; ui_plan.js the plan screen, its line on the week screen and the halftime swaps.
+- Your plan is SEASON.gplan: { off, def } in the order picked, and a lean for each side in short, medium and long yardage. It stays until you change it, kept to your playbook as it is (a scheme change drops the old scheme's plays from it). Before your first game week it's the staff's: the 4 plays and 4 calls the team knows best, ties in playbook order, leaning nowhere. In camp the staff's plan isn't kept yet, so it's worked out from where install stands at week 1.
+- The game: when your game starts, your plan is cut to the film study you did on this opponent (none 0, light 2, full 3, heavy 4 a side; leans only with heavy). A coordinator's plan is his side; the head coach's staff plans the other side as a computer coach does, with the head coach's film study. The other coach plans against your film: his team's calls with the most edge against your three most-used calls overall (by the matchup chart), among the ones his team knows at 40 or better, 2 to 4 of them by his Scouting (under 40: 2; 40 to 54: 3; 55 and up: 4). With no film of you, he features what his team knows best. Both teams in an exhibition, and in a full game simmed elsewhere, take computer plans with no film.
+- The edge: +0.06 on the play-call scale for a featured play that's called (and known at 40 or better); a featured call takes the same off the offense.
+- The computer, and your coach in a sim: featured plays are weighted 1.6 times, and with a lean, the plays that fit it 1.4 times and the rest 0.8 (run or pass on offense; pressure, the blitzes, or coverage, the calls tagged Coverage, on defense).
+- The call sheet: a "Game plan" heading first, with the featured plays you can call in this situation and package, the lean's first, and a line naming the lean. They aren't listed again under the other headings.
+- Install focus: when you haven't picked your own, practice focuses on the featured plays still under 85, least-known first, up to three.
+- Halftime: a panel under the halftime report. Taking a featured play off is free; putting one on uses a swap, two a game, and only with a spot open.
+- What they expect from you: your season film (the one each coach starts a game with), by situation: the run or pass share and the most-used play on offense, the pressure or coverage share and the most-used call on defense.
+- Balance (400 computer games, both teams planning): high school 37.1 points a game, college 52.5, pros 52.8. While checking this, Milestone 7's tempo turned out to add about 3 snaps a team and 4 points a game in college with the computer going up-tempo as often as first set, so the computer's tempo was cut to 15 percent of snaps for the Air Raid, 8 for West Coast, 4 for Balanced and 2 for the rest. College is back at its old level; the pros are about 2 points a game over theirs (50.8), to watch.
 
 ## The world
 
@@ -1376,7 +1389,7 @@ Built November 2026. See Milestone 7 near the top.
 
 ### Milestone 8: the weekly game plan
 
-Planned. See Milestone 8 near the top.
+Built November 2026. See Milestone 8 near the top.
 
 ## Saves
 
@@ -1441,11 +1454,13 @@ How it's built (step 5):
 - The season: an 8-school district, three non-district games, and a 16-team state playoff for the top two in each district. Games in your district run on the full engine; the rest of the state is quick-simmed from ratings fit to the engine.
 - Difficulty: Normal only to start.
 - Schemes (Milestone 7): a coach can change schemes at any point, but the new scheme's plays have to be installed before it gives any benefit. Three plays of its own for each scheme in high school, a fourth in college and a fifth in the pros. No option offense in the pros. Exhibition teams know their scheme plays at solid.
-- The game plan (Milestone 8, planned): up to 4 featured plays and calls a side, by how much film was studied, worth +0.06 each when called. A skipped plan keeps last week's; before the first game, the staff features the plays the team knows best. Breaking a tendency earns no edge of its own.
+- The game plan (Milestone 8): up to 4 featured plays and calls a side, by how much film was studied, worth +0.06 each when called. A skipped plan keeps last week's; before the first game, the staff features the plays the team knows best. Breaking a tendency earns no edge of its own.
 
 ## Open questions
 
 None right now. Milestone 6's four were settled in November 2026 as the design assumed: careers start as a 1A head coach, the other side of the ball is read as drive summaries by default, there's an "Ask to go for it" button on fourth and short, and a college coordinator doesn't recruit.
+
+Numbers to watch as Milestone 8 is played: the featured edge (0.06), how often computer coaches go up-tempo, and pro scoring, about 2 points a game over where it was before Milestones 7 and 8.
 
 Numbers to watch as Milestone 7 is played: the scheme install rate (0.314), the strengths scaling with install, the computer's share of scheme calls (about a quarter of snaps), the Option's edge against an unprepared defense, and high school yards a carry, a little higher than before the milestone.
 

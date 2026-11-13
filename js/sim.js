@@ -201,7 +201,7 @@ function rollPlay(off, def, opk, dpk, side) {
   const T = x.T = talentEdges(off, def, x);
   // Execution: disguises, the coaches, how well each side knows its call, and the week's film study
   const mo = masteryOf(o, off), md = masteryOf(1 - o, def), pr = prepEdge(o, off, def);
-  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + specEdge(o, off) + masteryEdge(mo) - defMasteryEdge(def, md) + pr + perkEdge(o, off, def) + optSurprise(off, 1 - o);
+  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + specEdge(o, off) + masteryEdge(mo) - defMasteryEdge(def, md) + pr + perkEdge(o, off, def) + optSurprise(off, 1 - o) + planEdge(o, off, def);
   const pe = pkgEdge(off, opk, dpk), se = styleEdge(off, def, o), m = clamp(M[off][def] + pe + se + dc + (side ? SIDE_EDGE[off][def] || 0 : 0), -3, 3);
   const OP = OFF_PKGS[opk] || {}, compMul = (OP.comp || {})[off] || 1, fumMul = fumMulFor(off, mo);
   // Missed tackles: weak tackling means more big plays
