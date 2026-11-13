@@ -340,7 +340,7 @@ function checkScreen(page, label) {
   tap(p4, "takejob", pickId);
   ok(ev("SEASON.myId") === pickId && ev("APP.screen") === "season", "take the job");
   ok(ev("mySchool().coach === CAREER.coach") && ev("mySchool().off") === "air" && ev("mySchool().def") === "blz", "your coach and schemes take over");
-  ok(/Your team knows (all 4|none of the 4|\d of the 4) core plays of the Air Raid offense/.test(d4.body.textContent), "the week ahead says how much of your playbook the team knows");
+  ok(/Air Raid offense: its own plays are \w+, averaging \d+/.test(d4.body.textContent), "the week ahead says how installed your schemes are");
   // Your coach's page
   tap(p4, "coach");
   ok(ev("APP.screen") === "coach" && heading() === "Coach Chris Abel" && /Offense 46\./.test(d4.body.textContent) && /Former lineman/.test(d4.body.textContent), "your coach's page: name, background and ratings");
@@ -380,8 +380,16 @@ function checkScreen(page, label) {
   ok(d4.querySelector('table.stand th[scope="row"]') && /\(you\)/.test(d4.querySelector("table.stand").textContent), "your district's standings, with your school marked");
   checkScreen(p4, "the week ahead");
   // Your schemes carry into your games
+  // (Milestone 7: on the schemes screen, with a second tap)
+  tap(p4, "schemes");
+  ok(ev("APP.screen") === "schemes" && /Roster fit/.test(d4.body.textContent), "the schemes screen");
+  tap(p4, "ostyle", "wc");
+  ok(ev("mySchool().off") === "air" && /Tap again to change/.test(btn(d4, "ostyle", "wc").textContent), "one tap says what changing costs");
   tap(p4, "ostyle", "wc");
   ok(ev("mySchool().off") === "wc" && ev("CAREER.coach.off_style") === "wc" && focused(d4) === btn(d4, "ostyle", "wc"), "change your offensive style; focus stays put");
+  checkScreen(p4, "the schemes screen");
+  tap(p4, "back");
+  ok(ev("APP.screen") === "season", "back to the week");
   // Your roster: changes for the next game only
   tap(p4, "sroster", ev("SEASON.myId"));
   ok(btn(d4, "dedit", "QB") && btn(d4, "rteam"), "your roster can be changed, and the opponent's is a tap away");
@@ -421,7 +429,7 @@ function checkScreen(page, label) {
   fHeavy.focus(); fHeavy.click();
   ok(ev("SEASON.plan.areas.fund") === 3 && /Fundamentals: heavy, \d/.test(await said4()) && !btn(d4, "ppreset", "gameprep").matches('[aria-pressed="true"]'), "heavy fundamentals: announced, and it's no longer a preset");
   tap(p4, "install");
-  ok(/Install focus/.test(heading() || "") && d4.querySelectorAll('[data-a="pfocus"]').length === 19, "the install screen lists the whole playbook");
+  ok(/Install focus/.test(heading() || "") && d4.querySelectorAll('[data-a="pfocus"]').length === 25, "the install screen lists the whole playbook, your schemes' own plays included");
   tap(p4, "pfocus", "ms"); tap(p4, "pfocus", "zb");
   ok(JSON.stringify(ev("SEASON.plan.focus")) === '["ms","zb"]' && btn(d4, "pfocus", "ms").getAttribute("aria-pressed") === "true", "pick plays to install");
   checkScreen(p4, "install");

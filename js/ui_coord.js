@@ -22,17 +22,6 @@ function coordMast() {
   if (!role) return "";
   return `<p class="muted">${esc(coordUnderLine())}</p>${SEASON.phase !== "offseason" ? `<p class="muted">${esc(unitLine(role))}</p>` : ""}`;
 }
-// Your scheme: your side's style only. The head coach's style runs the other side.
-function coordSchemes(me) {
-  const role = coordRole(), isOff = role === "oc", ids = isOff ? OFF_STYLE_IDS : DEF_STYLE_IDS, book = isOff ? OFF_STYLES : DEF_STYLES, cur = (isOff ? me.off : me.def) || "bal";
-  const a = isOff ? "ostyle" : "dstyle", lbl = isOff ? "Offensive style" : "Defensive style", his = isOff ? DEF_STYLES[me.def || "bal"] : OFF_STYLES[me.off || "bal"];
-  return `<section class="panel"><h3>Your scheme</h3>
-    <div style="display:grid;gap:6px" role="group" aria-label="${lbl}"><span class="eyebrow" aria-hidden="true">${lbl}</span><div class="seg grid2">
-      ${ids.map(x => `<button data-a="${a}" data-v="${x}" aria-pressed="${cur === x}">${book[x].short}</button>`).join("")}
-    </div><p class="muted styledesc">${esc(book[cur].desc)}</p></div>
-    <p class="muted styledesc">${esc(`${hcName()} runs the ${his ? his.name : "Balanced"} ${hcSideWord()}.`)}</p></section>`;
-}
-
 /* ---------- Practice ---------- */
 const hcPlanNow = () => (inCamp() ? CPU_CAMP : CPU_PLAN);
 const UNIT_WORDS = { oc: "quarterbacks, backs, receivers and tight ends, and the offensive line", dc: "the defensive line and linebackers, and the secondary" };
@@ -166,7 +155,7 @@ function coordCareerLine() {
 /* ---------- College and the pros ---------- */
 // "Your schemes" on a season screen: both for a head coach, your side's for a coordinator
 function schemesPanel(s) {
-  return coordRole() ? coordSchemes(s) : `<section class="panel"><h3>Your schemes</h3>${styleSegs(s.off, s.def)}<p class="muted styledesc">${esc(knownLine(s))}</p></section>`;
+  return schemesSummary(s);
 }
 // A coordinator's offseason in college or the pros: the program is the head coach's (and, in the
 // pros, the general manager's), so it's your new job if you took one, practice and your coach

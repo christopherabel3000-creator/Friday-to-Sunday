@@ -144,6 +144,9 @@ function installPlays(s, blocks, focus, rep, coach, role) {
   coach = coach || s.coach;
   const m = s.mastery, pts = INSTALL_RATE * effBlocks(blocks) * learnMul(s, coach) * (coachHas(coach, "inst") ? 1.3 : 1);
   if (!m || pts <= 0) return;
+  fillSchemes(s);
+  // (scheme plays have a track of their own: schemes.js)
+  installSchemes(s, pts, (focus || []).slice(0, 3), rep, coach, role);
   const ids = INSTALL_IDS.filter(id => m[id] != null && (!role || coordPlay(role, id))), foc = (focus || []).filter(id => ids.includes(id)).slice(0, 3), rest = ids.filter(id => !foc.includes(id));
   const share = id => foc.length ? (foc.includes(id) ? .7 / foc.length : .3 / Math.max(1, rest.length)) : 1 / ids.length;
   ids.forEach(id => {
@@ -284,7 +287,7 @@ function filmStudy(opp, me, n) {
         S.offPkg = FILM_YOUR_PKGS[b][i % 3];
         S.defPkg = cpuDefPkg();
         const d = cpuDef();
-        if (DEF_IDS.includes(d)) { def[d] = (def[d] || 0) + 1; dpk[S.defPkg] = (dpk[S.defPkg] || 0) + 1; calls++; if (BLITZ_IDS.includes(d)) blitz++; }
+        if (isDefCall(d)) { def[d] = (def[d] || 0) + 1; dpk[S.defPkg] = (dpk[S.defPkg] || 0) + 1; calls++; if (isBlitz(d)) blitz++; }
       }
       out.off[b] = { run: plays ? runs / plays : 0, calls: sharesOf(off), pkgs: sharesOf(opk) };
       out.def[b] = { blitz: calls ? blitz / calls : 0, calls: sharesOf(def), pkgs: sharesOf(dpk) };

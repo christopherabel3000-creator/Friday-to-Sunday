@@ -64,15 +64,16 @@ function vPractice() {
 
 /* ---------- Install focus ---------- */
 function vInstall() {
-  const s = mySchool(), focus = SEASON.plan.focus || [];
+  const s = fillSchemes(mySchool()), focus = SEASON.plan.focus || [];
   const row = id => `<li><button class="rowbtn" data-a="pfocus" data-v="${id}" aria-pressed="${focus.includes(id)}">${esc(masteryLine(s, id))}${focus.includes(id) ? ". Focus" : ""}</button></li>`;
   const sec = (title, ids) => `<section class="panel"><h3>${title}</h3><ul class="roster">${ids.map(row).join("")}</ul></section>`;
   return `
     <div class="masthead" style="--team:${s.color}">
       <p class="eyebrow">Practice · Install</p>
       <h2 data-focus tabindex="-1">Install focus</h2>
-      <p class="muted">Pick up to three plays. They get most of the install time, and the rest of the playbook gets a little. With none picked, it's spread over everything. ${focus.length ? `Picked: ${esc(andList(focus.map(playName)))}.` : ""}</p>
+      <p class="muted">Pick up to three plays. They get most of the install time, and the rest of the playbook gets a little. With none picked, it's spread over everything. Your schemes' own plays are taught every install session on top of that, and faster as a focus. ${focus.length ? `Picked: ${esc(andList(focus.map(playName)))}.` : ""}</p>
     </div>
+    ${coordRole() === "dc" ? "" : sec(`${OFF_STYLES[s.off].name} plays`, schemePlaysAt(s.off, schoolLvl(s)))}${coordRole() === "oc" ? "" : sec(`${DEF_STYLES[s.def].name} calls`, schemeCallsAt(s.def, schoolLvl(s)))}
     ${coordRole() === "dc" ? "" : sec("Offense", OFF_IDS)}${coordRole() === "oc" ? "" : sec("Defense", DEF_IDS)}${coordRole() === "dc" ? "" : sec("Special plays", ["qs", "hm", "te"])}
     <button class="btn" data-a="back">Done</button>`;
 }
@@ -126,6 +127,12 @@ function vPReport() {
 }
 
 /* ---------- The scouting report ---------- */
+// The opponent's schemes, how well they're installed, and the plays of their own to expect
+function oppSchemes(opp) {
+  fillSchemes(opp);
+  const lv = schoolLvl(opp), one = (side, book, ids) => { const I = schemeInstall(opp, side); return `The ${book[opp[side]].name} ${side === "off" ? "offense" : "defense"}, its own ${side === "off" ? "plays" : "calls"} ${I.word} (${I.v}): expect ${andList(ids.map(playName))}${I.v < 40 ? ", though they're still learning them" : ""}.`; };
+  return `${one("off", OFF_STYLES, schemePlaysAt(opp.off, lv))} ${one("def", DEF_STYLES, schemeCallsAt(opp.def, lv))}`;
+}
 const pctText = v => `${Math.round(v * 100)} percent`;
 const SCOUT_FROM = ["No film study this week. Give opponent prep some time for a report on their habits.", "A short report from a light week of film study.",
   "A full report from this week's film study.", "A full report with every tendency, from a heavy week of film study."];
@@ -148,15 +155,17 @@ function vScout() {
   if (lvl >= 3) defLines.push(`They disguise their look ${F.disg >= .3 ? "a lot" : F.disg >= .2 ? "sometimes" : "rarely"}.`);
   // What beats their favorites (from the play-call table)
   // Only calls that clearly win the matchup (a 1 or better on the play-call table) are worth naming
+  // (your playbook: the base plays and your schemes' own)
+  const lv = schoolLvl(me), myOff = OFF_IDS.concat(schemePlaysAt(me.off, lv)), myDef = DEF_IDS.concat(schemeCallsAt(me.def, lv));
   const plan = [], orList = ids => ids.length > 1 ? `${ids.slice(0, -1).join(", ")} or ${ids[ids.length - 1]}` : ids[0];
   if (lvl >= 2) {
     F.offAll.slice(0, 2).forEach(([id]) => {
       if (!M[id]) return;
-      const v = Math.min(...DEF_IDS.map(d => M[id][d])), best = DEF_IDS.filter(d => M[id][d] === v).slice(0, 3).map(playName);
+      const v = Math.min(...myDef.map(d => M[id][d])), best = myDef.filter(d => M[id][d] === v).slice(0, 3).map(playName);
       if (v <= -1) plan.push(`Against ${playName(id)}: ${orList(best)}.`);
     });
     F.defAll.slice(0, 2).forEach(([id]) => {
-      const v = Math.max(...OFF_IDS.map(o => M[o][id])), best = OFF_IDS.filter(o => M[o][id] === v).slice(0, 3).map(playName);
+      const v = Math.max(...myOff.map(o => M[o][id])), best = myOff.filter(o => M[o][id] === v).slice(0, 3).map(playName);
       plan.push(v >= 1 ? `Against ${playName(id)}: ${orList(best)}.` : `${playName(id)} has no clear weak spot. Call what your team runs best.`);
     });
   }
@@ -178,6 +187,7 @@ function vScout() {
       <h2 data-focus tabindex="-1">${esc(nameOf(opp.id))}</h2>
       <p class="muted">Coach ${esc(coachName(opp.coach))}: ${esc(schemeText(opp))}. ${talentText(schoolRating(opp))} ${SCOUT_FROM[lvl]}</p>
     </div>
+    <section class="panel"><h3>Their schemes</h3><p>${esc(oppSchemes(opp))}</p></section>
     ${lvl ? `<section class="panel"><h3>Their offense</h3>${list(offLines)}</section><section class="panel"><h3>Their defense</h3>${list(defLines)}</section>` : ""}
     ${plan.length ? `<section class="panel"><h3>What beats their favorites</h3>${list(plan)}<p class="muted styledesc">Your team gets a small edge on snaps when they run the calls you studied.</p></section>` : lvl ? `<p class="muted">Your team gets a small edge on snaps when they run the calls you studied.</p>` : ""}
     <section class="panel"><h3>Players to watch</h3>${list(watch)}</section>

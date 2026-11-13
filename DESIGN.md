@@ -868,13 +868,13 @@ As built: `coord.js` holds the jobs, the moves and the grade, and `ui_coord.js` 
 
 Tests with each step: a coordinator game played by tapping (a screen reader's view of it), whole coordinator careers through each level change, and saves from before the milestone.
 
-## Milestone 7: playbooks and schemes (planned)
+## Milestone 7: playbooks and schemes
 
-Designed November 2026, not built yet. Every team shares the 8 base plays on each side. Your scheme adds plays only it can call, which have to be installed, and which make the scheme stronger as the team learns them. The play call is the heart of the game, and a career runs hundreds of games: this is what makes a scheme a real choice and moving up a level feel like a new game on the field.
+Designed and built November 2026. Every team shares the 8 base plays on each side. Your scheme adds plays only it can call, which have to be installed, and which make the scheme stronger as the team learns them. The play call is the heart of the game, and a career runs hundreds of games: this is what makes a scheme a real choice and moving up a level feel like a new game on the field.
 
 ### How a scheme works
 
-Today a scheme is a set of small edges that can be swapped any week at no cost. Four things change:
+Before Milestone 7 a scheme was a set of small edges that could be swapped any week at no cost. Four things changed:
 
 - Scheme plays: each scheme has plays of its own (see the lists below). Only a team running the scheme can call them.
 - Scheme plays start at mastery 0 in a new scheme and are learned in install practice, like any play. They follow the mastery rules in Playbook and mastery.
@@ -981,13 +981,34 @@ Run Stuffers.
 - The target: a scheme play is better than a base play in its best spots and worse outside them. Scoring at each level stays where it is now, checked with the balance report after every step.
 - Saves from before the milestone: your scheme stays, and its new plays start at solid, so no career in progress is set back.
 
-Build steps:
+Build steps (all five built together, November 13 2026, Christopher's call):
 
 1. Scheme plays, strengths that scale with their mastery, the cost of changing schemes, and the high school plays for the four schemes there are now on each side.
 2. The Option scheme and the calls that answer it, the roster fit reading, and your coach's seasons in a scheme.
 3. The college plays.
 4. The pro plays.
 5. Tempo.
+
+Christopher's decisions before the build (November 2026): exhibition teams know their scheme plays at solid, since an exhibition has no practice; an Option coach who takes a pro job runs Balanced until he picks a new offense, whose plays start where they are, and his Option seasons don't speed it up; computer coaches follow the same rule; Gridiron Duel stays as it is.
+
+### How it's built (Milestone 7)
+
+- schemes.js holds it all; ui_schemes.js is the schemes screen.
+- The plays: each scheme's own plays and calls, in order (three in high school, a fourth in college, a fifth in the pros). Each new play has a stat line like the base plays (completion rate, yards, sacks, interceptions, or a run's yards and big-play odds) and is "like" one base play: its personnel fit, its flags and the computer's situational weights come from that play. Option plays give the quarterback some of the carries (Triple Option 40 percent, Zone Read 35, QB Keeper all of them).
+- The chart: every base play and every new play has tags. TAG_EDGE gives each call (base and new) an edge against each tag, on the play-call scale; a play with two tags takes the average, and SCHEME_EXC holds the named matchups from the lists above. The base 8 by 8 chart is untouched. Against the 8 base calls, no scheme play averages more than about 0.6 either way, and every one has at least a 1.5 spread between its best and worst matchups.
+- Strengths: in the snap, each side's style edges are split into strengths (positive) and weak spots (negative). The strengths are multiplied by the average mastery of the side's scheme plays at its level, out of 100; the weak spots count in full. Balanced's small edge on every play is a strength too.
+- Changing schemes: the old scheme's plays are halved; the new one's are wherever they were (0 if never run here). On your season screens it takes a second tap, which first says what it costs. Taking a new job doesn't halve anything: the players still know the old coach's scheme, so keeping it is a real choice, and the job screens say so.
+- The install track: every install session also teaches the current schemes' own plays, on top of the base playbook's share (which is unchanged): each gains install points × 0.314 × (1 − mastery / 100), × 1.6 as a focus, × 1.25 for Balanced, and × (1 + 0.04 a season your coach has run it, up to 5). With a 42 Development coach and average awareness, three weeks of install-heavy camp (3.6 install blocks a week) take a new scheme to about 41, a balanced season week (1.7 blocks) then reaches solid in week 5 or 6 and mastered around week 13. A coordinator's install teaches only his side's.
+- The offseason: the current schemes' plays fade like other plays, toward 30 but never up from below it; every other scheme's plays lose half.
+- New schools: the coach's scheme plays start a few points under the school's core plays (from their average minus 6: +3, 0, −3, −5, −8 for the first to fifth play), no new dice rolled; every other scheme's plays are at 0. A save from before the milestone gets the schemes it runs now at solid (68) and the rest at 0.
+- The computer: a base play and the scheme plays like it share its weight in every situation, a quarter more for each scheme play, so a scheme play's share grows with the scheme without tilting the run-pass balance much. Its run lean now covers every run, scheme runs included. Then it weights by mastery as before. Its defense does the same.
+- Option: about a quarter of the run-first (Ground & Pound) coaches below the pros run it instead, chosen by a hash of the coach's name so building a coach rolls no new dice. Its style: Outside Zone, Inside Run, the sneak and play-action are strengths; quick throws, Mesh, Deep Shot and screens are weak spots. Option plays fumble more while they're learned (Triple Option 1 − 0.02 × (mastery − 60), up to 2.2 times). Against a defense that didn't study film, an option play gets an edge of 0.3, 0.18 with a light report, 0.08 with a full one, and 0 with a heavy one; a computer defense counts as a full week. A pro game never runs it (it plays Balanced).
+- Pattern Match: below 70 mastery its mastery cost counts twice. Trap Corner and Robber pick off more short throws, and QB Spy and Cover 0 Bluff get a few fewer sacks.
+- Looks: every new call has a look. Many share one with a base call on purpose (Quarters, Tampa 2, Cover 6 and Bracket look like Cover 2; Robber, Pattern Match and Buzz like Cover 3; Double A-Gap like a zone blitz; and so on), and those hints name every call that comes from the look. Overload, Bear Front and Tite Front have looks of their own. A disguise must show a different look.
+- Roster fit: each scheme leans on some unit ratings (the Option on the quarterback's running, the backs and the run blocking; No-Fly Zone on coverage); a scheme's fit is its weighted rating against the average of all the schemes for that roster: great at 2.5 points over, good above even, fair down to 2.5 under, poor below. Next year's fit drops this year's last-year players (in the pros, players 32 and older) and redoes the depth chart.
+- Your coach's seasons: a finished season adds one to each scheme you ran (a coordinator's side only). They're on his page.
+- Tempo: in college and the pros, a switch on the result screen. While it's on, every snap that can go no huddle does (after an incompletion too, but not after a flag, a timeout, a kick, a score, a change of possession, the two-minute warning or the end of a quarter): personnel locks as no huddle does, the defense can't disguise, and every player on the field tires 40 percent faster. Computer offenses go up-tempo on a share of snaps (Air Raid 40 percent, West Coast 25, Balanced 12, others 5), never with a fourth-quarter lead.
+- Balance (400 computer games each, before and after): high school 37.0 to 37.5 points a game, 5.25 to 5.4 yards a carry, run share 59 to 61 percent; college 53.1 to 51.2; pros 50.8 to 52.3. Completion rates, interceptions, sacks and penalties stayed within noise.
 
 ## The world
 
@@ -1316,7 +1337,7 @@ See Milestone 6 near the top.
 
 ### Milestone 7: playbooks and schemes
 
-Planned. See Milestone 7 near the top.
+Built November 2026. See Milestone 7 near the top.
 
 ## Saves
 
@@ -1380,10 +1401,12 @@ How it's built (step 5):
 - Depth chart: automatic if you want it, with changes for a single game and substitutions during a game.
 - The season: an 8-school district, three non-district games, and a 16-team state playoff for the top two in each district. Games in your district run on the full engine; the rest of the state is quick-simmed from ratings fit to the engine.
 - Difficulty: Normal only to start.
-- Schemes (Milestone 7, planned): a coach can change schemes at any point, but the new scheme's plays have to be installed before it gives any benefit. Three plays of its own for each scheme in high school, a fourth in college and a fifth in the pros. No option offense in the pros.
+- Schemes (Milestone 7): a coach can change schemes at any point, but the new scheme's plays have to be installed before it gives any benefit. Three plays of its own for each scheme in high school, a fourth in college and a fifth in the pros. No option offense in the pros. Exhibition teams know their scheme plays at solid.
 
 ## Open questions
 
 None right now. Milestone 6's four were settled in November 2026 as the design assumed: careers start as a 1A head coach, the other side of the ball is read as drive summaries by default, there's an "Ask to go for it" button on fourth and short, and a college coordinator doesn't recruit.
+
+Numbers to watch as Milestone 7 is played: the scheme install rate (0.314), the strengths scaling with install, the computer's share of scheme calls (about a quarter of snaps), the Option's edge against an unprepared defense, and high school yards a carry, a little higher than before the milestone.
 
 Numbers to watch as Milestone 6 is played: the coordinator bars, the 0.7 on reputation, and 2.5 points a game to a grade point were set from a few dozen simulated seasons, not hundreds. In those, a coordinator rated like his head coach scored about 1 to 2 points a game under the offense's expectation and allowed about what the defense's expected.

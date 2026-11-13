@@ -22,6 +22,9 @@ function genCoach(g, cls) {
   const k = isPro(cls) ? 6 : Math.min(4, classIndex(cls));
   c.off_style = g.w({ bal: 3, gnp: 4 - .4 * k, air: 1.5 + .3 * k, wc: 1.5 + .3 * k });
   c.def_style = g.w({ bal: 3, blz: 2, nfz: 1.5, rs: 2.5 });
+  // About one run-first coach in four runs the Option, below the pros (worked out from his name, so
+  // building a coach rolls no new dice)
+  if (c.off_style === "gnp" && !isPro(cls) && hashSeed(`${c.first} ${c.last}:option`) % 4 === 0) c.off_style = "opt";
   return c;
 }
 const coachName = c => `${c.first} ${c.last}`;

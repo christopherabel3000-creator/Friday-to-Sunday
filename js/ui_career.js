@@ -49,7 +49,7 @@ function vNewCoach() {
     <section class="panel">
       <h3>Your schemes</h3>
       ${styleSegs(d.off, d.def)}
-      <p class="muted styledesc">A school whose last coach ran your schemes already knows much of your playbook. Anywhere else, your team learns it in practice, a few plays at a time. You can change schemes any week.</p>
+      <p class="muted styledesc">Each scheme has plays of its own, which your team learns with install time in practice. Its strengths grow as they're learned, and its weak spots count from the first day. A school whose last coach ran your schemes already knows them; anywhere else they start new. You can change schemes later, but the old scheme's plays are shelved at half.</p>
     </section>
     <button class="btn" data-a="makecoach">Find a job</button>`;
 }
@@ -88,6 +88,7 @@ function vCoach() {
       <h3>Ratings</h3>
       <ul class="hlist xplist">${COACH_RATINGS.map(rate).join("")}</ul>
       ${perks.length ? `<p>${esc(perks.join(" "))}</p>` : ""}
+      ${schemeYearsLine(c) ? `<p>${esc(schemeYearsLine(c))}</p>` : ""}
       <p class="muted">When you sim a game, your ratings also decide how well your coach calls the plays. Raising a rating a point costs the rating minus 20 in XP.</p>
     </section>
     <section class="panel">

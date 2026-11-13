@@ -528,6 +528,7 @@ function proTakeOver(id) {
   const sum = SEASON.schools[id], s = proRoster(sum), c = CAREER.coach;
   SEASON.schools[id] = s;
   s.coach = c;
+  proOffense(c, s);
   if (c.off_style && c.def_style) { s.off = c.off_style; s.def = c.def_style; }
   s.players.forEach(p => { p.o0 = ovr(p, p.pos); });
   s.depth = autoDepth(s); s.rating = schoolRating(s);
@@ -717,7 +718,7 @@ function proJobLook(id, M, canPursue, isOffer, interest) {
       <h2 data-focus tabindex="-1">${esc(jobName(id))}</h2>
       <p class="muted">${esc(jobText(id))}</p>
     </div>
-    <section class="panel"><h3>The playbook</h3><p>${esc(`The last coach ran the ${schemeText(sum)}. The team knows ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense well.`)}</p></section>
+    <section class="panel"><h3>The playbook</h3><p>${esc(`The last coach ran the ${schemeText(sum)}. The team knows ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense well. ${schemeTakeText(sum, CAREER.coach)}`)}</p></section>
     <section class="panel"><h3>The money</h3><p>${esc(`${bigMoney(capUsed(s))} committed against this year's cap of ${bigMoney(capNow())}, and ${bigMoney(capNext(s))} already for next year.`)}</p></section>
     <section class="panel"><h3>Under contract next season</h3>
       <p>${esc(`${plural(back.length, "player")} signed past this season. The rest have contracts ending, and rookies and free agents come in before camp.`)}</p>

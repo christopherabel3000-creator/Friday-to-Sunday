@@ -28,11 +28,6 @@ function gameKind(gm, n) {
   return gm.dist ? "District game" : "Non-district game";
 }
 const schemeText = s => `${OFF_STYLES[s.off].name} offense, ${DEF_STYLES[s.def].name} defense`;
-// How much of your schemes' core your team knows well: "Your team knows 3 of the 4 core plays ..."
-function knownLine(s) {
-  const k = coreKnown(s, s.off, s.def), of = n => n === 4 ? "all 4" : n === 0 ? "none of the 4" : `${n} of the 4`;
-  return `Your team knows ${of(k.off)} core plays of the ${OFF_STYLES[s.off].name} offense and ${of(k.def)} of the ${DEF_STYLES[s.def].name} defense well. Install time teaches the rest.`;
-}
 const talentText = r => `Starters rate ${Math.round(r.off)} on offense and ${Math.round(r.def)} on defense.`;
 // "4-1, 2-0 in district" (the district part once district play has started)
 function recLine(id, upTo) {
@@ -76,7 +71,7 @@ function vPick() {
     const s = SEASON.schools[id], seniors = s.players.filter(p => p.yr === 12).length;
     // What the school ran under its last coach, and how much of your playbook it already knows
     const k = mine ? coreKnown(s, off, def) : null;
-    const fit = mine ? ` Last coach: ${schemeText(s)}. They know ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense.` : "";
+    const fit = mine ? ` Last coach: ${schemeText(s)}. They know ${k.off} of your 4 core plays on offense and ${k.def} of 4 on defense. ${schemeTakeText(s, c)}` : "";
     return `<section class="panel teamcard" style="--team:${s.color}">
       <p class="eyebrow">${esc(s.colorName)} · ${plural(s.players.length, "player")}</p>
       <h3>${esc(nameOf(id))}</h3>
@@ -112,12 +107,7 @@ function vSeason() {
       <div class="choices"><button class="btn" data-a="playgame">${confirming === "playgame" ? "Tap again to leave the exhibition" : "Play the game"}</button><button class="btn ghost" data-a="keygame">${confirming === "keygame" ? "Tap again to leave the exhibition" : "Key moments"}</button><button class="btn ghost" data-a="simgame">${confirming === "simgame" ? "Tap again to leave the exhibition" : "Sim the game"}</button></div>
       <div class="choices"><button class="btn ghost" data-a="sroster" data-t="${id}">Your roster</button><button class="btn ghost" data-a="sroster" data-t="${r}">${esc(opp.mascot)} roster</button></div>
     </section>
-    ${coordRole() ? practicePanel() + coordSchemes(me) : `${practicePanel()}
-    <section class="panel">
-      <h3>Your schemes</h3>
-      ${styleSegs(me.off, me.def)}
-      <p class="muted styledesc">${esc(knownLine(me))}</p>
-    </section>`}`;
+    ${practicePanel()}${schemesSummary(me)}`;
   } else if (gm && played(gm)) main = `<section class="panel"><p class="eyebrow">${weekName(n)} · Final</p><h3>${esc(resultText(gm, id))}</h3><button class="btn" data-a="weekdone">${weekName(n)} results</button></section>`;
   else if (SEASON.phase === "playoffs") main = `<section class="panel"><p class="eyebrow">${weekName(n)}</p>
       <p>${inPlayoffs(id) ? "You're out of the playoffs." : "You're not in the playoffs."} The rest of the bracket plays on.</p>
@@ -149,7 +139,7 @@ function vSeason() {
       ${SEASON.phase !== "over" ? `<p class="muted">${esc(expectText(expectOf(id)))}</p>` : ""}
     </div>
     ${main}
-    ${camp ? (coordRole() ? coordSchemes(me) : `<section class="panel"><h3>Your schemes</h3>${styleSegs(me.off, me.def)}<p class="muted styledesc">${esc(knownLine(me))}</p></section>`) : ""}
+    ${camp ? schemesSummary(me) : ""}
     ${lastPanel}
     <section class="panel">
       <h3>District ${SEASON.district}</h3>

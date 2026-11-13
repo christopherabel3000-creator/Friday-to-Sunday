@@ -201,7 +201,7 @@ const text = html => html.replace(/<[^>]*>/g, " ").replace(/&#39;/g, "'").replac
   const season = text(g("vSeason()"));
   ok(/Offensive coordinator under Coach/.test(season) && /Your offense is expected to score about \d+ points a game/.test(season) && /Your scheme/.test(season) && !/Defensive style/.test(season), "the season screen says your job, your side's expectation, and has your side's scheme only");
   g(`act("dstyle", { v: "${hisDef === "nfz" ? "rs" : "nfz"}" })`); const d0 = g("mySchool().def"), his = g("mySchool().coach.off_style");
-  g(`act("ostyle", { v: "air" })`);
+  g(`act("ostyle", { v: "air" }); act("ostyle", { v: "air" })`);
   ok(d0 === hisDef && g("mySchool().off") === "air" && g("CAREER.coach.off_style") === "air" && g("mySchool().coach.off_style") === his, "you can change your side's scheme and not his");
   g(`act("practice")`);
   const pr = text(g("currentView()()"));

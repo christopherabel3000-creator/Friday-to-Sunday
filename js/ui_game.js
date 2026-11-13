@@ -133,7 +133,10 @@ function vCall() {
   let pk = S.pkgSel || (isOff ? "p11" : "nickel");
   if (!choices.includes(pk)) pk = choices[0];
   const kickUnit = isOff && isST(pk);
-  const ids = isOff ? (kickUnit ? [] : offIds(pk)) : DEF_IDS, book = isOff ? OFFP : DEFP;
+  const allIds = isOff ? (kickUnit ? [] : offIds(pk)) : defBook(t), book = isOff ? OFFP : DEFP;
+  // The scheme's own plays have their own heading, so a screen reader reaches them as one group
+  const ids = allIds.filter(id => !isSchemeId(id)), schIds = allIds.filter(isSchemeId);
+  const schName = isOff ? OFF_STYLES[offStyleOf(t)].name : DEF_STYLES[defStyleOf(t)].name;
   const fitTag = id => (isOff ? fitTagFor(pk, id) : "") + styleTag(isOff, id, t) + masteryTag(t, id);
   const pkgBook = isOff ? { ...OFF_PKGS, ...ST_PKGS } : DEF_PKGS;
   const pkgBtn = id => `<button class="pkg${isST(id) ? " stpkg" : ""}" data-a="pkg" data-v="${id}" aria-pressed="${pk === id}">
@@ -184,7 +187,7 @@ function vCall() {
   }
   const canSide = isOff && !kickUnit && sidelineOK(), sideNow = canSide && !!S.selSide && sideOn(S.sel);
   // Defense: show the real look at the line, or disguise it as another one
-  const canDisg = !isOff && disguiseOK(), realCall = DEF_IDS.includes(S.sel) ? S.sel : null;
+  const canDisg = !isOff && disguiseOK(), realCall = isDefCall(S.sel) ? S.sel : null;
   const disgNow = canDisg && !!S.disgOn && !!realCall, fakeLook = disgNow && lookIdsFor(realCall).includes(S.disgSel) ? S.disgSel : null;
   const lookCard = id => `<button class="play" data-a="dlook" data-v="${id}" aria-pressed="${fakeLook === id}">
       <span class="tag">Look</span><span class="sr-only">. </span><span class="nm">${LOOKS[id].name}</span><span class="sr-only">. </span><span class="ds">${LOOKS[id].hint}</span></button>`;
@@ -217,6 +220,8 @@ function vCall() {
       ${pkgPicker}
       ${ids.length ? `<p class="sechead">${isOff ? "Plays" : "Calls"}</p>
       <div class="plays">${ids.map(id => card(id, book[id].name, book[id].tag + fitTag(id), book[id].desc)).join("")}</div>` : ""}
+      ${schIds.length ? `<p class="sechead">${esc(schName)} ${isOff ? "plays" : "calls"}</p>
+      <div class="plays">${schIds.map(id => card(id, book[id].name, book[id].tag + fitTag(id), book[id].desc)).join("")}</div>` : ""}
       ${st}
       ${sideToggle}
       ${disgPicker}
@@ -244,6 +249,10 @@ function clockBox() {
     if (youCallOff(o) && nhAvailable()) btns += `<button class="btn ghost" data-a="nohuddle" aria-pressed="${!!S.noHuddle}">${S.noHuddle ? "Going no huddle" : `${esc(t[o].abbr)}: no huddle`}</button>`;
     if (youCallOff(o) && (spikeOK() || S.spikeNext)) btns += `<button class="btn ghost" data-a="spike" aria-pressed="${!!S.spikeNext}">${S.spikeNext ? "Spiking next snap" : `${esc(t[o].abbr)}: spike next snap`}</button>`;
   }
+  // Tempo, in college and the pros: a switch that stays on (Milestone 7)
+  const tempoOn = !!(S.tempo && S.tempo[o]);
+  if (youCallOff(o) && tempoLevel() && !S.twoPt) btns += `<button class="btn ghost" data-a="tempo" aria-pressed="${tempoOn}">${tempoOn ? `${esc(t[o].abbr)}: up-tempo on` : `${esc(t[o].abbr)}: go up-tempo`}</button>`;
+  if (tempoOn) stat += ` ${tname(o)} are up-tempo: every snap that can go no huddle does, so the defense can't sub or disguise, and both sides tire faster.`;
   return `<div class="clockbox"><p class="cstat">${esc(stat)}</p>${btns ? `<div class="clockbtns">${btns}</div>` : ""}</div>`;
 }
 // After a human coach's score, the kickoff waits for the next tap: they can call an onside kick first
@@ -418,8 +427,9 @@ const countBy = (rows, key) => { const c = {}; rows.forEach(e => { c[e[key]] = (
 const topOfCount = c => Object.keys(c).sort((a, b) => c[b] - c[a])[0];
 const listNames = (ids, book) => ids.map(id => book[id].name).join(ids.length > 2 ? ", " : " and ");
 // Plays that beat a defensive call, and calls that stop a play, from the matchup table
-const beatsDef = d => OFF_IDS.filter(p => M[p][d] >= 1).sort((a, b) => M[b][d] - M[a][d]).slice(0, 2);
-const stopsPlay = p => DEF_IDS.filter(d => M[p][d] <= -1).sort((a, b) => M[p][a] - M[p][b]).slice(0, 2);
+// (from the playbook of team u, the one the tip is for: its scheme plays included)
+const beatsDef = (d, u) => offBook(u).filter(p => M[p][d] >= 1).sort((a, b) => M[b][d] - M[a][d]).slice(0, 2);
+const stopsPlay = (p, u) => defBook(u).filter(d => M[p][d] <= -1).sort((a, b) => M[p][a] - M[p][b]).slice(0, 2);
 // One team's first-half report: { off: [...lines], def: [...lines], tips: [...lines] }
 function halfReport(t) {
   const rows = (S.chart || []).filter(e => e.h === 1), off = rows.filter(e => e.o === t), def = rows.filter(e => e.o !== t);
@@ -432,7 +442,7 @@ function halfReport(t) {
       const c = countBy(r, "off"), top = topOfCount(c);
       rep.off.push(`${BUCKET_HEAD[b]}: ${OFFP[top].name} on ${c[top]} of ${r.length}.`);
       if (c[top] / r.length >= .45 && c[top] >= 3) {
-        const stop = stopsPlay(top);
+        const stop = stopsPlay(top, 1 - t);
         if (stop.length) rep.tips.push({ side: "off", text: `${tname(t)} lean on ${OFFP[top].name} on ${BUCKET_TEXT[b]} (${c[top]} of ${r.length}). ${listNames(stop, DEFP)} ${stop.length > 1 ? "shut" : "shuts"} it down.` });
       }
     });
@@ -450,7 +460,7 @@ function halfReport(t) {
       const c = countBy(r, "def"), top = topOfCount(c);
       rep.def.push(`${BUCKET_HEAD[b]}: ${DEFP[top].name} on ${c[top]} of ${r.length}.`);
       if (c[top] / r.length >= .45 && c[top] >= 3) {
-        const beat = beatsDef(top);
+        const beat = beatsDef(top, 1 - t);
         if (beat.length) rep.tips.push({ side: "def", text: `${tname(t)} keep calling ${DEFP[top].name} on ${BUCKET_TEXT[b]} (${c[top]} of ${r.length}). ${listNames(beat, OFFP)} ${beat.length > 1 ? "beat" : "beats"} it.` });
       }
     });

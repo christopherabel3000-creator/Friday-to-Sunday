@@ -62,7 +62,8 @@ function runSummer(s, plan, year, buy) {
   });
   s.youth = Math.min(6, (s.youth || 0) * .6 + effBlocks(wk.camp) * .5);
   // Team camp: a head start on the playbook, spread across it like install time with no focus
-  if (buy.tcamp != null && s.mastery) for (const id in s.mastery) s.mastery[id] = Math.round(Math.min(100, s.mastery[id] + TCAMP_INSTALL / Object.keys(s.mastery).length * (1 - s.mastery[id] / 100)) * 100) / 100;
+  // (the base playbook and the school's own scheme plays)
+  if (buy.tcamp != null && s.mastery) { fillSchemes(s); bookIds(s).forEach(id => { if (s.mastery[id] != null) s.mastery[id] = Math.round(Math.min(100, s.mastery[id] + TCAMP_INSTALL / INSTALL_IDS.length * (1 - s.mastery[id] / 100)) * 100) / 100; }); }
   if (buy.tutor != null) s.tutor = year + 1;
   return went;
 }

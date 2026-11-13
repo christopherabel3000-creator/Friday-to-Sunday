@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 18;
+const BUILD = 19;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -46,6 +46,8 @@ function startExhibition() {
   const role = COORD_ROLES[ex.role] ? ex.role : "", st = role === "oc" ? { off: ex.styles.off } : role === "dc" ? { def: ex.styles.def } : ex.styles;
   initGame({ level: EX_LEVELS[ex.level] ? ex.level : "hs", cpu: [!mine(0), !mine(1)], role: [mine(0) ? role : "", mine(1) ? role : ""], styles: [mine(0) ? st : null, mine(1) ? st : null],
     rot: [mine(0) ? ex.rot : "normal", mine(1) ? ex.rot : "normal"], depth: [next(0), next(1)] }, ex.schools);
+  // There's no practice in an exhibition: both teams know their schemes' own plays at solid or better
+  S.teams.forEach((t, i) => { if (t.mastery) offBook(i).concat(defBook(i)).forEach(id => { if (isSchemeId(id)) t.mastery[id] = Math.max(t.mastery[id] || 0, SCHEME_SOLID); }); });
   // A depth chart for the next game only is used up by this game
   ex.nextDepth = null; ex.depthMode = "always";
   APP.screen = "game";
@@ -172,6 +174,13 @@ function upgradeSave(s) {
   // November 2026: fundamentals became one area (all the position groups at once). A plan from before
   // gets one fundamentals weight from its six position groups.
   [s.season, s.other, s.third].forEach(w => { if (w && w.plan && w.plan.areas) w.plan.areas = fundPlan(w.plan.areas); });
+  // Version 19: playbooks and schemes (Milestone 7). Every playbook gets its schemes' own plays: the
+  // scheme it runs now at solid, so no career in progress is set back, and every other at 0.
+  if ((s.build || 0) < 19) {
+    [s.season, s.other, s.third].forEach(w => { if (w && w.schools) Object.values(w.schools).forEach(fillSchemes); });
+    if (s.app && s.app.ex) s.app.ex.schools.forEach(fillSchemes);
+    if (s.game && s.game.teams) s.game.teams.forEach(fillSchemes);
+  }
   s.build = BUILD;
   return s;
 }
@@ -231,7 +240,7 @@ function vHome() {
 
 /* ---------- The exhibition ---------- */
 function styleCfgHtml(isOff) {
-  const ids = isOff ? OFF_STYLE_IDS : DEF_STYLE_IDS, book = isOff ? OFF_STYLES : DEF_STYLES, cur = APP.ex.styles[isOff ? "off" : "def"] || "bal";
+  const ids = isOff ? offStylesAt(exLevel()) : DEF_STYLE_IDS, book = isOff ? OFF_STYLES : DEF_STYLES, cur = APP.ex.styles[isOff ? "off" : "def"] || "bal";
   const a = isOff ? "ostyle" : "dstyle", lbl = isOff ? "Offensive style" : "Defensive style";
   return `<div style="display:grid;gap:6px" role="group" aria-label="${lbl}"><span class="eyebrow" aria-hidden="true">${lbl}</span><div class="seg grid2">
       ${ids.map(id => `<button data-a="${a}" data-v="${id}" aria-pressed="${cur === id}">${book[id].short}</button>`).join("")}
@@ -431,6 +440,16 @@ function vHelp() {
       "Install time raises mastery. Pick up to three plays to focus on, or spread it over the whole playbook. Change your schemes and you'll have new plays to learn.",
       "The other team's coach calls the plays his team knows best, too."
     ]))}
+    ${sec("Schemes", ul([
+      "Every team shares the 8 base plays on each side. Your scheme adds plays only it can call: three in high school, a fourth in college and a fifth in the pros. They're under their own heading on the call sheet.",
+      "A scheme's plays are learned in practice. Every install session teaches them, and faster as a focus. Three weeks of heavy install in camp gets a new scheme to learning by week 1, solid around week 5 or 6, and mastered late in the year.",
+      "A scheme's strengths count as far as its own plays are installed. Its weak spots count in full from the first day.",
+      "You can change schemes any time, from the Schemes screen, with a second tap. The new scheme's plays start where they are (new, if your team has never run it), and the old scheme's are shelved at half, fading by half again each year.",
+      "Sticking with a scheme pays: next year starts close to where this one ended, and each season your coach runs a scheme makes him 4 percent faster at installing it, up to 20. Balanced installs a quarter faster than the rest.",
+      "The Schemes screen rates your roster for each scheme, for this year and next. It's advice only: the plays always run on your players' ratings.",
+      "The Option is a high school and college offense, not run in the pros. A defense that didn't study film for it gives up more.",
+      "In college and the pros, the offense can go up-tempo: a switch that keeps every snap it can no huddle, so the defense can't change personnel or disguise its look, and both sides tire faster."
+    ]))}
     ${sec("Scouting", ul([
       "Opponent prep is film study of this week's opponent. A little time gives a short report; more gives their habits in short, medium and long yardage, the personnel they use, how often they blitz and disguise, and what beats their favorite calls.",
       "On snaps when they run a call you studied, your team gets a small edge.",
@@ -455,7 +474,7 @@ function vHelp() {
     ]))}
     ${sec("Audibles, disguises and styles", ul([
       "At the line, the offense sees a look like \"Eight in the box\" or \"Two high safeties,\" each with a hint about which call it usually means. Defenses can disguise it, at the cost of a step at the snap.",
-      "Each team has an offensive style (Balanced, Air Raid, Ground &amp; Pound, West Coast) and a defensive style (Balanced, Blitz-Happy, No-Fly Zone, Run Stuffers) that make some calls stronger and others weaker.",
+      "Each team has an offensive style (Balanced, Air Raid, Ground &amp; Pound, West Coast, Option) and a defensive style (Balanced, Blitz-Happy, No-Fly Zone, Run Stuffers) that make some calls stronger and others weaker. Some calls share a look on purpose, so the hint names every call that can come out of it.",
       "Every coach has ratings too. The other team's coach scouts your habits as the game goes on."
     ]))}
     ${sec("High school rules", ul([
@@ -506,7 +525,7 @@ const xpDistFor = Rl => 100 - Rl.tryXp + Rl.fgAdd;
 /* ---------- Drawing the screen ---------- */
 const GAME_VIEWS = { hcask: vHcAsk, call: vCall, result: vResult, pat: vPAT, trychoice: vTry, penalty: vPenalty, final: vFinal, halftime: vHalftime, los: vLOS, kickchoice: vKick, toss: vToss };
 const SCREENS = { cap: vCap, gm: vGM, trade: vTrade, dboard: vDBoard, dprospect: vDProspect, dfind: vDFind, draftroom: vDraftRoom, falist: vFAList, faplayer: vFAPlayer, home: vHome, exhibition: vExhibition, pick: vPick, season: byLevel(vSeason, vCSeason, vPSeason), week: byLevel(vWeek, vCWeek, vPWeek), standings: byLevel(vStandings, vCStandings, vPStandings),
-  schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, preport: vPReport, scout: vScout,
+  schedule: byLevel(vSchedule, vCSchedule, vPSchedule), bracket: byLevel(vBracket, vCPost, vPPost), top25: vCTop25, simming: vSimming, roster: vRoster, player: vPlayer, depth: vDepthEdit, practice: vPractice, install: vInstall, schemes: vSchemes, preport: vPReport, scout: vScout,
   newcoach: vNewCoach, coach: vCoach, summary: vSummary, saves: vSaves, offseason: byLevel(vOffseason, vCOffseason, vPOffseason), newyear: vNewYear, halls: vHalls,
   review: vReview, carousel: vCarousel, market: vMarket, joblook: vJobLook, turning: vTurning, fund: vFund, signing: vSigning, recruits: vRecruits, board: vBoard, prospect: vProspect, rfind: vFind, portal: vPortal, names: vNames };
 // The program's screens: the head coach's, so a coordinator never lands on one
@@ -647,13 +666,23 @@ function act(a, ds) {
       const ids = a === "ostyle" ? OFF_STYLE_IDS : DEF_STYLE_IDS, k = a === "ostyle" ? "off" : "def";
       if (!ids.includes(ds.v)) break;
       if (APP.screen === "newcoach") (APP.coachDraft = APP.coachDraft || newDraft())[k] = ds.v;
-      // Your schemes are your coach's: they go with him to the next job
+      // Your schemes are your coach's: they go with him to the next job. Changing one shelves the old
+      // scheme's plays at half, so it takes a second tap (Milestone 7).
       // (a coordinator changes his own side's only, and his style is his coach's, not the head coach's)
-      else if (APP.screen === "season" && SEASON && SEASON.myId && coordRole()) { if ((coordRole() === "oc") === (k === "off")) { mySchool()[k] = ds.v; CAREER.coach[k + "_style"] = ds.v; } }
-      else if (APP.screen === "season" && SEASON && SEASON.myId) { const me = mySchool(); me[k] = ds.v; me.coach[k + "_style"] = ds.v; }
-      else APP.ex.styles[k] = ds.v;
+      else if (["season", "schemes"].includes(APP.screen) && SEASON && SEASON.myId) {
+        const me = mySchool(), role = coordRole(), side = k === "off" ? "off" : "def";
+        if (role && (role === "oc") !== (k === "off")) break;
+        if (!styleAt(ds.v, schoolLvl(me)) || me[k] === ds.v) break;
+        const key = `${a}:${ds.v}`, name = (k === "off" ? OFF_STYLES : DEF_STYLES)[ds.v].name;
+        if (priorConfirm !== key) { confirming = key; announce(switchWarn(me, side, ds.v)); break; }
+        switchScheme(me, side, ds.v);
+        (role ? CAREER.coach : me.coach)[k + "_style"] = ds.v;
+        announce(`You run the ${name} ${side === "off" ? "offense" : "defense"} now. ${installLine(me, side)}`);
+      }
+      else if (APP.ex && styleAt(ds.v, exLevel())) APP.ex.styles[k] = ds.v;
       break;
     }
+    case "schemes": if (SEASON && SEASON.myId) { APP.schemesBack = APP.screen; APP.screen = "schemes"; scrollTop(); } break;
     // A new matchup drops an exhibition game, never your season game
     case "newmatch": newExhibition(APP.ex && APP.ex.level); if (S && !S.season) S = null; APP.screen = "exhibition"; scrollTop(); break;
     case "exlevel": if (EX_LEVELS[ds.v] && ds.v !== exLevel()) { newExhibition(ds.v); if (S && !S.season && S.phase === "final") S = null; announce(EX_LEVELS[ds.v].say); } break;
@@ -751,7 +780,7 @@ function act(a, ds) {
     case "install": APP.screen = "install"; scrollTop(); break;
     case "pfocus": {
       const f = SEASON.plan.focus || (SEASON.plan.focus = []), i = f.indexOf(ds.v);
-      if (!INSTALL_IDS.includes(ds.v) || (coordRole() && !coordPlay(coordRole(), ds.v))) break;
+      if (!bookIds(mySchool()).includes(ds.v) || (coordRole() && !coordPlay(coordRole(), ds.v))) break;
       if (i >= 0) { f.splice(i, 1); announce(`${playName(ds.v)} off the install focus.`); }
       else if (f.length >= 3) announce("Three plays already. Take one off first.");
       else { f.push(ds.v); announce(`${playName(ds.v)} added to the install focus.`); }
@@ -785,6 +814,7 @@ function act(a, ds) {
     case "back": {
       if (APP.screen === "player" || APP.screen === "depth") APP.screen = "roster";
       else if (APP.screen === "install") APP.screen = "practice";
+      else if (APP.screen === "schemes") APP.screen = SCREENS[APP.schemesBack] && APP.schemesBack !== "schemes" ? APP.schemesBack : seasonScreen();
       else if (APP.screen === "scout" && ["game", "preport"].includes(APP.scoutBack)) APP.screen = APP.scoutBack === "game" && !(S && S.teams) ? "season" : APP.scoutBack;
       else if (APP.screen === "roster") { const b = APP.view && APP.view.back; APP.screen = b === "game" && !(S && S.teams) ? "home" : b || "home"; }
       else if (APP.screen === "week" && APP.weekFrom === "schedule") APP.screen = "schedule";
@@ -862,6 +892,8 @@ function act(a, ds) {
     case "half": if (inGame && S.phase === "halftime") { S.hready = null; startPlay(); scrollTop(); } break;
     case "to": if (inGame && callTimeout(+ds.t)) announce(S.toNote); break;
     case "spike": if (inGame && (S.spikeNext || spikeOK())) { S.spikeNext = !S.spikeNext; if (S.spikeNext) { S.noHuddle = false; S.burnClock = false; } announce(S.spikeNext ? "Spike set for the next snap." : "Spike cancelled."); } break;
+    case "tempo": if (inGame && tempoLevel() && youCallOff(S.poss)) { S.tempo = S.tempo || [false, false]; S.tempo[S.poss] = !S.tempo[S.poss]; if (S.tempo[S.poss]) { S.burnClock = false; if (tempoAvailable() && !S.spikeNext) { S.noHuddle = true; S.tempoSnap = true; } } else if (S.tempoSnap) { S.noHuddle = false; S.tempoSnap = false; }
+      announce(S.tempo[S.poss] ? "Up-tempo. Every snap that can go no huddle will, until you turn it off." : "Tempo off."); } break;
     case "nohuddle": if (inGame && nhAvailable()) { S.noHuddle = !S.noHuddle; if (S.noHuddle) { S.spikeNext = false; S.burnClock = false; } announce(S.noHuddle ? "Going no huddle." : "No huddle cancelled."); } break;
     case "burn": if (inGame && burnAvailable()) { S.burnClock = !S.burnClock; if (S.burnClock) { S.noHuddle = false; S.spikeNext = false; } announce(S.burnClock ? "Running the clock." : "No longer running the clock."); } break;
     case "sim": if (inGame && S.phase !== "final" && confirmed("sim")) { simToEnd(); scrollTop(); } break;
@@ -903,6 +935,7 @@ function startScreen() {
   if (sc === "preport") return season && (SEASON.practice || (APP.reportView === "camp" && SEASON.campReport)) ? sc : season ? "season" : "home";
   if (sc === "scout") return season && SEASON.practice && SEASON.practice.film ? sc : season ? "season" : "home";
   if (sc === "practice" || sc === "install") return season ? sc : "home";
+  if (sc === "schemes") return season && SEASON.myId ? sc : season ? seasonScreen() : "home";
   if (["season", "standings", "schedule"].includes(sc)) return season ? sc : "home";
   return SCREENS[sc] ? sc : "home";
 }

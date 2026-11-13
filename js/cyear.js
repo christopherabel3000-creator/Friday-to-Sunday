@@ -74,7 +74,8 @@ function colAdvanceMine(s, year, plan) {
   s.depth = autoDepth(s);
   rep.cut = cutToLimit(s);
   s.depth = autoDepth(s);
-  for (const id in s.mastery || {}) s.mastery[id] = Math.round((s.mastery[id] - (s.mastery[id] - 30) * MASTERY_FORGET) * 100) / 100;
+  for (const id in s.mastery || {}) if (!isSchemeId(id)) s.mastery[id] = Math.round((s.mastery[id] - (s.mastery[id] - 30) * MASTERY_FORGET) * 100) / 100;
+  fadeSchemes(s);
   s.rating = schoolRating(s);
   return rep;
 }

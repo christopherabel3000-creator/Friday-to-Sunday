@@ -40,6 +40,9 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     ok(g("mySchool().rating.c") === Math.round((46 + 46) / 2), "the quick sim uses your coach's ratings");
     // Changing schemes on the season screen changes your coach's too
     g(`APP = { v: 1, screen: "season", ex: null, view: null }; newExhibition(); APP.screen = "season";`);
+    // (Milestone 7: the second tap changes it, since the old scheme's plays are shelved at half)
+    g(`act("ostyle", { v: "gnp" })`);
+    ok(g("mySchool().off") === "air", "one tap only warns");
     g(`act("ostyle", { v: "gnp" })`);
     ok(g("mySchool().off") === "gnp" && g("CAREER.coach.off_style") === "gnp", "your schemes are your coach's");
     // Without a career, the old way: an unnamed coach with the class average, running the school's schemes

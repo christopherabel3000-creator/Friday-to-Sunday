@@ -117,6 +117,7 @@ const schoolKeep = s => ({ coach: s.coach, off: s.off, def: s.def });
 function coordSettle(id, role, pre) {
   const s = SEASON.schools[id], c = CAREER.coach;
   s.coach = pre.coach;
+  if (role === "oc") proOffense(c, s);
   s.off = role === "oc" ? (c.off_style || pre.off) : pre.off;
   s.def = role === "dc" ? (c.def_style || pre.def) : pre.def;
   if (isFull(s)) s.rating = schoolRating(s); else if (s.rating) s.rating.c = Math.round((s.coach.off + s.coach.def) / 2);
@@ -138,6 +139,7 @@ function coordLeave(old, pre, hadWhy) {
 function coordPromote() {
   const M = SEASON.market, R = SEASON.review, id = SEASON.myId, s = mySchool(), c = CAREER.coach, lvl = hereLevel();
   s.coach = c;
+  proOffense(c, s);
   if (c.off_style && c.def_style) { s.off = c.off_style; s.def = c.def_style; }
   s.rating = schoolRating(s);
   if (lvl === "pro") startProJob(id, false); else if (lvl === "col") startColJob(id); else startJob(id);

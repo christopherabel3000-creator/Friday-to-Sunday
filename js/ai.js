@@ -28,7 +28,7 @@ function scoutRecord() {
     const s = scoutOf(S.poss);
     bump(s.o, b, S.offCall); bump(s.o, b + "|" + opk, S.offCall); bump(s.o, "*", S.offCall);
   }
-  if (DEF_IDS.includes(S.defCall)) {
+  if (isDefCall(S.defCall)) {
     const s = scoutOf(1 - S.poss);
     bump(s.d, b, S.defCall); bump(s.d, "*", S.defCall);
     if (DEF_PKGS[S.defPkg]) { bump(s.dp, b, S.defPkg); bump(s.dp, b + "|" + opk, S.defPkg); }
@@ -81,7 +81,8 @@ function cpuOffStyle(w) {
 }
 function cpuDefStyle(w) {
   const ds = defStyleOf(1 - S.poss), os = offStyleOf(S.poss), q = offStyleMix(os), q0 = offStyleMix("bal");
-  DEF_IDS.forEach(d => {
+  Object.keys(w).forEach(d => {
+    if (!isDefCall(d)) return;
     let e = 0, e0 = 0;
     for (const p in q) e += q[p] * M[p][d];
     for (const p in q0) e0 += q0[p] * M[p][d];
@@ -184,9 +185,18 @@ function cpuPuntKind() {
   return "normal";
 }
 // The computer leans toward the plays its team knows
+// A team's scheme plays join its call sheet, called in the same situations as the base play each is
+// closest to (Milestone 7)
+// (a base play and the scheme plays like it share its weight, a quarter more for each scheme play)
+function schemeWeights(w, ids) {
+  const by = {};
+  ids.forEach(id => { const b = lk(id); if (w[b] != null) (by[b] = by[b] || []).push(id); });
+  for (const b in by) { const n = by[b].length, each = w[b] * (1 + .25 * n) / (1 + n); w[b] = each; by[b].forEach(id => { w[id] = each; }); }
+  return w;
+}
 function knownWeights(w, t) { Object.keys(w).forEach(k => { if (OFFP[k] || DEFP[k]) w[k] *= masteryPref(masteryOf(t, k)); }); return w; }
 function cpuOff() {
-  if (S.twoPt) return wpick(knownWeights(fitWeights({ ir: 4, or: 1.5, sc: 1, sp: 3.5, ms: 2, dp: .3, pa: 2 }), S.poss));
+  if (S.twoPt) return wpick(knownWeights(fitWeights(schemeWeights({ ir: 4, or: 1.5, sc: 1, sp: 3.5, ms: 2, dp: .3, pa: 2 }, schemePlaysAt(offStyleOf(S.poss), gameLvl()))), S.poss));
   if (kneelAvailable()) {
     const lead = S.teams[S.poss].score - S.teams[1 - S.poss].score;
     if (lead > 0 || (lead === 0 && S.spot < 50)) return "kneel";
@@ -203,10 +213,11 @@ function cpuOff() {
   if (late && diff < 0) { w.ir = .5; w.or = .5; w.dr = .2; w.dp += 2; w.sp += 1; w.ms += 1; }
   // Way ahead late: keep it on the ground and let the clock run
   if (S.quarter >= 4 && diff >= 17) { w.ir *= 2; w.or *= 1.5; w.dp *= .3; w.pa *= .5; }
+  schemeWeights(w, schemePlaysAt(offStyleOf(me), gameLvl()));
   fitWeights(w);
   cpuOffStyle(w);
   const lean = late && diff < 0 ? RUN_BIAS : runLean(me);
-  w.ir *= lean; w.or *= lean; w.dr *= lean;
+  Object.keys(w).forEach(k => { if (k !== "qs" && OFFP[k] && OFFP[k].kind === "run") w[k] *= lean; });
   if (w.qs) w.qs *= Math.sqrt(lean);
   // Attack the defense's habits: its usual calls here, and the packages it sends out against this personnel
   const sc = scoutOf(1 - S.poss), b = scoutBucket();
@@ -252,10 +263,12 @@ function cpuDef() {
   if (hailOK() && S.clock <= 8 && !fgAvailable()) { w.pr += 6; w.zo += 1; }
   // Sit on the sideline when the offense needs to stop the clock
   if (sidelineOK() && S.teams[S.poss].score <= S.teams[dt].score && (S.quarter >= 4 || S.quarter === 2)) w.zo += 1.5;
+  schemeWeights(w, schemeCallsAt(defStyleOf(dt), gameLvl()));
   cpuDefStyle(w);
   // Take away what this offense keeps running in this situation
   const t = !isST(S.offPkg) && offTend(), mul = {};
-  if (t) DEF_IDS.forEach(d => {
+  if (t) Object.keys(w).forEach(d => {
+    if (!isDefCall(d)) return;
     let e = 0;
     for (const p in t.f) e += t.f[p] * (M[p][d] || 0);
     w[d] = (w[d] + .15) * (mul[d] = adaptMul(-t.conf * e, dt));

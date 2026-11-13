@@ -703,6 +703,8 @@ function startMyGame() {
       S.teams[me].prep = pr || hc ? mix : null;
     } else S.teams[me].prep = pr;
   }
+  // How much film your defense studied, against the Option (schemes.js); a computer defense studies about a full week's worth
+  S.teams[me].prepLv = P && P.film && P.opp === S.teams[1 - me].id ? (P.prep || 0) : 0;
   seedFilm(me, S.teams[1 - me].coach);
   SEASON.nextDepth = null; SEASON.depthMode = "always";
   return true;

@@ -123,6 +123,8 @@ function recordCareerSeason() {
   const col = SEASON.lvl === "col", pro = inPros();
   CAREER.seasons.push(gradeMySeason({ seed: SEASON.seed, year: SEASON.year, school: schoolName(s), color: s.color, w: r.w, l: r.l, t: r.t || 0, place: placeOf(me, pro ? PRO_REG : col ? COL_REG : REGULAR_WEEKS), finish: finishText(me),
     champ: col ? !!(SEASON.post && SEASON.post[divOf(s)].champ === me) : SEASON.champion === me }));
+  // A season in your schemes: your coach installs them faster from now on (schemes.js)
+  bumpSchemeYears(CAREER.coach, s, coordRole());
   return true;
 }
 // "Season 1: Pine Hollow Pirates, 9-3, first in the district. Lost in the semifinals."

@@ -80,7 +80,8 @@ function genMastery(g, off, def) {
   INSTALL_IDS.forEach(id => { m[id] = clamp(Math.round(core.has(id) ? g.n(72, 6) : g.n(32, 9)), 8, 90); });
   // The sneak is simple, the Hail Mary gets a little practice, and the tackle-eligible trick is rare
   m.qs = clamp(Math.round(g.n(66, 8)), 30, 90); m.hm = clamp(Math.round(g.n(44, 8)), 15, 70); m.te = clamp(Math.round(g.n(26, 7)), 8, 55);
-  return m;
+  // The schemes' own plays (Milestone 7: schemes.js)
+  return schemeMastery(m, off, def);
 }
 const schoolName = s => `${s.town} ${s.mascot}`;
 // How a school's tradition reads

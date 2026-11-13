@@ -44,7 +44,7 @@ function tireSnap(o, opk, dpk) {
     const team = S.teams[t], lu = lineupFor(team, pk), on = new Set();
     for (const pos in lu) lu[pos].forEach(p => {
       on.add(p.id);
-      p.en = Math.max(0, p.en - (TIRE_COST[pos] || .6) / staminaMul(p));
+      p.en = Math.max(0, p.en - (TIRE_COST[pos] || .6) / staminaMul(p) * (S.tempoNow ? TEMPO_TIRE : 1));
     });
     team.players.forEach(p => { if (!on.has(p.id)) p.en = Math.min(100, p.en + BENCH_REST * staminaMul(p)); });
   });

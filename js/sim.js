@@ -50,7 +50,7 @@ function pickCarrier(t, L) {
 const TARGETS = { sc: { RB: 6, WR: 3, TE: 1 }, sp: { WR: 7, TE: 2, RB: .7 }, ms: { WR: 6, TE: 3, RB: 1.5 }, dp: { WR: 9, TE: 1 }, pa: { WR: 6, TE: 3, RB: 1 }, hm: { WR: 10, TE: 1 } };
 function pickTarget(off, L) {
   if (off === "te") { const ol = L.OL || []; return { p: ol[ol.length - 1], pos: "OL", idx: 0 }; } // the tackle who reported eligible
-  const w = TARGETS[off] || TARGETS.sp, deep = !!(OFFP[off] && OFFP[off].deep), cands = [];
+  const w = (OFFP[off] && OFFP[off].targets) || TARGETS[lk(off)] || TARGETS.sp, deep = !!(OFFP[off] && OFFP[off].deep), cands = [];
   ["WR", "TE", "RB"].forEach(pos => (L[pos] || []).forEach((p, i) => {
     const look = (w[pos] || 0) * (i === 0 ? 1.3 : i === 1 ? 1 : .75);
     const skill = .5 + (pos === "RB" ? p.r.hnd : (p.r.hnd + p.r.rte) / 2) / 100 + (deep ? p.r.spd / 100 : 0);
@@ -102,7 +102,7 @@ function talentEdges(off, def, x) {
     e.car = tEdge(carO, unitAvg((D.LB || []).concat(D.S || []), { tkl: .6, spd: .25, awr: .15 }));
   } else {
     let proD = unitAvg(D.DL, { prs: .8, spd: .2 });
-    if (["ab", "zb", "rb", "blk"].includes(def)) proD = proD * .75 + unitAvg(D.LB, { spd: .5, str: .3, tkl: .2 }) * .25;
+    if (["ab", "zb", "rb", "blk"].includes(lk(def))) proD = proD * .75 + unitAvg(D.LB, { spd: .5, str: .3, tkl: .2 }) * .25;
     e.pro = tEdge(unitAvg(L.OL, { pbk: .85, awr: .15 }), proD);
     const q = x.qb, t = x.tgt.p, cv = x.cov;
     e.thr = tEdge(q.r.acc * .55 + (t.r.rte * .5 + t.r.hnd * .5) * .45, cv.r.cov * .7 + unitAvg(dbsOf(D), { cov: 1 }) * .3);
@@ -195,14 +195,15 @@ function rollPlay(off, def, opk, dpk, side) {
   const o = S.poss, P = OFFP[off];
   const L = onField(o, OFF_PKGS[opk] ? opk : "p11"), D = onField(1 - o, DEF_PKGS[dpk] ? dpk : "nickel");
   const x = { L, D, qb: (L.QB || [])[0] || starterAt(S.teams[o], "QB") };
-  if (P.kind === "run") x.car = off === "qs" ? x.qb : pickCarrier(o, L);
+  // (an option play: the quarterback keeps it some of the time)
+  if (P.kind === "run") x.car = off === "qs" || (P.qbRun && rand() < P.qbRun) ? x.qb : pickCarrier(o, L);
   else { x.tgt = pickTarget(off, L); x.cov = coverFor(x.tgt, D); }
   const T = x.T = talentEdges(off, def, x);
   // Execution: disguises, the coaches, how well each side knows its call, and the week's film study
   const mo = masteryOf(o, off), md = masteryOf(1 - o, def), pr = prepEdge(o, off, def);
-  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + specEdge(o, off) + masteryEdge(mo) - masteryEdge(md) + pr + perkEdge(o, off, def);
+  const dc = (S.look && S.look.fake ? DISGUISE_COST : 0) + execEdge(o) + specEdge(o, off) + masteryEdge(mo) - defMasteryEdge(def, md) + pr + perkEdge(o, off, def) + optSurprise(off, 1 - o);
   const pe = pkgEdge(off, opk, dpk), se = styleEdge(off, def, o), m = clamp(M[off][def] + pe + se + dc + (side ? SIDE_EDGE[off][def] || 0 : 0), -3, 3);
-  const OP = OFF_PKGS[opk] || {}, compMul = (OP.comp || {})[off] || 1, fumMul = masteryMul(mo, .008);
+  const OP = OFF_PKGS[opk] || {}, compMul = (OP.comp || {})[off] || 1, fumMul = fumMulFor(off, mo);
   // Missed tackles: weak tackling means more big plays
   const tklAbs = unitAvg((D.LB || []).concat(dbsOf(D)), { tkl: .7, spd: .3 }), bigMul = clamp(1 - .012 * (tklAbs - REF), .7, 1.8);
   let y = 0, time = 0, fumble = false, int = false, sack = false, inc = false, oob = false, scr = false;
@@ -223,7 +224,7 @@ function rollPlay(off, def, opk, dpk, side) {
   const q = x.qb, t = x.tgt.p, cv = x.cov;
   const covAbs = unitAvg(dbsOf(D), { cov: .8, spd: .2 });
   // Sacks: the protection against the rush, and how long the quarterback holds the ball
-  const sackP = Math.max(.005, P.sack + ((SACK[def] || {})[off] || 0) + (OP.sack || 0)) * Math.exp(-.4 * (T.pro || 0)) * clamp(1 - .006 * (q.r.awr - REF), .8, 1.4);
+  const sackP = Math.max(.005, P.sack + ((SACK[lk(def)] || {})[lk(off)] || 0) + ((DEFP[def] || {}).sackAdd || 0) + (OP.sack || 0)) * Math.exp(-.4 * (T.pro || 0)) * clamp(1 - .006 * (q.r.awr - REF), .8, 1.4);
   if (rand() < sackP) {
     // A quick quarterback slips some sacks and takes off
     if (rand() < clamp(.04 + .012 * (q.r.spd - unitAvg(D.DL, { spd: 1 })), 0, .55)) scr = "rush";
@@ -245,7 +246,7 @@ function rollPlay(off, def, opk, dpk, side) {
     // Level of play: the quarterback's accuracy and the target's hands, against the coverage
     const compLvl = .004 * (q.r.acc - REF) + .0015 * (t.r.hnd - REF) - .0025 * (covAbs - REF);
     const intMul = clamp(1 - .015 * (q.r.acc - REF) + .006 * (covAbs - REF), .5, 3) * Math.exp(-.25 * T.thr);
-    const intP = clamp(P.int * INT_SCALE * (1 - .3 * m) * (((INT_MUL[def] || {})[off]) || 1) * intMul, .003, .15);
+    const intP = clamp(P.int * INT_SCALE * (1 - .3 * m) * (((INT_MUL[lk(def)] || {})[lk(off)]) || 1) * schemeIntMul(def, off) * intMul, .003, .15);
     const compP = clamp((P.comp + .09 * m + .05 * T.thr + compLvl - (side ? .04 : 0)) * compMul * armMul, .04, .93), roll = rand();
     if (roll < intP) { int = true; time = ri(6, 11); }
     else if (roll < intP + compP) {
@@ -355,7 +356,7 @@ function doScrimmage() {
   const td = ns >= 100, safety = ns <= 0 && !ot;
   st.yds += y; if (P.kind === "run" || scr) st.rush += y; else st.pass += y;
   // The tackle, if there was one
-  const tk = td || inc ? null : sack ? pickBy(["ab", "zb", "rb", "blk"].includes(def) ? D.DL.concat(D.LB || [], D.LB || []) : D.DL.concat(D.DL, D.LB || []), p => p.r.prs + p.r.spd * .4)
+  const tk = td || inc ? null : sack ? pickBy(["ab", "zb", "rb", "blk"].includes(lk(def)) ? D.DL.concat(D.LB || [], D.LB || []) : D.DL.concat(D.DL, D.LB || []), p => p.r.prs + p.r.spd * .4)
     : pickTackler(D, pass && !scr ? "pass" : "run", y, pass && !scr ? cov : null);
   if (tk && !(oob && rand() < .5)) { pstat(tk, "tk"); if (y < 0 && !sack) pstat(tk, "tfl"); }
   r.carId = holder ? holder.id : null; r.tklId = tk ? tk.id : null;
@@ -367,7 +368,7 @@ function doScrimmage() {
   } else if (inc) {
     const broke = !P.hail && cov && rand() < .35;
     if (broke) pstat(cov, "pd");
-    text = broke ? `${qb.last}'s pass for ${tg.last} is broken up by ${cov.last}.` : MISS_TEXT[off](qb.last, tg.last);
+    text = broke ? `${qb.last}'s pass for ${tg.last} is broken up by ${cov.last}.` : (MISS_TEXT[off] || P.miss)(qb.last, tg.last);
   } else if (scr || P.kind === "run") {
     const c = holder;
     pstat(c, "ru"); pstat(c, "ry", y); pmax(c, "rl", y); if (td) pstat(c, "rtd");
@@ -376,7 +377,7 @@ function doScrimmage() {
       text = td ? `${c.last} ${how}, ${yd(y)}, for the touchdown!` : `${c.last} ${how} ${gainText(y)}${tk ? `, ${oob ? "pushed out by" : "brought down by"} ${tk.last}` : ""}.`;
     }
     else {
-      const way = RUN_WAY[off] || "up the middle";
+      const way = RUN_WAY[off] || P.way || "up the middle";
       if (td) text = y >= 15 ? `${c.last} breaks loose ${way} and goes ${yd(y)} for the touchdown!` : `${c.last} ${way}, ${yd(y)}, into the end zone!`;
       else if (y < 0) text = `${c.last} is stuffed in the backfield by ${tk.last} for a loss of ${-y}.`;
       else if (y === 0) text = `${c.last} is stopped ${way} by ${tk.last}. No gain.`;
@@ -386,7 +387,7 @@ function doScrimmage() {
   } else {
     pstat(qb, "pc"); pstat(qb, "py", y); pstat(tg, "rec"); pstat(tg, "rcy", y); pmax(tg, "rcl", y);
     if (td) { pstat(qb, "ptd"); pstat(tg, "rctd"); }
-    const lead = CATCH_LEAD[off](qb.last, tg.last);
+    const lead = (CATCH_LEAD[off] || P.catch)(qb.last, tg.last);
     if (td) text = `${lead} for ${yd(y)}, and it's a touchdown!`;
     else if (y >= 20) text = `${lead} for ${yd(y)}!${oob ? " Out of bounds." : ` ${tk.last} makes the tackle.`}`;
     else text = `${lead} ${gainText(y)}${oob ? ", out of bounds" : `, tackled by ${tk.last}`}.`;
@@ -459,8 +460,8 @@ const defOnField = () => onField(1 - S.poss, DEF_PKGS[S.defPkg] ? S.defPkg : "ni
 // Fouls before the snap (the play never runs)
 // A play still being learned draws more flags on the side running it (masteryMul)
 const flagMuls = (off, def) => [masteryMul(masteryOf(S.poss, off), .009), masteryMul(masteryOf(1 - S.poss, def), .009)];
-function rollPreSnap(def) {
-  const L = offOnField(), D = defOnField(), q = (L.QB || [])[0], [mo, md] = flagMuls(S.offCall, def);
+function rollPreSnap(dc) {
+  const def = lk(dc), L = offOnField(), D = defOnField(), q = (L.QB || [])[0], [mo, md] = flagMuls(S.offCall, dc);
   // A play changed at the line is more likely to end in confusion: a false start or the play clock running out
   const w = { fs: (.008 + (S.aud ? .009 : 0)) * penLvl(unitAvg(L.OL, { awr: 1 })) * mo, dg: (.003 + (S.aud ? .007 : 0)) * penLvl(q ? q.r.awr : 50) * mo };
   // High school: a defender who jumps into the neutral zone kills the play before the snap
@@ -468,8 +469,9 @@ function rollPreSnap(def) {
   return pickFrom(w);
 }
 // Fouls during the play depend on the matchup and on each side's awareness
-function rollLive(off, def, r) {
-  const P = OFFP[off], thrown = P.kind === "pass" && r.head !== "Sack" && !r.scr;
+function rollLive(oc, dc, r) {
+  // (scheme plays and calls draw flags like the base play or call they're closest to)
+  const off = lk(oc), def = lk(dc), P = OFFP[oc], thrown = P.kind === "pass" && r.head !== "Sack" && !r.scr;
   const complete = thrown && !["Incomplete", "Picked off", "Pick six"].includes(r.head);
   const L = offOnField(), D = defOnField(), T = r.T || {}, w = {};
   const olAw = penLvl(unitAvg(L.OL, { awr: 1 })), dbAw = penLvl(unitAvg(dbsOf(D), { awr: 1 })), dlAw = penLvl(unitAvg(D.DL, { awr: 1 }));
@@ -480,13 +482,13 @@ function rollLive(off, def, r) {
   w.oh = (P.kind === "run" ? (off === "or" ? .034 : .028) : (P.deep ? .035 : .016)) * olAw * clamp(1 - .25 * (P.kind === "run" ? T.blk || 0 : T.pro || 0), .6, 1.6);
   if (def === "rb" || def === "ab" || def === "blk" || def === "zb") w.oh += .008 * olAw;
   if (thrown) w.dh = (.008 + (def === "ma" ? .012 : def === "zo" ? .004 : 0)) * dbAw;
-  if (thrown && !complete && P.air >= 6) w.dpi = ({ sp: .012, dp: .04, pa: .03, hm: .03 }[off]) * ({ ma: 2, zo: 1, c3: 1, pr: .5, ab: 1.5, zb: 1.2, rb: 1, ba: 1, blk: 1.5, ret: .5 }[def]) * dbAw * clamp(1 + .2 * (T.thr || 0), .6, 1.5);
-  if (thrown && P.air >= 6) w.opi = ({ sp: .004, dp: .007, pa: .005, hm: .02 }[off]) * (def === "ma" ? 1.5 : 1) * penLvl(unitAvg((L.WR || []).concat(L.TE || []), { awr: 1 }));
+  if (thrown && !complete && P.air >= 6) w.dpi = ({ sp: .012, dp: .04, pa: .03, hm: .03 }[off] ?? (P.deep ? .04 : .02)) * ({ ma: 2, zo: 1, c3: 1, pr: .5, ab: 1.5, zb: 1.2, rb: 1, ba: 1, blk: 1.5, ret: .5 }[def] ?? 1) * dbAw * clamp(1 + .2 * (T.thr || 0), .6, 1.5);
+  if (thrown && P.air >= 6) w.opi = ({ sp: .004, dp: .007, pa: .005, hm: .02 }[off] ?? (P.deep ? .007 : .005)) * (def === "ma" ? 1.5 : 1) * penLvl(unitAvg((L.WR || []).concat(L.TE || []), { awr: 1 }));
   if (thrown) w.rtp = (def === "ab" ? .012 : def === "zb" ? .007 : def === "rb" ? .004 : .0015) * dlAw;
   w.fm = (P.kind === "run" ? .004 : complete ? .002 : 0) * dbAw;
   if (S.offPkg === "jumbo" && thrown) w.idf = .015 * olAw;
   // Fouls by the side still learning its call
-  const [mo, md] = flagMuls(off, def);
+  const [mo, md] = flagMuls(oc, dc);
   Object.keys(w).forEach(k => { const p = R().pen[k]; if (p) w[k] *= p.on === "off" ? mo : md; });
   // Only the fouls this level has
   const pen = R().pen;

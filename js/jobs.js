@@ -192,7 +192,7 @@ function outsideCoach(s) {
 function applyCoach(s) {
   // (at the school where you're a coordinator, your side keeps your scheme: coord.js)
   const role = !WORLD_FROM && SEASON.myId === s.id ? coordRole() : "";
-  if (role !== "oc") s.off = s.coach.off_style;
+  if (role !== "oc") s.off = styleFor(s.coach.off_style, levelOf(s.cls));
   if (role !== "dc") s.def = s.coach.def_style;
   if (s.rating) s.rating.c = Math.round((s.coach.off + s.coach.def) / 2);
 }

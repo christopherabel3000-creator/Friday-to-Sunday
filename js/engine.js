@@ -167,7 +167,14 @@ function defStyleEdge(off, def, s) {
   return (st.all || 0) + ((st.calls || {})[def] || 0) + (P.kind === "run" ? st.run || 0 : st.pass || 0) + (P.deep ? st.deep || 0 : 0);
 }
 // Net edge for the offense team o: its offensive style minus the other team's defensive style
-const styleParts = (off, def, o) => ({ off: offStyleEdge(off, offStyleOf(o)), def: defStyleEdge(off, def, defStyleOf(1 - o)) });
+// (Milestone 7: a scheme's strengths count as far as its own plays are installed; its weaknesses in full)
+const styleParts = (off, def, o) => {
+  if (!S || !S.teams) return { off: offStyleEdge(off, offStyleOf(o)), def: defStyleEdge(off, def, defStyleOf(1 - o)) };
+  const ko = installShare(o, "off"), kd = installShare(1 - o, "def"), os = OFF_STYLES[offStyleOf(o)], ds = DEF_STYLES[defStyleOf(1 - o)], P = OFFP[off];
+  const eo = scaleUp(os.all || 0, ko) + scaleUp((os.plays || {})[off] || 0, ko);
+  const ed = !P ? 0 : scaleUp(ds.all || 0, kd) + scaleUp((ds.calls || {})[def] || 0, kd) + scaleUp(P.kind === "run" ? ds.run || 0 : ds.pass || 0, kd) + scaleUp(P.deep ? ds.deep || 0 : 0, kd);
+  return { off: eo, def: ed };
+};
 const styleEdge = (off, def, o) => { const p = styleParts(off, def, o); return p.off - p.def; };
 const resolveStyle = (v, ids) => v === RANDOM_STYLE ? ids[Math.floor(rand() * ids.length)] : ids.includes(v) ? v : "bal";
 function styleTag(isOff, id, t) {
@@ -205,7 +212,7 @@ function perkEdge(o, off, def) {
   if (hasPerk(o, "offg") && ((OFF_STYLES[offStyleOf(o)].plays || {})[off] || 0) >= .4) e += PERK_EDGE.offg;
   if (hasPerk(o, "trick") && off === "te") e += PERK_EDGE.trick;
   if (hasPerk(d, "defm") && ((DEF_STYLES[defStyleOf(d)].calls || {})[def] || 0) >= .4) e -= PERK_EDGE.defm;
-  if (hasPerk(d, "blitz") && BLITZ_IDS.includes(def)) e -= PERK_EDGE.blitz;
+  if (hasPerk(d, "blitz") && isBlitz(def)) e -= PERK_EDGE.blitz;
   return e;
 }
 const execEdge = o => S && S.teams ? CP(o).execO - CP(1 - o).execD + homeEdge(o) + motEdge(o, "off") - motEdge(1 - o, "def") : 0;
@@ -308,6 +315,8 @@ function initGame(cfg, schools) {
   const t0 = gameTeam(schools[0], cfg.cpu[0], cfg.styles && cfg.styles[0], cfg.role && cfg.role[0]), t1 = gameTeam(schools[1], cfg.cpu[1], cfg.styles && cfg.styles[1], cfg.role && cfg.role[1]);
   if (t1.abbr === t0.abbr) t1.abbr = schoolAbbr(t1.school, t0.abbr);
   [t0, t1].forEach((t, i) => {
+    // The Option isn't run in the pros; a playbook from before Milestone 7 gets its scheme plays
+    t.off = styleFor(t.off, Rl.id); fillSchemes(t);
     if (cfg.depth && cfg.depth[i]) t.depth = clone(cfg.depth[i]);
     freshGame(t, cfg.rot && cfg.rot[i], cfg.fresh && cfg.fresh[i]);
   });
@@ -316,7 +325,7 @@ function initGame(cfg, schools) {
     quarter: 1, clock: qLen, poss: recv, spot: 35, down: 1, toGo: 10, firstRecv: recv,
     offCall: null, defCall: null, sel: null, side: "off", phase: "", banner: "", log: [], last: null,
     needPAT: false, patTeam: 0, periodOver: false, gameOver: false, runClock: false,
-    tos: [Rl.timeouts, Rl.timeouts], clockRunning: false, oobRestart: false, spikeNext: false, toNote: "" };
+    tos: [Rl.timeouts, Rl.timeouts], tempo: [false, false], clockRunning: false, oobRestart: false, spikeNext: false, toNote: "" };
   if (typeof APP !== "undefined" && APP && APP.everyPlay) S.everyPlay = true;
   if (t0.role || t1.role) S.cpre = coordMark();
   startToss(false, matchupLine());
@@ -696,6 +705,8 @@ function startPlay() {
   S.offPkg = null; S.defPkg = null;
   // No huddle: both sides stay in the personnel that was on the field for the last snap
   S.nhLock = S.noHuddle && S.last && S.last.team === S.poss && OFF_PKGS[S.last.opk] && S.last.dpk ? { off: S.last.opk, def: S.last.dpk } : null;
+  // A tempo snap (Milestone 7): no huddle by choice, so the defense can't sub or disguise, and both sides tire faster
+  S.tempoNow = !!(S.tempoSnap && S.nhLock); S.tempoSnap = false;
   S.noHuddle = false;
   // An offensive coordinator's head coach decides the kicks: when he sends a kicking unit out, it's his
   // call. On fourth and short the coordinator can ask him to go for it, once a possession.
@@ -748,7 +759,7 @@ function pkgChoices(isOff) {
 const offCallsFor = pk => isST(pk) ? ST_PKGS[pk].plays.filter(id => id === "punt" || id === "fp" ? puntAvailable() : fgAvailable())
   : offIds(pk).concat(kneelAvailable() ? ["kneel"] : []);
 // Defensive calls: block and return units only answer a special teams unit
-const defCallsFor = () => DEF_IDS.concat(S.offPkg === "punt" ? ["blk", "ret"] : S.offPkg === "fgu" ? ["blk"] : []);
+const defCallsFor = () => defBook(1 - S.poss).concat(S.offPkg === "punt" ? ["blk", "ret"] : S.offPkg === "fgu" ? ["blk"] : []);
 function defStep() {
   const locked = S.nhLock && !isST(S.offPkg);
   // A defensive coordinator's head coach answers a kicking unit himself (the block and return calls)
@@ -762,25 +773,27 @@ const sidelineOK = () => !S.twoPt && clockWindow() && oobWindow();
 // QB sneak: 1 yard or less to go. Hail Mary: end of a half, 30+ yards from the end zone.
 const sneakOK = () => !S.twoPt && S.toGo <= 1;
 const hailOK = () => !S.twoPt && (S.quarter === 2 || S.quarter >= 4) && S.clock <= 15 && S.spot <= 70 && !noClock();
-const offIds = pk => OFF_IDS.concat(sneakOK() ? ["qs"] : [], hailOK() ? ["hm"] : [], pk === "jumbo" ? ["te"] : []);
+const offIds = pk => offBook(S.poss).concat(sneakOK() ? ["qs"] : [], hailOK() ? ["hm"] : [], pk === "jumbo" ? ["te"] : []);
 const audIds = () => offIds(S.offPkg).filter(id => id !== S.offCall);
 // The look the offense sees at the line. A human defense picked it when it locked in its call;
 // a computer defense decides here.
 function makeLook() {
   const d = S.defCall;
+  if (S.tempoNow) return { d, fake: false };
   if (youCallDef(1 - S.poss) && !(roleOf(1 - S.poss) === "dc" && isST(S.offPkg))) return S.disg && S.disg !== d && LOOKS[S.disg] ? { d: S.disg, fake: true } : { d, fake: false };
   return cpuLook(d);
 }
 // Calls a defense may show instead of its real one (special teams units can't hide who ran on)
-const disguiseOK = () => audiblesOn() && !isST(S.offPkg);
-const lookIdsFor = d => DEF_IDS.filter(x => x !== d);
+const disguiseOK = () => audiblesOn() && !isST(S.offPkg) && !S.tempoNow;
+// (one of each look: calls that share a look with the real one, or with each other, aren't a disguise)
+const lookIdsFor = d => { const seen = new Set([lookKey(d)]); return defBook(1 - S.poss).filter(x => { const k = lookKey(x); if (seen.has(k)) return false; seen.add(k); return true; }); };
 // Per-team counts: how often each defense has disguised, and how often each offense has audibled
 function lookStat(map, t) { S[map] = S[map] || [{ n: 0, k: 0 }, { n: 0, k: 0 }]; return S[map][t]; }
 // A computer defense disguises more against an offense that audibles a lot, and picks the fake look
 // that baits the worst check: the play the offense would want against the look, judged against the real call
 function cpuLook(d) {
   const cp = CP(1 - S.poss);
-  if (!DEF_IDS.includes(d) || !cp.disg) return { d, fake: false };
+  if (!isDefCall(d) || !cp.disg) return { d, fake: false };
   const st = lookStat("audStats", S.poss), audRate = (st.k + 1) / (st.n + 4);
   if (rand() >= cp.disg * (DISGUISE[d] ?? .25) * clamp(.8 + 1.6 * audRate, .8, 1.8)) return { d, fake: false };
   const cands = lookIdsFor(d);
@@ -788,7 +801,7 @@ function cpuLook(d) {
   let best = null, bv = 9;
   cands.forEach(L => {
     let bp = null, be = -9;
-    OFF_IDS.forEach(p => { const e = M[p][L] + rand() * .5; if (e > be) { be = e; bp = p; } });
+    offBook(S.poss).forEach(p => { const e = M[p][L] + rand() * .5; if (e > be) { be = e; bp = p; } });
     const v = M[bp][d] + rand() * .5;
     if (v < bv) { bv = v; best = L; }
   });
@@ -835,7 +848,7 @@ function lock() {
   else {
     S.defCall = S.sel;
     S.disg = null;
-    if (S.disgOn && disguiseOK() && DEF_IDS.includes(S.sel)) {
+    if (S.disgOn && disguiseOK() && isDefCall(S.sel)) {
       const c = lookIdsFor(S.sel);
       S.disg = c.includes(S.disgSel) ? S.disgSel : c[ri(0, c.length - 1)];
     }
@@ -886,7 +899,7 @@ function audNote() {
 }
 // The game's charting sheet: one row per scrimmage snap, used by the halftime report
 function chartSnap(r) {
-  if (r.preSnap || r.accepted || r.s == null || !OFFP[S.offCall] || !DEF_IDS.includes(S.defCall) || !S.snap) return;
+  if (r.preSnap || r.accepted || r.s == null || !OFFP[S.offCall] || !isDefCall(S.defCall) || !S.snap) return;
   const tg = S.snap.toGo, b = tg <= 3 ? "s" : tg <= 7 ? "m" : "l";
   (S.chart = S.chart || []).push({ o: S.snap.poss, b, off: S.offCall, def: S.defCall, aud: S.aud ? 1 : 0, look: S.look ? 1 : 0, fake: S.look && S.look.fake ? 1 : 0, s: r.s, h: S.snap.q <= 2 ? 1 : 2,
     hu: [0, 1].reduce((n, t) => n + ((t === S.snap.poss ? youCallOff(t) : youCallDef(t)) ? 1 << t : 0), 0) });
@@ -926,7 +939,7 @@ function betweenPlays() {
   return sec;
 }
 function cont() {
-  S.youCalled = false;
+  S.youCalled = false; S.tempoNow = false;
   if (S.teams[0].role || S.teams[1].role) S.cpre = coordMark();
   S.nhLock = null; // set again by startPlay when the next snap is a no-huddle snap
   if (S.tryChoice) {
@@ -951,20 +964,21 @@ function cont() {
     cpuClock();
     cpuNoHuddle();
     cpuBurn();
+    tempoNext();
     if (S.clockRunning) {
-      if (S.noHuddle && !nhAvailable()) S.noHuddle = false;
+      if (S.noHuddle && !nhAvailable() && !S.tempoSnap) S.noHuddle = false;
       if (S.burnClock && !burnAvailable()) S.burnClock = false;
       const res = runoff(betweenPlays());
-      if (res !== "ok") S.noHuddle = false; // two-minute warning or end of the period: everyone can huddle and sub
+      if (res !== "ok") S.noHuddle = S.tempoSnap = false; // two-minute warning or end of the period: everyone can huddle and sub
       if (res === "tmw" && S.spikeNext) { S.spikeNext = false; S.banner = "Two-minute warning. The clock stopped on its own, so no spike needed."; }
     }
     S.oobRestart = false; S.toNote = ""; S.burnClock = false;
-    if (S.spikeNext && !S.periodOver) { S.noHuddle = false; doSpike(); return; }
+    if (S.spikeNext && !S.periodOver) { S.noHuddle = S.tempoSnap = false; doSpike(); return; }
     S.spikeNext = false;
   }
   S.wasRunning = S.clockRunning;
   S.clockRunning = false;
-  if (S.periodOver) S.noHuddle = false;
+  if (S.periodOver) S.noHuddle = S.tempoSnap = false;
   S.burnClock = false;
   if (S.periodOver && !S.gameOver) endPeriod();
   if (S.halftimeShow) { S.halftimeShow = false; S.hready = null; S.phase = "halftime"; return; }
@@ -1034,6 +1048,27 @@ function cpuNoHuddle() {
   if (youCallOff(o) || S.spikeNext || S.burnClock || !nhAvailable()) return;
   const diff = S.teams[o].score - S.teams[1 - o].score;
   if ((S.quarter >= 4 && diff < 0 && diff >= -24 && S.clock <= 300) || (S.quarter === 2 && S.clock <= 150 && S.clock > 0)) S.noHuddle = true;
+}
+/* ---------- Tempo (Milestone 7) ---------- */
+// In college and the pros, an offense can go up-tempo: a switch that stays on until it's turned off.
+// Every snap that can go no huddle does, clock running or not (after an incompletion too), so the
+// defense can't change personnel or disguise its look, and both sides tire faster. Not after a
+// flag, a timeout, a kick, a score or a change of possession, and the two-minute warning and the
+// end of a quarter break it up, as they do any no huddle.
+const TEMPO_TIRE = 1.4;
+const tempoLevel = () => !!(S && S.cfg && S.cfg.level !== "hs");
+function tempoAvailable() {
+  const r = S.last;
+  return tempoLevel() && S.phase === "result" && !S.periodOver && !S.gameOver && !S.needPAT && !S.tryChoice && !S.retryTwo && !S.kickChoice && !S.twoPt && !S.toUsed &&
+    !!r && !r.pen && !r.accepted && !r.preSnap && !r.pat && r.team === S.poss && !!OFFP[r.offId] && !!r.opk && !!r.dpk && S.down <= 4 && !noClock();
+}
+// Computer offenses go up-tempo some of the time: the spread schemes most, and never while running out the clock
+const CPU_TEMPO = { air: .4, wc: .25, bal: .12 };
+function tempoNext() {
+  const o = S.poss;
+  S.tempo = S.tempo || [false, false];
+  if (!youCallOff(o) && tempoAvailable() && !S.burnClock && !S.spikeNext) S.tempo[o] = rand() < (CPU_TEMPO[offStyleOf(o)] || .05) * (S.quarter >= 4 && S.teams[o].score > S.teams[1 - o].score ? 0 : 1);
+  if (S.tempo && S.tempo[o] && tempoAvailable() && !S.burnClock && !S.spikeNext) { S.noHuddle = true; S.tempoSnap = true; }
 }
 function endPeriod() {
   S.periodOver = false; S.clockRunning = false; S.oobRestart = false; S.spikeNext = false; S.toNote = "";
