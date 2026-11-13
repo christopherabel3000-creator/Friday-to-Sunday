@@ -94,9 +94,11 @@ There's no Mac needed: `.github/workflows/ios.yml` builds the app on GitHub's Ma
 
 ## Cloud saves
 
-Cloud saves use the Firebase Realtime Database project shared with [Gridiron Duel](https://github.com/christopherabel3000-creator/football-call-sheet), [Hidden Ranks](https://github.com/christopherabel3000-creator/Hidden-Ranks) and [Shardkin: Eight Realms](https://github.com/christopherabel3000-creator/Shardkin-Eight-Realms) (call-sheet-football), under `fridayToSundaySaves/<KEY>`. Gridiron Duel's anonymous play counts live under `gridironStats` in the same file. The Firebase library loads only when a cloud save is first used. Save codes and files don't need it.
+Cloud saves use the game's own Firebase project, `friday-to-sunday-d5889` (Realtime Database, US), under `fridayToSundaySaves/<KEY>`. The Firebase library loads only when a cloud save is first used. Save codes and files don't need it.
 
-The rules are in `database.rules.json`, with a section for each game, and the other three repos have identical copies. To switch cloud saves on, paste the whole file into the Firebase console: Realtime Database, then Rules, then Publish. Keep the four copies the same, or the other games will stop working online. Until the rules are published, the game says cloud saves aren't switched on yet.
+The rules are in `database.rules.json` and are published in the Firebase console (Realtime Database, then Rules). Change the file and the console together.
+
+Until November 2026 cloud saves lived in the call-sheet-football project shared with the other games. A code from then is still found there, read only, and saving it again moves it to the new project under the same code (js/cloud.js).
 
 The rules only accept well-formed saves, require every save to be exactly one version newer than the last (so a save can't be rewound or wiped), and never allow deleting one. Nobody can list the saves; a save can only be read with its 12-character code.
 

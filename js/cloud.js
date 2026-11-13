@@ -81,18 +81,22 @@ function readBackup() { let ls = null; try { ls = localStorage.getItem(BACKUP_KE
 const dateText = t => new Date(t).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 
 /* ---------- Cloud saves ---------- */
-// Cloud saves use the Firebase Realtime Database of the call-sheet-football project, shared with
-// Christopher's other games. These values identify the project; they are not passwords. Access is
-// controlled by the rules in database.rules.json, which have to be published in the Firebase console.
-// The Firebase library loads only when a cloud save is first used.
+// Cloud saves use the Realtime Database of the game's own Firebase project, friday-to-sunday-d5889.
+// These values identify the project; they are not passwords. Access is controlled by the rules in
+// database.rules.json, published in the Firebase console. The Firebase library loads only when a cloud
+// save is first used.
 const FIREBASE_CONFIG = {
+  authDomain: "friday-to-sunday-d5889.firebaseapp.com",
+  databaseURL: "https://friday-to-sunday-d5889-default-rtdb.firebaseio.com",
+  projectId: "friday-to-sunday-d5889"
+};
+// Until November 2026 cloud saves lived in the call-sheet-football project shared with Christopher's
+// other games. A code from then is still found there (read only); saving it again moves it here.
+const LEGACY_CONFIG = {
   apiKey: "AIzaSyCY2-1Q7F5GJmrIs33-emT0_rwYN-TfiAw",
   authDomain: "call-sheet-football.firebaseapp.com",
   databaseURL: "https://call-sheet-football-default-rtdb.firebaseio.com",
-  projectId: "call-sheet-football",
-  storageBucket: "call-sheet-football.firebasestorage.app",
-  messagingSenderId: "448422352869",
-  appId: "1:448422352869:web:4eb76ce7d666c4ed02410c"
+  projectId: "call-sheet-football"
 };
 const FB_LIB = "https://www.gstatic.com/firebasejs/10.12.2/";
 // A save lives at fridayToSundaySaves/KEY as { ver, state, t, by, act }: state is the save code.
@@ -102,7 +106,7 @@ const CLOUD_PATH = "fridayToSundaySaves/";
 const KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ONLINE_OFF = "Cloud saves aren't switched on yet: the online database's rules still need to be published in the Firebase console. Save codes work without them.";
 const CONN_ERR = "Couldn't reach the cloud. Check your internet connection and try again.";
-let fbLoading = null, cloudDb = null;
+let fbLoading = null, cloudDb = null, legacyDb = null;
 function randKey() {
   const n = new Uint32Array(12);
   try { crypto.getRandomValues(n); } catch (e) { for (let i = 0; i < 12; i++) n[i] = Math.floor(Math.random() * 4294967296); }
@@ -130,6 +134,15 @@ async function netDb() {
   const app = firebase.apps && firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
   cloudDb = app.database();
   return cloudDb;
+}
+// The old shared project, only for finding codes saved there before the move
+function oldDb() {
+  if (legacyDb) return legacyDb;
+  try {
+    const app = (firebase.apps || []).find(a => a.name === "legacy") || firebase.initializeApp(LEGACY_CONFIG, "legacy");
+    legacyDb = app.database();
+  } catch (e) { legacyDb = null; }
+  return legacyDb;
 }
 const netErr = e => /permission/i.test(String(e && (e.code || e.message))) ? ONLINE_OFF : CONN_ERR;
 // Saves the game to its cloud save code (a new one the first time). force replaces a cloud save that
@@ -163,11 +176,18 @@ async function cloudFind(text) {
   const db = await netDb();
   if (!db) return { msg: CONN_ERR };
   try {
-    const v = (await db.ref(CLOUD_PATH + key).once("value")).val();
+    let v = (await db.ref(CLOUD_PATH + key).once("value")).val(), moved = false;
+    if (!v) {
+      // Saved before the game had its own project: found in the old one, and saved here next time
+      const old = oldDb();
+      try { v = old ? (await old.ref(CLOUD_PATH + key).once("value")).val() : null; } catch (e) { v = null; }
+      moved = !!v;
+    }
     if (!v) return { msg: `There's no cloud save with the code ${keyText(key)}.` };
     const r = await decodeSave(v.state);
     if (r.err) return { msg: r.err };
-    return { found: { save: r.save, cloud: { key, ver: v.ver, at: v.t } }, msg: `Found a cloud save from ${dateText(v.t)}: ${saveSummary(r.save)}.` };
+    // A save from the old project starts over at version 1 here; the next cloud save writes it
+    return { found: { save: r.save, cloud: { key, ver: moved ? 0 : v.ver, at: v.t } }, msg: `Found a cloud save from ${dateText(v.t)}: ${saveSummary(r.save)}.` };
   } catch (e) { return { msg: netErr(e) }; }
 }
 

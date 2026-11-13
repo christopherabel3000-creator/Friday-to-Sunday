@@ -308,6 +308,26 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     ok(/12 letters and numbers/.test((await g(`cloudFind("ABC")`)).msg) && /There's no cloud save/.test((await g(`cloudFind("ABCD EFGH JK23")`)).msg), "a bad code, and one with no save");
     deny = true;
     ok(/switched on yet/.test((await g("cloudSave(false)")).msg) && /switched on yet/.test((await g(`cloudFind("${key}")`)).msg), "with the rules unpublished, it says what's missing");
+    deny = false;
+
+    // A code saved in the old shared project before the game had its own: found there, saved here
+    const oldData = {};
+    const oldDbStub = { ref: path => ({ once: () => Promise.resolve({ val: () => oldData[path] === undefined ? null : oldData[path] }), transaction: () => Promise.reject(new Error("the old project is read only")) }) };
+    const fb2 = { apps: [], database: true,
+      initializeApp(cfg, name) { const a = { name: name || "[DEFAULT]", cfg, database: () => (name === "legacy" ? oldDbStub : db) }; this.apps.push(a); return a; },
+      app() { return this.apps.find(a => a.name === "[DEFAULT]"); } };
+    const third = fresh({ firebase: fb2 });
+    third.g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition();`);
+    const oldKey = "QRST UVWX YZ23".replace(/ /g, "");
+    oldData["fridayToSundaySaves/" + oldKey] = { ver: 7, state: data["fridayToSundaySaves/" + key].state, t: Date.now(), by: "X", act: "save" };
+    r = await third.g(`cloudFind("${oldKey}")`);
+    ok(r.found && r.found.cloud.key === oldKey && r.found.cloud.ver === 0 && fb2.apps.some(a => a.name === "legacy" && /call-sheet-football/.test(a.cfg.databaseURL)), "an old code is found in the old project");
+    ok(fb2.apps.find(a => a.name === "[DEFAULT]").cfg.projectId === "friday-to-sunday-d5889", "while the game's own project is the main one");
+    third.g(`adoptSave(${JSON.stringify(r.found.save)}, ${JSON.stringify(r.found.cloud)})`);
+    r = await third.g("cloudSave(false)");
+    ok(r.ok && data["fridayToSundaySaves/" + oldKey] && data["fridayToSundaySaves/" + oldKey].ver === 1 && third.g("APP.cloud.ver") === 1, "and saving it moves it into the new project, same code");
+    r = await third.g(`cloudFind("${oldKey}")`);
+    ok(r.found && r.found.cloud.ver === 1, "after which the new copy is the one found");
   }
 
   // ---- Saves from before careers ----
