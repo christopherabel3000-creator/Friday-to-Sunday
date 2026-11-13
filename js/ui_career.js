@@ -286,6 +286,7 @@ function vSaves() {
       <button class="btn" data-a="cloudsave"${dis}>${C && C.key ? "Save to the cloud now" : "Save to the cloud"}</button>
       <div class="form"><label for="cloudkey">Load a cloud save code</label><input type="text" id="cloudkey" class="codein" data-in="cloudkey" data-enter="cloudfind" value="${esc(cloudKeyText)}" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go"></div>
       <button class="btn ghost" data-a="cloudfind"${dis}>Find the cloud save</button>
+      <p class="muted">What a cloud save sends, and what stays on this device: <a href="privacy.html">privacy policy</a>.</p>
     </section>
     <section class="panel">
       <h3>Save code</h3>

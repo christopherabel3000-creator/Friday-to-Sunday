@@ -88,9 +88,13 @@ The game's fonts are kept in `fonts/` (SIL Open Font License, `fonts/OFL.txt`), 
 
 ## The iPhone app
 
-The App Store version wraps the same files with [Capacitor](https://capacitorjs.com). Nothing about the game changes: `scripts/build-www.js` copies `index.html`, `style.css`, `js/` and `fonts/` into `www/`, and `npx cap sync ios` puts them in the Xcode project in `ios/`. In the app, each save is also kept as a file in the app's Documents folder (js/store.js), which iOS never clears.
+The App Store version wraps the same files with [Capacitor](https://capacitorjs.com). Nothing about the game changes: `scripts/build-www.js` copies `index.html`, `privacy.html`, `style.css`, `js/` and `fonts/` into `www/`, and `npx cap sync ios` puts them in the Xcode project in `ios/`. In the app, each save is also kept as a file in the app's Documents folder (js/store.js), which iOS never clears.
 
 There's no Mac needed: `.github/workflows/ios.yml` builds the app on GitHub's Macs. Every push checks that it still builds; running the workflow by hand (Actions, iPhone app, Run workflow) signs it and sends it to TestFlight. Signing needs four repo secrets, listed at the top of the workflow. The app is `com.playbyear.fridaytosunday`.
+
+## Privacy policy
+
+`privacy.html`, linked from the Cloud saves and save codes screen and served at [christopherabel3000-creator.github.io/Friday-to-Sunday/privacy.html](https://christopherabel3000-creator.github.io/Friday-to-Sunday/privacy.html) (the address for App Store Connect). Update it whenever the game starts handling information differently.
 
 ## Cloud saves
 
