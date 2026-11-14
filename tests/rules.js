@@ -522,5 +522,37 @@ function plain(g, extra) {
   ok(finished === 30, `every game reaches a final (${finished} of 30)`);
 }
 
+// ---- Running it down to a timeout ----
+{
+  const late = (g, extra) => { plain(g, Object.assign({ quarter: 4, clock: 30, spot: 85, phase: "result", clockRunning: true, tos: [3, 3], toUsed: false }, extra || {})); };
+  const { g } = game();
+  late(g);
+  ok(g("bleedOK(0)") && !g("bleedOK(1)") && g("bleedLeft()") === 2, "late in the half the offense can run it down to 0:02, and the defense can't");
+  g(`act("bleed", {})`);
+  ok(g("S.clock") === 2 && g("S.tos[0]") === 2 && !g("S.clockRunning") && /from 0:30 to 0:02, then call timeout/.test(g("S.toNote")), "it runs to 0:02, then the timeout stops the clock");
+  g("cont()");
+  ok(g("S.clock") === 2 && g("fgAvailable()"), "the next snap starts with 2 seconds left, and a field goal is on the menu on any down");
+  g(`S.offCall = "fg"; S.defCall = "b43"; const r = doFG(); S.phase = "result"; cont();`);
+  ok(g("S.quarter") >= 5 || g("S.gameOver"), "the kick is the last play of regulation: the other team never gets the ball back");
+  late(g, { clock: 70 });
+  ok(g("bleedLeft()") === 32, "with more than the play clock left, it runs what it can (1:10 to 0:32)");
+  late(g, { quarter: 1 });
+  ok(!g("bleedOK(0)"), "not in the first quarter, which isn't followed by a kickoff");
+  late(g, { clockRunning: false });
+  ok(!g("bleedOK(0)"), "not with the clock already stopped");
+  late(g, { tos: [0, 3] });
+  ok(!g("bleedOK(0)"), "not without a timeout");
+  // The computer does it too
+  const w = game(true);
+  late(w.g);
+  w.g("cont()");
+  ok(w.g("S.tos[0]") === 2 && w.g(`S.log.some(e => /from 0:30 to 0:02, then call timeout/.test(e.text) && e.clock === 2)`) && w.g(`S.log.some(e => e.off === "Field goal")`), "a computer coach tied late in field goal range runs it down to a timeout, then kicks");
+  late(w.g); w.g("S.teams[0].score = 7");
+  w.g("cont()");
+  ok(w.g("S.tos[0]") === 3, "but not when it's already ahead");
+  late(w.g, { spot: 30 });
+  ok(!w.g("cpuBleed(0)"), "or out of field goal range");
+}
+
 console.log(`${checks - fails}/${checks} checks passed`);
 process.exit(fails ? 1 : 0);

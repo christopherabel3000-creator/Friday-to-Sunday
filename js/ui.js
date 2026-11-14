@@ -510,6 +510,7 @@ function vHelp() {
       "Late in a half: use timeouts, or go no huddle (faster snaps, but nobody can change personnel).",
       "Ahead in the 4th quarter: run the clock, using 36 to 39 seconds between plays. It can't be combined with no huddle.",
       "In the last two minutes of each half you can also spike the ball, or run a play to the sideline to stop the clock.",
+      "With the ball, a timeout left and the clock running late in a half, Run it to 0:02, then timeout lets the clock run down before you call it, so your next snap, usually a field goal, is the last play of the half. With more time left than the play clock allows, the button names the time it will stop at instead.",
       "Fourth down: send out the punt team or field goal unit, or keep the offense on the field and go for it. The defense sees who runs on, and kicking units can run a fake.",
       "Punting: a regular punt, Pin it deep (a high, short kick aimed inside their 10, best from around midfield; your punter's accuracy decides how close he gets), or Boom it (as far as his leg allows, to flip the field when you're backed up, but it outkicks the coverage, so big returns happen, and it can sail into the end zone).",
       "Leading late with the other team out of timeouts, you can kneel to run out the clock.",
@@ -920,6 +921,7 @@ function act(a, ds) {
     case "pen": if (inGame && S.phase === "penalty") { choosePenalty(ds.v === "1"); scrollTop(); } break;
     case "half": if (inGame && S.phase === "halftime") { S.hready = null; startPlay(); scrollTop(); } break;
     case "to": if (inGame && callTimeout(+ds.t)) announce(S.toNote); break;
+    case "bleed": if (inGame && youDecide(S.poss) && bleedTimeout(S.poss)) announce(S.toNote); break;
     case "spike": if (inGame && (S.spikeNext || spikeOK())) { S.spikeNext = !S.spikeNext; if (S.spikeNext) { S.noHuddle = false; S.burnClock = false; } announce(S.spikeNext ? "Spike set for the next snap." : "Spike cancelled."); } break;
     case "tempo": if (inGame && tempoLevel() && youCallOff(S.poss)) { S.tempo = S.tempo || [false, false]; S.tempo[S.poss] = !S.tempo[S.poss]; if (S.tempo[S.poss]) { S.burnClock = false; if (tempoAvailable() && !S.spikeNext) { S.noHuddle = true; S.tempoSnap = true; } } else if (S.tempoSnap) { S.noHuddle = false; S.tempoSnap = false; }
       announce(S.tempo[S.poss] ? "Up-tempo. Every snap that can go no huddle will, until you turn it off." : "Tempo off."); } break;

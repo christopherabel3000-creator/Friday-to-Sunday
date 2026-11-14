@@ -1009,6 +1009,32 @@ function callTimeout(t) {
   S.log.unshift({ q: S.quarter, clock: S.clock, team: t, sit: "Timeout", off: "Timeout", def: "", text: S.toNote, score: `${S.teams[0].score}-${S.teams[1].score}` });
   return true;
 }
+// Running it down to a timeout: late in a half, the offense lets the play clock run, then calls
+// timeout with 2 seconds left, so its next snap (a field goal, most often) is the last play of the
+// half. The play clock only lets it run so far: about 38 seconds, or less when the clock waits for
+// the ready. With more than that left, it runs what it can and calls timeout.
+const BLEED_TO = 2;
+const bleedSecs = () => { const RO = R().runoff; return S.oobRestart ? (S.readyWhy === "oob" ? RO.oob : RO.ready)[1] : 38; };
+const bleedLeft = () => Math.max(BLEED_TO, S.clock - bleedSecs());
+const bleedOK = t => !!S.clockRunning && !S.runClock && !!S.tos && S.tos[t] > 0 && !S.toUsed && t === S.poss && clockWindow() && S.clock > BLEED_TO &&
+  S.phase === "result" && !S.needPAT && !S.tryChoice && !S.retryTwo && !S.kickChoice && !S.twoPt && !S.periodOver && !S.gameOver;
+function bleedTimeout(t) {
+  if (!bleedOK(t)) return false;
+  const from = S.clock;
+  S.clock = bleedLeft();
+  callTimeout(t);
+  S.toNote = `${tname(t)} let the clock run from ${fmtClock(from)} to ${fmtClock(S.clock)}, then call timeout. ${S.tos[t]} left this ${S.quarter >= 5 ? "overtime" : "half"}.`;
+  S.log[0].text = S.toNote; S.log[0].clock = S.clock;
+  return true;
+}
+// The computer runs it down when a field goal on the last snap is what it wants: in range, and in
+// the fourth quarter or overtime only when three points tie or win it
+function cpuBleed(t) {
+  if (!bleedOK(t) || bleedLeft() > BLEED_TO) return false;
+  const diff = S.teams[t].score - S.teams[1 - t].score, kd = kickDist();
+  if (S.quarter !== 2 && (diff > 0 || diff < -3)) return false;
+  return kd <= fgMaxTry(t) && fgProbFor(t, kd) >= .3;
+}
 // Computer coordinators manage their own clock: timeouts when they need time, spikes when out of timeouts
 function cpuClock() {
   if (!S.clockRunning) return;
@@ -1017,6 +1043,7 @@ function cpuClock() {
     const diff = S.teams[t].score - S.teams[1 - t].score, onO = t === S.poss;
     // Down by more than four scores late, timeouts don't matter anymore
     if (diff < -24 || S.runClock) continue;
+    if (onO && cpuBleed(t)) { bleedTimeout(t); continue; }
     const late4 = S.quarter >= 4 && S.clock <= 180, late2 = S.quarter === 2 && S.clock <= 120;
     if (onO && ((late4 && diff <= 0) || (late2 && S.spot >= 45))) callTimeout(t);
     else if (!onO && late4 && diff < 0) callTimeout(t);

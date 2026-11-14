@@ -1286,6 +1286,7 @@ High school rules vary a little from state to state. Where they differ, the fict
 
 - 12-minute quarters and three timeouts per half. There's no two-minute warning.
 - The clock stops on an incomplete pass, a change of possession, a score, a timeout, a fair catch and a touchback. In each case it starts again on the snap.
+- Running it down to a timeout (November 2026): in the last two minutes of a half, the team with the ball and a timeout left can let a running clock go to 0:02 and then call timeout, so its next snap (usually a field goal) is the last play and the other team never gets the ball back. The play clock limits it: about 38 seconds with the clock running, or the ready-for-play time when the clock starts on the ready, so with more left it stops at what that allows (1:10 becomes 0:32). Computer coaches, and a coordinator's head coach, do it when they're in field goal range with at least a 30 percent kick, in the second quarter, or later when three points tie or win.
 - House rule (changed from NFHS after playtesting, Nov 2026): going out of bounds stops the clock until the snap only in the last two minutes of each half. Earlier, the clock starts again when the ball is ready for play. Stopping it all game let teams combine for 600+ rushing yards.
 - The clock also stops when a team earns a first down, and starts again when the ball is ready for play.
 - After an accepted penalty, the clock starts when the ball is ready for play. In the last two minutes of either half, the team that was fouled can make it wait for the snap instead.

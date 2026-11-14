@@ -249,6 +249,7 @@ function clockBox() {
   let btns = "";
   if (S.clockRunning) {
     [0, 1].forEach(i => { if (youDecide(i) && S.tos[i] > 0 && !S.toUsed) btns += `<button class="btn ghost" data-a="to" data-t="${i}">${esc(t[i].abbr)} timeout (${S.tos[i]})</button>`; });
+    if (youDecide(o) && bleedOK(o)) btns += `<button class="btn ghost" data-a="bleed">${esc(t[o].abbr)}: run it to ${fmtClock(bleedLeft())}, then timeout</button>`;
     if (youCallOff(o) && burnAvailable()) btns += `<button class="btn ghost" data-a="burn" aria-pressed="${!!S.burnClock}">${S.burnClock ? "Running the clock" : `${esc(t[o].abbr)}: run the clock`}</button>`;
     if (youCallOff(o) && nhAvailable()) btns += `<button class="btn ghost" data-a="nohuddle" aria-pressed="${!!S.noHuddle}">${S.noHuddle ? "Going no huddle" : `${esc(t[o].abbr)}: no huddle`}</button>`;
     if (youCallOff(o) && (spikeOK() || S.spikeNext)) btns += `<button class="btn ghost" data-a="spike" aria-pressed="${!!S.spikeNext}">${S.spikeNext ? "Spiking next snap" : `${esc(t[o].abbr)}: spike next snap`}</button>`;
