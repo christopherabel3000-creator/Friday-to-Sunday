@@ -27,14 +27,14 @@ const hcPlanNow = () => (inCamp() ? CPU_CAMP : CPU_PLAN);
 const UNIT_WORDS = { oc: "quarterbacks, backs, receivers and tight ends, and the offensive line", dc: "the defensive line and linebackers, and the secondary" };
 function vCoordPractice() {
   const role = coordRole(), plan = SEASON.plan, hc = hcPlanNow(), b = blocksOf(coordPlan(planNow(), hc)), done = practiced(), n = practiceSlot(), camp = inCamp();
-  const row = id => `<div style="display:grid;gap:6px" role="group" aria-label="${AREA_NAMES[id]}"><span class="eyebrow" aria-hidden="true">${AREA_NAMES[id]} · ${blocksText(b[id])}</span>
-    <div class="seg">${INTENSITY.map((nm, v) => `<button data-a="parea" data-t="${id}" data-v="${v}" aria-pressed="${(plan.areas[id] || 0) === v}">${nm}</button>`).join("")}</div></div>`;
+  const row = blockRow;
   const focus = (plan.focus || []).filter(id => playName(id) && coordPlay(role, id));
   return `
     <div class="masthead" style="--team:${mySchool().color}">
       <p class="eyebrow">${practiceWeekName(n)} · Practice</p>
       <h2 data-focus tabindex="-1">Your ${COORD_SIDE[role]}'s practice</h2>
-      <p class="muted">${esc(`${hcName()} sets the week: ${CONTACT[hc.contact].name.toLowerCase()}, with his own share for conditioning and recovery, and he runs the ${hcSideWord()} and the kickers. You plan your side's time: fundamentals, install and opponent prep. The plan carries over from week to week.`)}</p>
+      <p class="muted">${esc(`${hcName()} sets the week: ${CONTACT[hc.contact].name.toLowerCase()}, with his own share for conditioning and recovery, and he runs the ${hcSideWord()} and the kickers. You plan your side's time: fundamentals, install and opponent prep, in ${PRACTICE_BLOCKS - planFixed()} blocks; any you leave unset count as recovery. The plan carries over from week to week.`)}</p>
+      <p>${planFreeText()}</p>
     </div>
     ${done ? `<p class="banner">This week's practice is done. Changes here start next week.</p>` : ""}
     <section class="panel">

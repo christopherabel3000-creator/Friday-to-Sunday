@@ -17,23 +17,40 @@ const playName = id => (OFFP[id] || DEFP[id]).name;
 const masteryLine = (s, id) => { const v = Math.round(s.mastery[id]); return `${playName(id)}, ${masteryWord(v)} ${v}`; };
 
 /* ---------- The practice plan ---------- */
+// The areas you set: all five, or a coordinator's three (the head coach keeps conditioning and recovery)
+const myAreas = () => coordRole() ? ["fund", "install", "prep"] : AREA_IDS;
+// Blocks you don't plan: a coordinator's head coach's conditioning and recovery
+const planFixed = () => { if (!coordRole()) return 0; const h = hcPlanNow().areas; return (h.cond || 0) + (h.rec || 0); };
+// Blocks still unset
+const planRoom = () => Math.max(0, PRACTICE_BLOCKS - planFixed() - myAreas().reduce((t, a) => t + (SEASON.plan.areas[a] || 0), 0));
+function planFreeText() {
+  const n = planRoom(), all = PRACTICE_BLOCKS - planFixed();
+  return n ? `${plural(n, "block")} unset, counted as recovery.` : `All ${all} ${coordRole() ? "of your " : ""}blocks set.`;
+}
+// One area: its blocks, with one less and one more
+function blockRow(id) {
+  const v = SEASON.plan.areas[id] || 0, free = id === "rec" ? planRoom() : 0, nm = AREA_NAMES[id];
+  const txt = `${blocksText(v)}${free ? `, plus ${free} unset` : ""}`;
+  return `<div class="blockrow"><span class="eyebrow">${nm} · ${txt}</span>
+    <div class="seg"><button data-a="pless" data-t="${id}" aria-label="One less ${nm.toLowerCase()} block">−</button><button data-a="pmore" data-t="${id}" aria-label="One more ${nm.toLowerCase()} block">+</button></div></div>`;
+}
 function vPractice() {
   if (coordRole()) return vCoordPractice();
   const plan = SEASON.plan, b = blocksOf(planNow()), pre = presetOf(plan), done = practiced(), n = practiceSlot(), camp = inCamp();
   const seg = (a, list, cur, label, extra) => `<div style="display:grid;gap:6px" role="group" aria-label="${label}"><span class="eyebrow" aria-hidden="true">${label}${extra || ""}</span><div class="seg${list.length > 3 ? " grid2" : ""}">
     ${list.map(([v, l]) => `<button data-a="${a}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join("")}</div></div>`;
-  const row = id => `<div style="display:grid;gap:6px" role="group" aria-label="${AREA_NAMES[id]}"><span class="eyebrow" aria-hidden="true">${AREA_NAMES[id]} · ${blocksText(b[id])}</span>
-    <div class="seg">${INTENSITY.map((nm, v) => `<button data-a="parea" data-t="${id}" data-v="${v}" aria-pressed="${(plan.areas[id] || 0) === v}">${nm}</button>`).join("")}</div></div>`;
+  const row = blockRow;
   const focus = (plan.focus || []).filter(id => playName(id));
   return `
     <div class="masthead" style="--team:${mySchool().color}">
       <p class="eyebrow">${practiceWeekName(n)} · Practice</p>
       <h2 data-focus tabindex="-1">Practice plan</h2>
-      <p class="muted">Ten blocks a week, two a day. Each area gets a share of them by its weight, so more for one means less for the rest. The plan carries over from week to week.</p>
+      <p class="muted">Ten blocks a week, two a day. Set how many blocks each area gets; any you leave unset count as recovery. The plan carries over from week to week.</p>
     </div>
     ${done ? `<p class="banner">This week's practice is done. Changes here start next week.</p>` : ""}
     <section class="panel">
       ${seg("ppreset", PRESET_IDS.map(id => [id, PRESETS[id].name]), pre, "Presets")}
+      <p>${planFreeText()}</p>
       ${seg("pcontact", CONTACT_IDS.map(id => [id, CONTACT[id].name]), plan.contact, "Contact")}
       <p class="muted styledesc">${esc(CONTACT[plan.contact].desc)}</p>
     </section>

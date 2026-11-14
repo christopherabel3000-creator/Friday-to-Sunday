@@ -3,7 +3,7 @@
 const SAVE_KEY = "friday-to-sunday-v1";
 // Version of the game code. Raise it by 1 with every release (GitHub Pages and itch.io together).
 // Saves record it, so older saves can be upgraded when they load.
-const BUILD = 19;
+const BUILD = 20;
 
 /* ---------- The app ---------- */
 // APP holds everything outside the game itself:
@@ -110,7 +110,7 @@ function upgradeSave(s) {
   }
   if (se && se.schools) {
     Object.values(se.schools).forEach(book);
-    if (!se.plan) Object.assign(se, { plan: newPlan(), practice: null, cpuWeek: Math.max(0, (se.week || 1) - 1), film: null, injLog: {} });
+    if (!se.plan) Object.assign(se, { plan: Object.assign(newPlan(), { fresh: 1 }), practice: null, cpuWeek: Math.max(0, (se.week || 1) - 1), film: null, injLog: {} });
     const me = se.myId && se.schools[se.myId];
     if (me && me.players) me.players.forEach(p => { if (p.o0 == null) p.o0 = ovr(p, p.pos); });
   }
@@ -183,6 +183,9 @@ function upgradeSave(s) {
     if (s.app && s.app.ex) s.app.ex.schools.forEach(fillSchemes);
     if (s.game && s.game.teams) s.game.teams.forEach(fillSchemes);
   }
+  // Version 20: practice by block counts (November 2026). A plan's weights become the whole blocks
+  // they shared out, adding up to ten.
+  if ((s.build || 0) < 20) [s.season, s.other, s.third].forEach(w => { if (w && w.plan && w.plan.areas) { if (!w.plan.fresh) w.plan.areas = weightPlan(w.plan.areas); delete w.plan.fresh; } });
   s.build = BUILD;
   return s;
 }
@@ -430,7 +433,7 @@ function vHelp() {
       "Program building is a coach rating like the others: more freshmen, more players at summer workouts, and more athletes saying yes."
     ]))}
     ${sec("Practice", ul([
-      "Each week has ten practice blocks. Give each area none, light, normal or heavy, and the blocks are shared out by weight. Presets give a quick start: Balanced, Install, Game prep and Rest.",
+      "Each week has ten practice blocks. Set how many blocks each area gets, a block at a time with the minus and plus buttons. Any you leave unset count as recovery. Presets give a quick start: Balanced, Install, Game prep and Rest.",
       "Fundamentals are individual periods: every position group works at the same time, quarterbacks, running backs and receivers, the offensive line, the defensive front, the secondary and the kickers, so one setting covers them all. A normal week of fundamentals is half the week. Growth depends on the player's work ethic, his year, your Development rating and the time spent, and slows as he nears his potential.",
       "Contact trades growth against injuries: shorts, shells or full pads. Conditioning builds stamina. Recovery means fewer practice injuries, faster healing and fresher legs on game day.",
       "Practice happens once a week, before the game. Hold it yourself to read the practice report first, or it happens on its own when you play or sim the game.",
@@ -789,13 +792,16 @@ function act(a, ds) {
     }
     // Practice
     case "practice": APP.screen = "practice"; scrollTop(); break;
-    case "parea": {
-      const v = +ds.v;
-      if (!AREA_NAMES[ds.t] || !(v >= 0 && v <= 3)) break;
+    case "parea": case "pmore": case "pless": {
+      if (!AREA_NAMES[ds.t]) break;
       // (conditioning and recovery are the head coach's, on a coordinator's team)
       if (coordRole() && (ds.t === "cond" || ds.t === "rec")) break;
-      SEASON.plan.areas[ds.t] = v;
-      announce(`${AREA_NAMES[ds.t]}: ${INTENSITY[v].toLowerCase()}, ${blocksText(blocksOf(coordRole() ? coordPlan(planNow(), hcPlanNow()) : planNow())[ds.t])}.`); break;
+      const areas = SEASON.plan.areas, cur = areas[ds.t] || 0, room = planRoom(), nm = AREA_NAMES[ds.t];
+      const v = a === "pmore" ? cur + 1 : a === "pless" ? cur - 1 : +ds.v;
+      if (!(v >= 0) || v !== Math.floor(v)) { announce(`${nm} is already at none.`); break; }
+      if (v - cur > room) { announce(`All ${PRACTICE_BLOCKS - planFixed()} of your blocks are set. Take one from another area first.`); break; }
+      areas[ds.t] = v;
+      announce(`${nm}: ${blocksText(v)}. ${planFreeText()}`); break;
     }
     case "pcontact": if (CONTACT[ds.v] && !coordRole()) { SEASON.plan.contact = ds.v; announce(`${CONTACT[ds.v].name}.`); } break;
     case "ppreset": if (PRESETS[ds.v] && !coordRole()) { SEASON.plan.areas = clone(PRESETS[ds.v].areas); SEASON.plan.contact = PRESETS[ds.v].contact; announce(`${PRESETS[ds.v].name} plan, in ${CONTACT[SEASON.plan.contact].name.toLowerCase()}.`); } break;

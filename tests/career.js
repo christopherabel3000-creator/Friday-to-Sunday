@@ -90,8 +90,8 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
     const p9 = +/(\d+) percent/.exec(g("fourthDownNote(0)"))[1];
     ok(p1 > 50 && p9 < 35 && p1 > p9, `fourth and 1 is likelier than fourth and 9 (${p1} and ${p9} percent)`);
     // Scouting: a fuller report from the same film time at 45, and spotting disguises at 60
-    ok(g("prepLevelFor(1, { sct: 46 })") === 2 && g("prepLevelFor(2, { sct: 46 })") === 3 && g("prepLevelFor(3, { sct: 46 })") === 3, "Scouting 46: one level more from the same film time");
-    ok(g("prepLevelFor(1, { sct: 44 })") === 1 && g("prepLevelFor(0, { sct: 90 })") === 0, "below 45 it's the film time alone, and no film is no report");
+    ok(g("prepLevelFor(.5, { sct: 46 })") === 2 && g("prepLevelFor(1, { sct: 46 })") === 3 && g("prepLevelFor(3, { sct: 46 })") === 3, "Scouting 46: one level more from the same film time");
+    ok(g("prepLevelFor(.5, { sct: 44 })") === 1 && g("prepLevelFor(0, { sct: 90 })") === 0, "below 45 it's the film time alone, and no film is no report");
     g(`S.teams[0].cpu = false; S.teams[1].cpu = true; S.offCall = "ir"; S.offPkg = "p11"; S.defCall = "c3"; S.defPkg = "base"; S.cfg.aud = true;`);
     g(`makeLook = () => ({ d: "zo", fake: true });`);
     const flags = sct => { let n = 0; for (let i = 0; i < 400; i++) { g(`S.teams[0].coach.sct = ${sct}; S.phase = "call"; afterDef();`); if (g("S.look.flag")) n++; } return n; };
@@ -204,7 +204,7 @@ const RATING_IDS = ["off", "def", "st", "dev", "mot", "gm", "sct"];
   {
     const { g } = fresh();
     ok(g(`unitGrowMul({ grow: { qb: 1.3 }, perks: ["qbw"] }, "qb")`) === 1.3 * 1.25 && g(`unitGrowMul({ perks: ["linew"] }, "front")`) === 1.25 && g(`unitGrowMul({ perks: ["linew"] }, "qb")`) === 1, "growth perks: 25 percent faster for their units, on top of the background");
-    ok(g(`prepLevelFor(1, { sct: 40, perks: ["film"] })`) === 2 && g(`prepLevelFor(1, { sct: 50, perks: ["film"] })`) === 3 && g(`prepLevelFor(0, { perks: ["film"] })`) === 0, "Film junkie: a fuller report from the same film");
+    ok(g(`prepLevelFor(.5, { sct: 40, perks: ["film"] })`) === 2 && g(`prepLevelFor(.5, { sct: 50, perks: ["film"] })`) === 3 && g(`prepLevelFor(0, { perks: ["film"] })`) === 0, "Film junkie: a fuller report from the same film");
     g(`APP = { v: 1, screen: "home", ex: null, view: null }; newExhibition(); APP.ex.you = "watch"; startExhibition();`);
     g(`S.teams.forEach(t => { t.coach = Object.assign({}, t.coach, { perks: [] }); }); S.teams[0].off = "air"; S.teams[1].def = "blz";`);
     const strength = g(`Object.keys(OFF_STYLES.air.plays).find(id => OFF_STYLES.air.plays[id] >= .4)`), blitzCall = g(`Object.keys(DEF_STYLES.blz.calls).find(id => DEF_STYLES.blz.calls[id] >= .4)`);

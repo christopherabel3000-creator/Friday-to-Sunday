@@ -50,9 +50,12 @@ const school = (g, seed) => g(`genSchool(dice(${seed}), { id: "t${seed}", cls: "
   for (const p of g("PRESET_IDS")) { const b = g(`blocksOf(PRESETS.${p})`); ok(Math.abs(Object.values(b).reduce((s, v) => s + v, 0) - 10) < 1e-9, `${p}: ten blocks`); }
   const rest = g(`blocksOf({ areas: {}, contact: "shells" })`);
   ok(rest.rec === 10, "a plan with nothing in it is a week of rest");
-  const heavyF = g(`blocksOf({ areas: Object.assign({}, PRESETS.balanced.areas, { fund: 3 }), contact: "shells" })`), bal = g("blocksOf(PRESETS.balanced)");
-  ok(heavyF.fund > bal.fund && heavyF.install < bal.install, "more weight for one area takes time from the rest");
-  ok(Math.abs(bal.fund - 5) < 1e-9 && Math.abs(bal.install - 10 / 6) < 1e-9 && Math.abs(bal.rec - 10 / 12) < 1e-9, "a balanced week: half of it fundamentals, every position group at once, and the rest as before");
+  const less = g(`blocksOf({ areas: Object.assign({}, PRESETS.balanced.areas, { install: 0 }), contact: "shells" })`), over = g(`blocksOf({ areas: { fund: 8, install: 4, prep: 4, cond: 2, rec: 2 }, contact: "shells" })`), bal = g("blocksOf(PRESETS.balanced)");
+  ok(less.install === 0 && less.rec === 3 && less.fund === 5, "unset blocks count as recovery");
+  ok(Math.abs(Object.values(over).reduce((s, v) => s + v, 0) - 10) < 1e-9 && over.fund === 4, "a plan over ten blocks is cut back to ten");
+  ok(bal.fund === 5 && bal.install === 2 && bal.prep === 1 && bal.cond === 1 && bal.rec === 1, "a balanced week: half of it fundamentals, every position group at once, then 2, 1, 1 and 1");
+  ok(JSON.stringify(g(`weightPlan({ fund: 2, install: 2, prep: 2, cond: 1, rec: 1 })`)) === JSON.stringify({ fund: 5, install: 2, prep: 1, cond: 1, rec: 1 }) && g(`blocksSet(weightPlan({ fund: 3, install: 1, prep: 0, cond: 2, rec: 3 }))`) === 10 && g(`weightPlan({}).rec`) === 10, "an old plan's weights become whole blocks adding up to ten");
+  ok(g(`prepLevelOf(1)`) === 2 && g(`prepLevelOf(2)`) === 3 && g(`prepLevelOf(.5)`) === 1 && g(`prepLevelOf(0)`) === 0, "a block of film is a full report, two every tendency");
   ok(g(`AREA_IDS.join()`) === "fund,install,prep,cond,rec" && g(`JSON.stringify(fundPlan({ qb: 3, skill: 2, ol: 1, front: 1, secondary: 1, kick: 1, install: 2, prep: 2, cond: 1, rec: 1 }))`) === JSON.stringify({ fund: 3, install: 2, prep: 2, cond: 1, rec: 1 }) && g(`fundPlan({ qb: 1, skill: 1, ol: 1, front: 1, secondary: 1, kick: 1, install: 2, prep: 2, cond: 1, rec: 1 }).fund`) === 2, "an old plan's position groups become one fundamentals weight");
   ok(g(`presetOf(newPlan())`) === "balanced", "a new plan is the balanced preset");
   // A season of practice: players grow, nobody past his potential, juniors and seniors less than freshmen
@@ -74,7 +77,7 @@ const school = (g, seed) => g(`genSchool(dice(${seed}), { id: "t${seed}", cls: "
       const ol = s.players.filter(p => p.pos === "OL"), r0 = ol.map(p => p.r.rbk + p.r.pbk), plan = { areas: Object.assign({}, PRESETS.balanced.areas, { fund: ${w} }), contact: "shells", focus: [] };
       for (let w = 0; w < 8; w++) practiceSchool(s, plan, Math.random, { noInjuries: true });
       ol.forEach((p, i) => { t += p.r.rbk + p.r.pbk - r0[i]; n++; }); } return t / n; })()`);
-  const none = unitGain(0), heavy = unitGain(3);
+  const none = unitGain(0), heavy = unitGain(7);
   ok(heavy > none + 1.5, `heavy fundamentals grow the line (heavy ${heavy.toFixed(1)}, none ${none.toFixed(1)} in blocking over 8 weeks)`);
   // Install: the focus plays gain the most
   const inst = g(`(() => { const s = genSchool(dice(42), { id: "i", cls: "1A", mascot: "M", town: "T", color: SCHOOL_COLORS[3], trad: 45 }); const m0 = clone(s.mastery);
@@ -87,7 +90,7 @@ const school = (g, seed) => g(`genSchool(dice(${seed}), { id: "t${seed}", cls: "
       for (let w = 0; w < 14; w++) { n += practiceSchool(s, ${plan}, Math.random).hurt.length; healSchool(s, blocksOf(${plan}).rec, Math.random); } } return n / 40; })()`);
   const pads = hurt(`{ areas: PRESETS.balanced.areas, contact: "pads" }`), shorts = hurt(`{ areas: PRESETS.balanced.areas, contact: "shorts" }`), shells = hurt(`{ areas: PRESETS.balanced.areas, contact: "shells" }`);
   ok(pads > shells && shells > shorts && shells > .8 && shells < 4.5, `full pads hurt the most players, shorts the fewest (a season: pads ${pads.toFixed(1)}, shells ${shells.toFixed(1)}, shorts ${shorts.toFixed(1)})`);
-  ok(g(`freshOf(blocksOf(PRESETS.rest), "shorts")`) === 100 && g(`freshOf(blocksOf({ areas: Object.assign({}, PRESETS.balanced.areas, { rec: 0, fund: 3 }) }), "pads")`) < 95, "rest keeps legs fresh; heavy hitting with no recovery wears them down");
+  ok(g(`freshOf(blocksOf(PRESETS.rest), "shorts")`) === 100 && g(`freshOf(blocksOf({ areas: { fund: 7, install: 1, prep: 1, cond: 1, rec: 0 } }), "pads")`) < 95, "rest keeps legs fresh; heavy hitting with no recovery wears them down");
   // Healing: a game at a time, the season-ending kind never
   const heal = g(`(() => { const s = genSchool(dice(3), { id: "x", cls: "1A", mascot: "M", town: "T", color: SCHOOL_COLORS[5], trad: 45 }); const [a, b, c] = s.players;
       a.inj = { w: 0 }; b.inj = { w: 2 }; c.inj = { w: 99 }; const out = []; for (let k = 0; k < 4; k++) { healSchool(s, 0, () => .99); out.push([!!a.inj, b.inj ? b.inj.w : -1, !!c.inj]); } return out; })()`);

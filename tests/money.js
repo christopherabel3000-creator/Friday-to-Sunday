@@ -41,7 +41,7 @@ const toOffseason = g => g(`simSeason(); act("offseason"); autoMarket(); openBoo
   ok(g(`wtMul({})`) === 1 && g(`eqInj({})`) === 1 && g(`filmSharp({})`) === false, "an exhibition school is basic everywhere: no effect");
   ok(g(`JSON.stringify(strAttrs({ str: .5, rbk: 1 }, { fac: [4, 2, 2, 2, 2] }))`) === JSON.stringify({ str: .6, rbk: 1 }) && g(`JSON.stringify(strAttrs({ rbk: 1 }, { fac: [5, 2, 2, 2, 2] }))`) === JSON.stringify({ rbk: 1 }), "the weight room grows strength, and only strength");
   // A great film room: a fuller scouting report and more edge
-  ok(g(`prepLevelFor(1, { sct: 40 }, { fac: [2, 4, 2, 2, 2] })`) === 2 && g(`prepLevelFor(1, { sct: 40 }, { fac: [2, 3, 2, 2, 2] })`) === 1 && g(`prepLevelFor(0, { sct: 40 }, { fac: [2, 5, 2, 2, 2] })`) === 0, "a great film room makes the scouting report one level fuller");
+  ok(g(`prepLevelFor(.5, { sct: 40 }, { fac: [2, 4, 2, 2, 2] })`) === 2 && g(`prepLevelFor(.5, { sct: 40 }, { fac: [2, 3, 2, 2, 2] })`) === 1 && g(`prepLevelFor(0, { sct: 40 }, { fac: [2, 5, 2, 2, 2] })`) === 0, "a great film room makes the scouting report one level fuller");
   // Practice injuries: a poor field and full pads against an elite field and elite equipment
   const hurt = fac => g(`(() => { let n = 0; setRandom(seededRandom(7)); for (let k = 0; k < 40; k++) { const s = clone(mySchool()); s.fac = ${JSON.stringify(fac)}; for (let w = 0; w < 14; w++) { n += practiceSchool(s, Object.assign(newPlan(), { contact: "pads" }), rand).hurt.length; healSchool(s, 1, rand); } } setRandom(null); return n / 40; })()`);
   const poor = hurt([2, 2, 1, 1, 2]), elite = hurt([2, 2, 5, 5, 2]);

@@ -3,17 +3,16 @@
 "use strict";
 
 /* ---------- The plan ---------- */
-// Ten blocks a week: five days, two blocks a day. Each area gets a weight (none, light, normal or
-// heavy), and the blocks are shared out by weight, so giving one area more time takes it from the rest.
-// Fundamentals are individual periods: every position group works at once, each with its own coach,
-// so they count three times their weight (a normal week of fundamentals is half the week).
+// Ten blocks a week: five days, two blocks a day. You set how many blocks each area gets, whole
+// blocks only, ten at most; any you leave unset are rest, and count as recovery (November 2026; it
+// used to be a weight per area, none, light, normal or heavy, with the blocks shared out by weight).
+// Fundamentals are individual periods: every position group works at once, each with its own coach.
 const PRACTICE_BLOCKS = 10;
 const PRACTICE_AREAS = [["fund", "Fundamentals"], ["install", "Install"], ["prep", "Opponent prep"], ["cond", "Conditioning"], ["rec", "Recovery"]];
-const AREA_WEIGHT = { fund: 3 };
 const FUND_UNITS = ["qb", "skill", "ol", "front", "secondary", "kick"];
 const AREA_IDS = PRACTICE_AREAS.map(a => a[0]);
 const AREA_NAMES = Object.fromEntries(PRACTICE_AREAS);
-const INTENSITY = ["None", "Light", "Normal", "Heavy"]; // the weights 0 to 3
+const INTENSITY = ["None", "Light", "Normal", "Heavy"]; // the summer program's weights, 0 to 3
 // Contact: more hitting grows players a little faster, wears them down for game day, and hurts more of them
 const CONTACT = {
   shorts: { name: "Shorts", grow: .85, risk: .3, wear: .25, desc: "Helmets only, no hitting. Slower growth, almost no injuries, fresh legs on game day." },
@@ -21,20 +20,36 @@ const CONTACT = {
   pads: { name: "Full pads", grow: 1.12, risk: 2.1, wear: .9, desc: "Full contact. A little faster growth, but more injuries and tired legs on Friday." }
 };
 const CONTACT_IDS = ["shorts", "shells", "pads"];
+// Blocks per area
 const PRESETS = {
-  balanced: { name: "Balanced", areas: { fund: 2, install: 2, prep: 2, cond: 1, rec: 1 }, contact: "shells" },
-  install: { name: "Install", areas: { fund: 2, install: 3, prep: 1, cond: 0, rec: 1 }, contact: "shells" },
-  gameprep: { name: "Game prep", areas: { fund: 2, install: 1, prep: 3, cond: 0, rec: 2 }, contact: "shells" },
-  rest: { name: "Rest", areas: { fund: 2, install: 1, prep: 1, cond: 0, rec: 3 }, contact: "shorts" }
+  balanced: { name: "Balanced", areas: { fund: 5, install: 2, prep: 1, cond: 1, rec: 1 }, contact: "shells" },
+  install: { name: "Install", areas: { fund: 5, install: 3, prep: 1, cond: 0, rec: 1 }, contact: "shells" },
+  gameprep: { name: "Game prep", areas: { fund: 5, install: 1, prep: 2, cond: 0, rec: 2 }, contact: "shells" },
+  rest: { name: "Rest", areas: { fund: 5, install: 1, prep: 1, cond: 0, rec: 3 }, contact: "shorts" }
 };
 const PRESET_IDS = ["balanced", "install", "gameprep", "rest"];
 // Every school starts with a balanced week, and the computer's schools keep it all season
 const newPlan = () => ({ areas: clone(PRESETS.balanced.areas), contact: "shells", focus: [] });
 const CPU_PLAN = newPlan();
-// Blocks per area for a plan (a plan with nothing in it is a week of rest)
+// The blocks a plan sets, before the unset ones go to recovery
+const blocksSet = areas => AREA_IDS.reduce((t, a) => t + Math.max(0, (areas && areas[a]) || 0), 0);
+// Blocks per area for a plan: what it sets, with any unset blocks as recovery (a plan with nothing in
+// it is a week of rest). A plan over ten blocks is cut back to ten, in proportion.
 function blocksOf(plan) {
-  const w = plan.areas, wt = a => (w[a] || 0) * (AREA_WEIGHT[a] || 1), tot = AREA_IDS.reduce((s, a) => s + wt(a), 0), out = {};
-  AREA_IDS.forEach(a => { out[a] = tot ? PRACTICE_BLOCKS * wt(a) / tot : (a === "rec" ? PRACTICE_BLOCKS : 0); });
+  const w = plan.areas || {}, tot = blocksSet(w), k = tot > PRACTICE_BLOCKS ? PRACTICE_BLOCKS / tot : 1, out = {};
+  AREA_IDS.forEach(a => { out[a] = Math.max(0, w[a] || 0) * k; });
+  out.rec += Math.max(0, PRACTICE_BLOCKS - tot);
+  return out;
+}
+// A plan from before block counts: its weights (none 0 to heavy 3, fundamentals counting three times
+// theirs) shared out as before, then rounded to whole blocks that add up to ten
+function weightPlan(areas) {
+  const wt = a => (areas[a] || 0) * (a === "fund" ? 3 : 1), tot = AREA_IDS.reduce((t, a) => t + wt(a), 0);
+  if (!tot) return { fund: 0, install: 0, prep: 0, cond: 0, rec: PRACTICE_BLOCKS };
+  const raw = AREA_IDS.map(a => [a, PRACTICE_BLOCKS * wt(a) / tot]), out = {};
+  raw.forEach(([a, v]) => { out[a] = Math.floor(v); });
+  let left = PRACTICE_BLOCKS - blocksSet(out);
+  raw.slice().sort((x, y) => (y[1] % 1) - (x[1] % 1)).forEach(([a]) => { if (left > 0) { out[a]++; left--; } });
   return out;
 }
 const presetOf = plan => PRESET_IDS.find(id => AREA_IDS.every(a => (PRESETS[id].areas[a] || 0) === (plan.areas[a] || 0))) || null;
@@ -52,8 +67,9 @@ function fundPlan(areas) {
   ["install", "prep", "cond", "rec"].forEach(a => { out[a] = areas[a] || 0; });
   return out;
 }
-// Opponent prep: no report, a light one, a full one, or the works
-const prepLevelOf = b => b <= 0 ? 0 : b < 1.25 ? 1 : b < 2.4 ? 2 : 3;
+// Opponent prep: no report, a short one, a full one, or the works
+// (a whole block of film is a full report, two or more every tendency; a short one is less than a block)
+const prepLevelOf = b => b <= 0 ? 0 : b < .95 ? 1 : b < 1.95 ? 2 : 3;
 // A coach with Scouting 45 or better gets one level more out of the same film time
 const SCOUT_SHARP = 45;
 // (and so does a great or elite film room: money.js)
