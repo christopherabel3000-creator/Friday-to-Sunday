@@ -57,7 +57,7 @@ football,coach,coaching,career,high school,college,simulation,play calling,voice
 
 ## Screenshots
 
-`appstore/screenshots/`: six for iPhone 6.9" (1320 x 2868) and six for iPad 13" (2064 x 2752), in this order:
+`appstore/screenshots/`: six for iPhone 6.3" (1206 x 2622, the size App Store Connect asks for; it turns down 1320 x 2868) and six for iPad 13" (2064 x 2752), in this order:
 
 1. A fourth-and-1 key moment, late in a close game
 2. The week's matchup, position by position
@@ -65,6 +65,10 @@ football,coach,coaching,career,high school,college,simulation,play calling,voice
 4. The final score and box score
 5. The practice plan
 6. District standings
+
+## Content rights
+
+No, the app does not contain, show, or access third-party content.
 
 ## Age rating
 
