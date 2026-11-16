@@ -98,7 +98,7 @@ There's no Mac needed: `.github/workflows/ios.yml` builds the app on GitHub's Ma
 
 ## Support page and App Store listing
 
-`support.html` (help, common questions and the contact form) is served at [christopherabel3000-creator.github.io/Friday-to-Sunday/support.html](https://christopherabel3000-creator.github.io/Friday-to-Sunday/support.html), the Support URL for App Store Connect, and linked from the Cloud saves and save codes screen. `appstore/listing.md` holds the App Store text and the answers to App Store Connect's questions; `appstore/screenshots/` holds the screenshots at Apple's sizes (iPhone 6.9" and iPad 13"). Neither goes into the app.
+`support.html` (help, common questions and the contact form) is served at [christopherabel3000-creator.github.io/Friday-to-Sunday/support.html](https://christopherabel3000-creator.github.io/Friday-to-Sunday/support.html), the Support URL for App Store Connect, and linked from the Cloud saves and save codes screen. `appstore/listing.md` holds the App Store text and the answers to App Store Connect's questions; `appstore/screenshots/` holds the screenshots at Apple's sizes (iPhone 6.3" and iPad 13"). Neither goes into the app.
 
 ## Cloud saves
 
