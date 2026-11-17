@@ -95,9 +95,28 @@ Leave unmarked for now: Larger Text (the game's text sizes are fixed and don't f
 
 ## Notes for the reviewer
 
-Friday to Sunday is a complete single-player football coaching game, built to be fully playable with VoiceOver by a developer who plays with a screen reader. The whole game is bundled in the app and runs offline. Saves are kept on the device (including as files in the app's Documents folder). The only network use is optional cloud saves (Cloud saves and save codes, on the main menu), which use Google Firebase.
+Apple asks every new app for six things in this field: a screen recording made on a real iPhone, and answers 2 to 6 below.
 
-To try it: tap Start a career, enter any coach name, tap Find a job, then pick any school. Sim the rest of camp, then tap Play the game to call plays, or Key moments to take over late in a close game. No account or sign-in is needed.
+Friday to Sunday is a complete single-player football coaching game, built to be fully playable with VoiceOver by a developer who plays with a screen reader. The build was tested on a physical iPhone through TestFlight before submission.
+
+1. SCREEN RECORDING
+Recorded on a physical iPhone running the latest iOS, starting from launching the app: https://youtu.be/7uovd7-cjp8
+The app has no account registration or login, no user-generated content, and no paid content or purchases. So those flows don't exist to show.
+
+2. PURPOSE AND AUDIENCE
+A football coaching career game. You start as head coach of a small high school team and earn your way up through bigger high schools and college to the pros, by running practice, recruiting, building game plans and calling plays. It is for football and sports management fans, and especially for blind and low-vision players: it was designed for VoiceOver from the start.
+
+3. HOW TO USE IT
+No account, login or sample files are needed. Tap Start a career, enter any coach name, tap Find a job, then pick any school. Sim the rest of camp, then tap Play the game to call plays, or Key moments to take over late in a close game.
+
+4. EXTERNAL SERVICES
+Only one, and it is optional: Google Firebase Realtime Database, used for cloud saves (Cloud saves and save codes, on the main menu). Saves are stored under a random code, not an account. There are no authentication services, payment processors, ad networks, analytics or AI services. The whole game is bundled in the app and runs offline, and saves are kept on the device by default.
+
+5. REGIONS
+The app works the same in every region where it is offered. It is in English only. There is no region-specific content or behavior.
+
+6. REGULATED INDUSTRIES AND THIRD-PARTY MATERIAL
+Not applicable. The app is not in a regulated industry, and has no gambling or real-money features. It contains no third-party or licensed material: all teams, schools, players and leagues are made up, with no real names or logos. The name, artwork, text and code are original. The fonts are used under the SIL Open Font License.
 
 ## Encryption
 
