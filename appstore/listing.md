@@ -101,6 +101,7 @@ Friday to Sunday is a complete single-player football coaching game, built to be
 
 1. SCREEN RECORDING
 Recorded on a physical iPhone running the latest iOS, starting from launching the app: https://youtu.be/7uovd7-cjp8
+The voice heard in the recording is VoiceOver, since the developer plays the game with a screen reader.
 The app has no account registration or login, no user-generated content, and no paid content or purchases. So those flows don't exist to show.
 
 2. PURPOSE AND AUDIENCE
