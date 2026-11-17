@@ -100,7 +100,7 @@ Apple asks every new app for six things in this field: a screen recording made o
 Friday to Sunday is a complete single-player football coaching game, built to be fully playable with VoiceOver by a developer who plays with a screen reader. The build was tested on a physical iPhone through TestFlight before submission.
 
 1. SCREEN RECORDING
-Recorded on a physical iPhone running the latest iOS, starting from launching the app: https://youtu.be/7uovd7-cjp8
+Recorded on a physical iPhone running the latest iOS, starting from launching the app: https://youtu.be/au_P0-tcnsQ
 The voice heard in the recording is VoiceOver, since the developer plays the game with a screen reader.
 The app has no account registration or login, no user-generated content, and no paid content or purchases. So those flows don't exist to show.
 
