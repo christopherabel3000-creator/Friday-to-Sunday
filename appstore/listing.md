@@ -85,13 +85,9 @@ Answer None or No to every question (no violence beyond the sport itself, no gam
 
 ## Accessibility (App Store accessibility labels)
 
-Mark as supported on iPhone and iPad:
+Published Nov 18 2026 for iPhone and iPad: VoiceOver only.
 
-- VoiceOver: yes
-- Dark Interface: yes (the game follows the system's dark mode)
-- Reduced Motion: yes (animations stop when Reduce Motion is on)
-
-Leave unmarked for now: Larger Text (the game's text sizes are fixed and don't follow the system text size), Voice Control, Sufficient Contrast, Differentiate Without Color Alone, Captions, Audio Descriptions. Any of these can be added after checking them.
+Christopher chose to list VoiceOver alone. Don't add any other label (such as Dark Interface or Reduced Motion) unless he asks for it.
 
 ## Notes for the reviewer
 
